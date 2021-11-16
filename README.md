@@ -1,5 +1,5 @@
 # marinade-anchor
-Marinade-finance liquid staking program for teh Solana blockchain
+Marinade-finance liquid staking program for the Solana blockchain
 
 # Audits & Code Review
 
