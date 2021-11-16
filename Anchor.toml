@@ -1,0 +1,5 @@
+anchor_version = "0.14.0"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"

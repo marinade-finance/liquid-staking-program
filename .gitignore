@@ -1,0 +1,21 @@
+# ignore Mac OS noise
+.DS_Store
+
+# ignore the build directory for Rust/Anchor
+target
+
+# ignore localnet data
+test-ledger
+
+# ignore temp folders & sensitive data
+docker-target
+temp
+keys
+
+# Ignore backup files creates by cargo fmt.
+**/*.rs.bk
+
+# Emacs backups
+*~
+.#*
+\#*#

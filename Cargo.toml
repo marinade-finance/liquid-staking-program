@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "programs/marinade-finance",
+]
+
+[profile.release]
+overflow-checks = true
