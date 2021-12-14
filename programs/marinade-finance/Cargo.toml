@@ -21,4 +21,7 @@ bincode = "1.3.3"
 [features]
 default = []
 no-entrypoint = []
+anchor-debug = []
 
+[profile.release]
+overflow-checks = true
