@@ -7,8 +7,8 @@ use crate::{
     Claim, CommonError,
 };
 
-///How many epochs to wats for ticket. e.g.: Ticket created on epoch 14, ticket is due on epoch 16
-const WAIT_EPOCHS: u64 = 2;
+///How many epochs to wats for ticket. e.g.: Ticket created on epoch 14, ticket is due on epoch 15
+const WAIT_EPOCHS: u64 = 1;
 ///Wait 30 extra minutes from epochs start so the bot has time to withdraw SOL from inactive stake-accounts
 const EXTRA_WAIT_SECONDS: i64 = 30 * 60;
 
