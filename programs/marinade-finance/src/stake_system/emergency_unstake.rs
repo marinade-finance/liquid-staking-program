@@ -74,7 +74,8 @@ impl<'info> EmergencyUnstake<'info> {
 
 
         // Allow partial emergency unstake
-        // compute target for this particular validator (total_stake_target * score/total_score)
+        // compute target for this particular validator (total_active_balance * score/total_score)
+        // Note: we use total_active_balance without considering stake_delta, because stake_delta can change before the stake_delta window
         let total_stake_target = self
             .state
             .validator_system
