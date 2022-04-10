@@ -19,12 +19,12 @@ pub struct StakeRecord {
 impl StakeRecord {
     pub const DISCRIMINATOR: &'static [u8; 8] = b"staker__";
 
-    pub fn new(stake_account: &Pubkey, delegated_lamports: u64, clock: &Clock) -> Self {
+    pub fn new(stake_account: &Pubkey, delegated_lamports: u64, clock: &Clock, is_emergency_unstaking:u8) -> Self {
         Self {
             stake_account: *stake_account,
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
-            is_emergency_unstaking: 0,
+            is_emergency_unstaking,
         }
     }
 }
@@ -128,10 +128,11 @@ impl StakeSystem {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
+        is_emergency_unstaking:u8
     ) -> ProgramResult {
         self.stake_list.push(
             stake_list_data,
-            StakeRecord::new(stake_account, delegated_lamports, clock),
+            StakeRecord::new(stake_account, delegated_lamports, clock, is_emergency_unstaking),
             "stake_list",
         )?;
         Ok(())

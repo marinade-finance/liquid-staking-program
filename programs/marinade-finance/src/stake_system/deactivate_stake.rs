@@ -234,6 +234,7 @@ impl<'info> DeactivateStake<'info> {
                 self.split_stake_account.key,
                 split_amount,
                 &self.clock,
+                0 // is_emergency_unstaking? no
             )?;
 
             let stake_accout_len = std::mem::size_of::<StakeState>();
