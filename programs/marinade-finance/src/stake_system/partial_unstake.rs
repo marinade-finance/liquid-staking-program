@@ -1,13 +1,13 @@
 use crate::{
-    checks::{check_owner_program,check_stake_matches_validator}, 
-    stake_system::StakeSystemHelpers
+    checks::{check_owner_program, check_stake_matches_validator},
+    stake_system::StakeSystemHelpers,
 };
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
     program::{invoke, invoke_signed},
-    stake::{self, state::StakeState},
     stake::program as stake_program,
+    stake::{self, state::StakeState},
     system_instruction, system_program,
 };
 
@@ -42,7 +42,10 @@ impl<'info> PartialUnstake<'info> {
             );
             return Err(ProgramError::InvalidAccountData);
         }
-        assert!(stake.is_emergency_unstaking==0,"already emergency unstaking");
+        assert!(
+            stake.is_emergency_unstaking == 0,
+            "already emergency unstaking"
+        );
 
         let mut validator = self
             .state
@@ -55,10 +58,7 @@ impl<'info> PartialUnstake<'info> {
         // Allow partial unstake
         // compute target for this particular validator (total_active_balance * score/total_score)
         // Note: we use total_active_balance without considering stake_delta, because stake_delta can change before the stake_delta window
-        let total_stake_target = self
-            .state
-            .validator_system
-            .total_active_balance;
+        let total_stake_target = self.state.validator_system.total_active_balance;
 
         let validator_stake_target = self
             .state
@@ -82,7 +82,9 @@ impl<'info> PartialUnstake<'info> {
         );
 
         // compute how much this particular account should have
-        let stake_account_target = stake.last_update_delegated_lamports.saturating_sub(unstake_from_validator);
+        let stake_account_target = stake
+            .last_update_delegated_lamports
+            .saturating_sub(unstake_from_validator);
 
         let unstake_amount = if stake_account_target < 2 * self.state.stake_system.min_stake {
             // unstake all if what will remain in the account is < twice min_stake
@@ -106,7 +108,7 @@ impl<'info> PartialUnstake<'info> {
             })?;
 
             stake.is_emergency_unstaking = 1;
-    
+
             // Return rent reserve of unused split stake account if it is not empty
             if self.split_stake_account.owner == &stake::program::ID {
                 let correct =
@@ -141,7 +143,6 @@ impl<'info> PartialUnstake<'info> {
             }
 
             stake.last_update_delegated_lamports
-
         } else {
             // we must perform partial unstake
             assert!(stake_account_target < stake.last_update_delegated_lamports);
@@ -159,7 +160,7 @@ impl<'info> PartialUnstake<'info> {
                 self.split_stake_account.key,
                 split_amount,
                 &self.clock,
-                1 // is_emergency_unstaking
+                1, // is_emergency_unstaking
             )?;
 
             let stake_account_len = std::mem::size_of::<StakeState>();

@@ -1,4 +1,7 @@
-use crate::{checks::{check_owner_program,check_stake_matches_validator}, stake_system::StakeSystemHelpers};
+use crate::{
+    checks::{check_owner_program, check_stake_matches_validator},
+    stake_system::StakeSystemHelpers,
+};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{

@@ -1,7 +1,7 @@
 use crate::CommonError;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, TokenAccount};
 use anchor_lang::solana_program::stake::state::StakeState;
+use anchor_spl::token::{Mint, TokenAccount};
 
 pub fn check_min_amount(amount: u64, min_amount: u64, action_name: &str) -> ProgramResult {
     if amount >= min_amount {
@@ -119,7 +119,10 @@ pub fn check_token_owner(token: &TokenAccount, owner: &Pubkey, field_name: &str)
 }
 
 // check that the account is delegated and to the right validator
-pub fn check_stake_matches_validator(stake_account: &StakeState, validator_vote_pubkey: &Pubkey) -> ProgramResult {
+pub fn check_stake_matches_validator(
+    stake_account: &StakeState,
+    validator_vote_pubkey: &Pubkey,
+) -> ProgramResult {
     if let Some(delegation) = stake_account.delegation() {
         if delegation.voter_pubkey != *validator_vote_pubkey {
             msg!(
@@ -127,8 +130,7 @@ pub fn check_stake_matches_validator(stake_account: &StakeState, validator_vote_
                 validator_vote_pubkey
             );
             Err(ProgramError::InvalidInstructionData)
-        }
-        else {
+        } else {
             Ok(())
         }
     } else {
