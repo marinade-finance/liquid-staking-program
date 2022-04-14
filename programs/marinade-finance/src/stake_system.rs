@@ -5,6 +5,7 @@ use anchor_lang::solana_program::clock::Epoch;
 pub mod deactivate_stake;
 pub mod deposit_stake_account;
 pub mod emergency_unstake;
+pub mod partial_unstake;
 pub mod merge;
 pub mod stake_reserve;
 

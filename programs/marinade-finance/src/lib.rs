@@ -231,6 +231,15 @@ pub mod marinade_finance {
         ctx.accounts.process(stake_index, validator_index)
     }
 
+    pub fn partial_unstake(
+        ctx: Context<PartialUnstake>,
+        stake_index: u32,
+        validator_index: u32,
+    ) -> ProgramResult {
+        check_context(&ctx)?;
+        ctx.accounts.process(stake_index, validator_index)
+    }
+
     pub fn merge_stakes(
         ctx: Context<MergeStakes>,
         destination_stake_index: u32,
@@ -790,6 +799,32 @@ pub struct DeactivateStake<'info> {
 
 #[derive(Accounts)]
 pub struct EmergencyUnstake<'info> {
+    #[account(mut)]
+    pub state: ProgramAccount<'info, State>,
+    #[account(signer)]
+    pub validator_manager_authority: AccountInfo<'info>,
+    #[account(mut)]
+    pub validator_list: AccountInfo<'info>,
+    #[account(mut)]
+    pub stake_list: AccountInfo<'info>,
+    #[account(mut)]
+    pub stake_account: CpiAccount<'info, StakeWrapper>,
+    pub stake_deposit_authority: AccountInfo<'info>,
+    #[account(mut, signer)]
+    pub split_stake_account: AccountInfo<'info>,
+    #[account(mut, signer)]
+    pub split_stake_rent_payer: AccountInfo<'info>,
+
+    pub clock: Sysvar<'info, Clock>,
+    pub rent: Sysvar<'info, Rent>,
+    pub stake_history: AccountInfo<'info>,
+
+    pub system_program: AccountInfo<'info>,
+    pub stake_program: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct PartialUnstake<'info> {
     #[account(mut)]
     pub state: ProgramAccount<'info, State>,
     #[account(signer)]
