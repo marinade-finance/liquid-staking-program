@@ -120,13 +120,13 @@ pub fn check_token_owner(token: &TokenAccount, owner: &Pubkey, field_name: &str)
 
 // check that the account is delegated and to the right validator
 pub fn check_stake_matches_validator(
-    stake_account: &StakeState,
+    stake_state: &StakeState,
     validator_vote_pubkey: &Pubkey,
 ) -> ProgramResult {
-    if let Some(delegation) = stake_account.delegation() {
+    if let Some(delegation) = stake_state.delegation() {
         if delegation.voter_pubkey != *validator_vote_pubkey {
             msg!(
-                "Invalid stake validator index. Need to point into validator {}",
+                "Invalid validator index. Needs to point to validator {}",
                 validator_vote_pubkey
             );
             Err(ProgramError::InvalidInstructionData)
