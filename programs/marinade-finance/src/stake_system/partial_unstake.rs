@@ -1,4 +1,7 @@
-use crate::{checks::check_owner_program, stake_system::StakeSystemHelpers};
+use crate::{
+    checks::{check_owner_program,check_stake_matches_validator}, 
+    stake_system::StakeSystemHelpers
+};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
@@ -46,31 +49,8 @@ impl<'info> PartialUnstake<'info> {
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
-        // check currently_staked in this account
-        {
-            let currently_staked = if let Some(delegation) = self.stake_account.delegation() {
-                if delegation.voter_pubkey != validator.validator_account {
-                    msg!(
-                        "Invalid stake validator index. Need to point into validator {}",
-                        validator.validator_account
-                    );
-                    return Err(ProgramError::InvalidInstructionData);
-                }
-                delegation.stake
-            } else {
-                msg!(
-                    "Stake {} must be delegated!",
-                    self.stake_account.to_account_info().key
-                );
-                return Err(ProgramError::InvalidAccountData);
-            };
-
-            if stake.last_update_delegated_lamports != currently_staked {
-                msg!("Deactivation of not updated stake {}", stake.stake_account);
-                // Not error, update it after deactivation
-                // return Err(ProgramError::InvalidAccountData);
-            }
-        }
+        // check that the account is delegated to the right validator
+        check_stake_matches_validator(&self.stake_account.inner, &validator.validator_account)?;
 
         // Allow partial unstake
         // compute target for this particular validator (total_active_balance * score/total_score)
@@ -96,7 +76,7 @@ impl<'info> PartialUnstake<'info> {
         }
         let unstake_from_validator = validator.active_balance - validator_stake_target;
         msg!(
-            "manual unstake {} from_validator {}",
+            "partial unstake {} from_validator {}",
             unstake_from_validator,
             &validator.validator_account
         );
@@ -182,15 +162,15 @@ impl<'info> PartialUnstake<'info> {
                 1 // is_emergency_unstaking
             )?;
 
-            let stake_accout_len = std::mem::size_of::<StakeState>();
+            let stake_account_len = std::mem::size_of::<StakeState>();
             if self.split_stake_account.owner == &system_program::ID {
                 // empty account
                 invoke(
                     &system_instruction::create_account(
                         self.split_stake_rent_payer.key,
                         self.split_stake_account.key,
-                        self.rent.minimum_balance(stake_accout_len),
-                        stake_accout_len as u64,
+                        self.rent.minimum_balance(stake_account_len),
+                        stake_account_len as u64,
                         &stake_program::ID,
                     ),
                     &[
@@ -206,11 +186,11 @@ impl<'info> PartialUnstake<'info> {
                     &stake::program::ID,
                     "split_stake_account",
                 )?;
-                if self.split_stake_account.data_len() < stake_accout_len {
+                if self.split_stake_account.data_len() < stake_account_len {
                     msg!(
                         "Split stake account {} must have at least {} bytes (got {})",
                         self.split_stake_account.key,
-                        stake_accout_len,
+                        stake_account_len,
                         self.split_stake_account.data_len()
                     );
                     return Err(ProgramError::InvalidAccountData);

@@ -810,16 +810,9 @@ pub struct EmergencyUnstake<'info> {
     #[account(mut)]
     pub stake_account: CpiAccount<'info, StakeWrapper>,
     pub stake_deposit_authority: AccountInfo<'info>,
-    #[account(mut, signer)]
-    pub split_stake_account: AccountInfo<'info>,
-    #[account(mut, signer)]
-    pub split_stake_rent_payer: AccountInfo<'info>,
 
     pub clock: Sysvar<'info, Clock>,
-    pub rent: Sysvar<'info, Rent>,
-    pub stake_history: AccountInfo<'info>,
 
-    pub system_program: AccountInfo<'info>,
     pub stake_program: AccountInfo<'info>,
 }
 
