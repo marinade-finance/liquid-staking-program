@@ -235,9 +235,11 @@ pub mod marinade_finance {
         ctx: Context<PartialUnstake>,
         stake_index: u32,
         validator_index: u32,
+        unstake_amount: u64,
     ) -> ProgramResult {
         check_context(&ctx)?;
-        ctx.accounts.process(stake_index, validator_index)
+        ctx.accounts
+            .process(stake_index, validator_index, unstake_amount)
     }
 
     pub fn merge_stakes(
