@@ -235,11 +235,11 @@ pub mod marinade_finance {
         ctx: Context<PartialUnstake>,
         stake_index: u32,
         validator_index: u32,
-        unstake_amount: u64,
+        desired_unstake_amount: u64,
     ) -> ProgramResult {
         check_context(&ctx)?;
         ctx.accounts
-            .process(stake_index, validator_index, unstake_amount)
+            .process(stake_index, validator_index, desired_unstake_amount)
     }
 
     pub fn merge_stakes(
@@ -831,6 +831,8 @@ pub struct PartialUnstake<'info> {
     #[account(mut)]
     pub stake_account: CpiAccount<'info, StakeWrapper>,
     pub stake_deposit_authority: AccountInfo<'info>,
+    // Readonly. For stake delta calculation
+    pub reserve_pda: AccountInfo<'info>,
     #[account(mut, signer)]
     pub split_stake_account: AccountInfo<'info>,
     #[account(mut, signer)]

@@ -9,7 +9,7 @@ use anchor_lang::solana_program::{
     system_instruction, system_program,
 };
 
-use crate::{checks::check_address, state::StateHelpers, DeactivateStake};
+use crate::{checks::{check_address,check_stake_amount_and_validator}, state::StateHelpers, DeactivateStake};
 
 impl<'info> DeactivateStake<'info> {
     //
@@ -83,31 +83,8 @@ impl<'info> DeactivateStake<'info> {
             .total_active_balance
             .saturating_sub(total_unstake_delta);
 
-        // check currently_staked in this account
-        {
-            let currently_staked = if let Some(delegation) = self.stake_account.delegation() {
-                if delegation.voter_pubkey != validator.validator_account {
-                    msg!(
-                        "Invalid stake validator index. Need to point into validator {}",
-                        validator.validator_account
-                    );
-                    return Err(ProgramError::InvalidInstructionData);
-                }
-                delegation.stake
-            } else {
-                msg!(
-                    "Stake {} must be delegated!",
-                    self.stake_account.to_account_info().key
-                );
-                return Err(ProgramError::InvalidAccountData);
-            };
-
-            if stake.last_update_delegated_lamports != currently_staked {
-                msg!("Deactivation of not updated stake {}", stake.stake_account);
-                // Not error, update it after deactivation
-                // return Err(ProgramError::InvalidAccountData);
-            }
-        }
+        // check currently_staked in this account & validator vote-key
+        check_stake_amount_and_validator(&self.stake_account.inner, stake.last_update_delegated_lamports, &validator.validator_account)?;
 
         // compute target for this particular validator (total_stake_target * score/total_score)
         let validator_stake_target = self

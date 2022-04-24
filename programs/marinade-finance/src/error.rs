@@ -68,6 +68,12 @@ pub enum CommonError {
     #[msg("1105 Wrong Ticket Beneficiary")]
     WrongBeneficiary = 4057,
 
+    #[msg("1106 Stake Account not updated yet")]
+    StakeAccountNotUpdatedYet = 4058,
+
+    #[msg("1107 Stake Account not delegated")]
+    StakeNotDelegated = 4059,
+
     #[msg("1199 Insufficient Liquidity in the Liquidity Pool")]
     InsufficientLiquidity = 4205,
 
