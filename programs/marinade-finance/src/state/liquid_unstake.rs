@@ -48,7 +48,7 @@ impl<'info> LiquidUnstake<'info> {
     }
 
     fn check_transfer_sol_to(&self) -> ProgramResult {
-        check_owner_program(&self.transfer_sol_to, &system_program::ID, "transfer_from")?;
+        check_owner_program(&self.transfer_sol_to, &system_program::ID, "transfer_sol_to")?;
         Ok(())
     }
 
