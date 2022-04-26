@@ -9,7 +9,11 @@ use anchor_lang::solana_program::{
     system_instruction, system_program,
 };
 
-use crate::{checks::{check_address,check_stake_amount_and_validator}, state::StateHelpers, DeactivateStake};
+use crate::{
+    checks::{check_address, check_stake_amount_and_validator},
+    state::StateHelpers,
+    DeactivateStake,
+};
 
 impl<'info> DeactivateStake<'info> {
     //
@@ -84,7 +88,11 @@ impl<'info> DeactivateStake<'info> {
             .saturating_sub(total_unstake_delta);
 
         // check currently_staked in this account & validator vote-key
-        check_stake_amount_and_validator(&self.stake_account.inner, stake.last_update_delegated_lamports, &validator.validator_account)?;
+        check_stake_amount_and_validator(
+            &self.stake_account.inner,
+            stake.last_update_delegated_lamports,
+            &validator.validator_account,
+        )?;
 
         // compute target for this particular validator (total_stake_target * score/total_score)
         let validator_stake_target = self

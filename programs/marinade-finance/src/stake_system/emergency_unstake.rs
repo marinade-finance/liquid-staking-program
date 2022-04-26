@@ -53,7 +53,11 @@ impl<'info> EmergencyUnstake<'info> {
         }
 
         // check that the account is delegated to the right validator
-        check_stake_amount_and_validator(&self.stake_account.inner, stake.last_update_delegated_lamports, &validator.validator_account)?;
+        check_stake_amount_and_validator(
+            &self.stake_account.inner,
+            stake.last_update_delegated_lamports,
+            &validator.validator_account,
+        )?;
 
         let unstake_amount = stake.last_update_delegated_lamports;
         msg!("Deactivate whole stake {}", stake.stake_account);

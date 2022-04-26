@@ -139,7 +139,11 @@ pub fn check_stake_amount_and_validator(
     };
     // do not allow to operate on an account where last_update_delegated_lamports != currently_staked
     if currently_staked != expected_stake_amount {
-        msg!("Operation on a stake account not yet updated. expected stake:{}, current:{}", expected_stake_amount, currently_staked);
+        msg!(
+            "Operation on a stake account not yet updated. expected stake:{}, current:{}",
+            expected_stake_amount,
+            currently_staked
+        );
         return Err(CommonError::StakeAccountNotUpdatedYet.into());
     }
     Ok(())
