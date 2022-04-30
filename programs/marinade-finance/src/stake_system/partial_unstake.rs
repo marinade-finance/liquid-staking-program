@@ -60,10 +60,9 @@ impl<'info> PartialUnstake<'info> {
             return Err(ProgramError::InvalidAccountData);
         }
         // check the account is not already in emergency_unstake
-        assert!(
-            stake.is_emergency_unstaking == 0,
-            "already emergency unstaking"
-        );
+        if stake.is_emergency_unstaking != 0 {
+            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
+        }
 
         // check amount currently_staked in this account
         // and that the account is delegated to the validator_index sent

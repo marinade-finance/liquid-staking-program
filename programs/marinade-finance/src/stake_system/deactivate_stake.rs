@@ -51,10 +51,9 @@ impl<'info> DeactivateStake<'info> {
             return Err(ProgramError::InvalidAccountData);
         }
         // check the account is not already in emergency_unstake
-        assert!(
-            stake.is_emergency_unstaking == 0,
-            "stake emergency unstaking"
-        );
+        if stake.is_emergency_unstaking != 0 {
+            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
+        }
 
         let mut validator = self
             .state
