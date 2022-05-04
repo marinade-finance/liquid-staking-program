@@ -74,8 +74,8 @@ pub enum CommonError {
     #[msg("1107 Stake Account not delegated")]
     StakeNotDelegated = 4059,
 
-    #[msg("1108 Stake Account is emergency unstaking")]
-    StakeAccountIsEmergencyUnstaking = 4060,
+    #[msg("1108 Stake Account is unstaking")]
+    StakeAccountIsUnstaking = 4060,
 
     #[msg("1199 Insufficient Liquidity in the Liquidity Pool")]
     InsufficientLiquidity = 4205,

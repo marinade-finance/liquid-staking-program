@@ -157,6 +157,10 @@ impl<'info> UpdateActive<'info> {
             is_treasury_msol_ready_for_transfer,
         } = self.begin(stake_index)?;
 
+        if stake.state != 0 {
+            return Err(crate::CommonError::StakeAccountIsUnstaking.into());
+        }
+
         let mut validator = self
             .state
             .validator_system
@@ -347,21 +351,27 @@ impl<'info> UpdateDeactivated<'info> {
         })?;
         self.state.on_transfer_from_reserve(rent)?;
 
-        if stake.is_emergency_unstaking == 0 {
+        match stake.state {
+            2 =>
             // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)
-            self.state.stake_system.delayed_unstake_cooling_down = self
-                .state
-                .stake_system
-                .delayed_unstake_cooling_down
-                .checked_sub(stake.last_update_delegated_lamports)
-                .ok_or(CommonError::CalculationFailure)?;
-        } else {
+            {
+                self.state.stake_system.delayed_unstake_cooling_down = self
+                    .state
+                    .stake_system
+                    .delayed_unstake_cooling_down
+                    .checked_sub(stake.last_update_delegated_lamports)
+                    .ok_or(CommonError::CalculationFailure)?
+            }
+            1 =>
             // remove from emergency_cooling_down (amount is now in the reserve, is no longer cooling-down)
-            self.state.emergency_cooling_down = self
-                .state
-                .emergency_cooling_down
-                .checked_sub(stake.last_update_delegated_lamports)
-                .ok_or(CommonError::CalculationFailure)?;
+            {
+                self.state.emergency_cooling_down = self
+                    .state
+                    .emergency_cooling_down
+                    .checked_sub(stake.last_update_delegated_lamports)
+                    .ok_or(CommonError::CalculationFailure)?
+            }
+            _ => return Err(ProgramError::InvalidAccountData),
         }
 
         // We update mSOL price in case we receive "extra deactivating rewards" after the start of Delayed-unstake.

@@ -78,11 +78,11 @@ impl<'info> EmergencyUnstake<'info> {
             )
         })?;
 
-        // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
+        // check the account is not already in unstake
+        if stake.state != 0 {
+            return Err(crate::CommonError::StakeAccountIsUnstaking.into());
         }
-        stake.is_emergency_unstaking = 1;
+        stake.state = 1;
 
         // we now consider amount no longer "active" for this specific validator
         validator.active_balance = validator

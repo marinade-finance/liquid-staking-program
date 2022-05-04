@@ -14,7 +14,7 @@ pub struct StakeRecord {
     pub stake_account: Pubkey,
     pub last_update_delegated_lamports: u64,
     pub last_update_epoch: u64,
-    pub is_emergency_unstaking: u8, // 1 for cooling down after emergency unstake, 0 otherwise
+    pub state: u8, // 0 - active, 1 for cooling down after emergency unstake, 2 cooling down
 }
 
 impl StakeRecord {
@@ -24,13 +24,13 @@ impl StakeRecord {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
-        is_emergency_unstaking: u8,
+        state: u8,
     ) -> Self {
         Self {
             stake_account: *stake_account,
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
-            is_emergency_unstaking,
+            state,
         }
     }
 }
@@ -134,7 +134,7 @@ impl StakeSystem {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
-        is_emergency_unstaking: u8,
+        state: u8,
     ) -> ProgramResult {
         self.stake_list.push(
             stake_list_data,
@@ -142,7 +142,7 @@ impl StakeSystem {
                 stake_account,
                 delegated_lamports,
                 clock,
-                is_emergency_unstaking,
+                state,
             ),
             "stake_list",
         )?;

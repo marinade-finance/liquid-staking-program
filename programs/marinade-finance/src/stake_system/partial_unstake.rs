@@ -60,8 +60,8 @@ impl<'info> PartialUnstake<'info> {
             return Err(ProgramError::InvalidAccountData);
         }
         // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
+        if stake.state != 0 {
+            return Err(crate::CommonError::StakeAccountIsUnstaking.into());
         }
 
         // check amount currently_staked in this account
@@ -133,7 +133,7 @@ impl<'info> PartialUnstake<'info> {
             })?;
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
-            stake.is_emergency_unstaking = 1;
+            stake.state = 1;
 
             // Return rent reserve of unused split stake account if it is not empty
             if self.split_stake_account.owner == &stake::program::ID {

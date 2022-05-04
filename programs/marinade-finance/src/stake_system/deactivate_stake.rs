@@ -51,9 +51,9 @@ impl<'info> DeactivateStake<'info> {
             );
             return Err(ProgramError::InvalidAccountData);
         }
-        // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
+        // check the account is not already in unstaking
+        if stake.state != 0 {
+            return Err(crate::CommonError::StakeAccountIsUnstaking.into());
         }
 
         let mut validator = self
@@ -152,6 +152,8 @@ impl<'info> DeactivateStake<'info> {
                 )
             })?;
 
+            stake.state = 2; // We are unstaking
+
             // Return rent reserve of unused split stake account if it is not empty
             if self.split_stake_account.owner == &stake::program::ID {
                 let correct =
@@ -224,7 +226,7 @@ impl<'info> DeactivateStake<'info> {
                 self.split_stake_account.key,
                 split_amount,
                 &self.clock,
-                0, // is_emergency_unstaking? no
+                2, // unstaking
             )?;
 
             let stake_accout_len = std::mem::size_of::<StakeState>();
