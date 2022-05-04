@@ -18,6 +18,10 @@ impl<'info> MergeStakes<'info> {
         source_stake_index: u32,
         validator_index: u32,
     ) -> ProgramResult {
+        if self.state.fix_forced_unstake_upgraded_stakes != std::u32::MAX {
+            msg!("Please finalize upgrade of state before deleting stake records");
+            return Err(ProgramError::InvalidAccountData);
+        }
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .validator_system
@@ -46,6 +50,15 @@ impl<'info> MergeStakes<'info> {
             &self.stake_list.data.as_ref().borrow(),
             destination_stake_index,
         )?;
+        if self.destination_stake.to_account_info().key != &destination_stake_info.stake_account {
+            msg!(
+                "Destination stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
+                self.destination_stake.to_account_info().key,
+                destination_stake_index,
+                &destination_stake_info.stake_account
+            );
+            return Err(ProgramError::InvalidAccountData);
+        }
         let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
         } else {
@@ -81,6 +94,15 @@ impl<'info> MergeStakes<'info> {
             .state
             .stake_system
             .get(&self.stake_list.data.as_ref().borrow(), source_stake_index)?;
+        if self.source_stake.to_account_info().key != &source_stake_info.stake_account {
+            msg!(
+                "Source stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
+                self.source_stake.to_account_info().key,
+                source_stake_index,
+                &source_stake_info.stake_account
+            );
+            return Err(ProgramError::InvalidAccountData);
+        }
         let source_delegation = if let Some(delegation) = self.source_stake.delegation() {
             delegation
         } else {

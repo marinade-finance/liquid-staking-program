@@ -273,6 +273,10 @@ impl<'info> UpdateDeactivated<'info> {
     /// Optional Future Expansion: Partial: If the stake-account is a fully-deactivated stake account ready to withdraw,
     /// (cool-down period is complete) delete-withdraw the stake-account, send SOL to reserve-account
     pub fn process(&mut self, stake_index: u32) -> ProgramResult {
+        if self.state.fix_forced_unstake_upgraded_stakes != std::u32::MAX {
+            msg!("Please finalize upgrade of state before deleting stake records");
+            return Err(ProgramError::InvalidAccountData);
+        }
         let BeginOutput {
             stake,
             is_treasury_msol_ready_for_transfer,

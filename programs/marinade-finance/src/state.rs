@@ -20,6 +20,7 @@ pub mod initialize;
 pub mod liquid_unstake;
 pub mod order_unstake;
 pub mod update;
+pub mod fix_forced_unstake;
 
 #[account]
 #[derive(Debug)]
@@ -67,6 +68,8 @@ pub struct State {
     pub staking_sol_cap: u64,
 
     pub emergency_cooling_down: u64,
+    // TODO: 0 next update, remove on update after
+    pub fix_forced_unstake_upgraded_stakes: u32, // std::u32::MAX fully updated
 }
 
 impl State {

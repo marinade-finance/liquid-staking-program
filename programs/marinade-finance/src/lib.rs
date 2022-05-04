@@ -252,6 +252,23 @@ pub mod marinade_finance {
         ctx.accounts
             .process(destination_stake_index, source_stake_index, validator_index)
     }
+
+    pub fn fix_forced_unstake(
+        ctx: Context<FixForcedUnstake>,
+        stake_index: u32,
+        validator_index: u32,
+    ) -> ProgramResult {
+        check_context(&ctx)?;
+        ctx.accounts.process(stake_index, validator_index)
+    }
+
+    // Temporal code
+    pub fn upgrade_for_fix_forced_unstake(
+        ctx: Context<UpgradeForFixForcedUnstake>,
+    ) -> ProgramResult {
+        check_context(&ctx)?;
+        ctx.accounts.process()
+    }
 }
 
 #[cfg(not(feature = "no-entrypoint"))]
@@ -867,4 +884,71 @@ pub struct MergeStakes<'info> {
     pub stake_history: AccountInfo<'info>, // have no CPU budget to parse Sysvar<'info, StakeHistory>,
 
     pub stake_program: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct FixForcedUnstake<'info> {
+    #[account(mut)]
+    pub state: ProgramAccount<'info, State>,
+    #[account(mut)]
+    pub validator_list: AccountInfo<'info>,
+    #[account(mut)]
+    pub stake_list: AccountInfo<'info>,
+    pub stake: CpiAccount<'info, StakeWrapper>,
+}
+
+// Temporal code
+#[derive(Accounts)]
+pub struct UpgradeForFixForcedUnstake<'info> {
+    #[account(mut)]
+    pub state: ProgramAccount<'info, State>,
+    #[account(mut)]
+    pub stake_list: AccountInfo<'info>,
+    pub stake: CpiAccount<'info, StakeWrapper>,
+}
+
+impl<'info> UpgradeForFixForcedUnstake<'info> {
+    pub fn process(&mut self) -> ProgramResult {
+        if self.state.fix_forced_unstake_upgraded_stakes == u32::MAX {
+            msg!("Already updated");
+            return Err(ProgramError::Custom(9222));
+        }
+        self.state.stake_system.check_stake_list(&self.stake_list)?;
+        let mut stake = self.state.stake_system.get(
+            &self.stake_list.data.as_ref().borrow(),
+            self.state.fix_forced_unstake_upgraded_stakes,
+        )?;
+        if self.stake.to_account_info().key != &stake.stake_account {
+            msg!(
+                "Stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
+                self.stake.to_account_info().key,
+                self.state.fix_forced_unstake_upgraded_stakes,
+                &stake.stake_account
+            );
+            return Err(ProgramError::InvalidAccountData);
+        }
+        let delegation = if let Some(delegation) = self.stake.delegation() {
+            delegation
+        } else {
+            msg!(
+                "Stake {} must be delegated",
+                self.stake.to_account_info().key
+            );
+            return Err(ProgramError::InvalidArgument);
+        };
+        // Mark deactivating non upgraded stake record
+        if delegation.deactivation_epoch != std::u64::MAX && stake.state == 0 {
+            stake.state = 2;
+            self.state.stake_system.set(
+                &mut self.stake_list.data.as_ref().borrow_mut(),
+                self.state.fix_forced_unstake_upgraded_stakes,
+                stake,
+            )?;
+        }
+        self.state.fix_forced_unstake_upgraded_stakes += 1;
+        if self.state.fix_forced_unstake_upgraded_stakes == self.state.stake_system.stake_count() {
+            self.state.fix_forced_unstake_upgraded_stakes = std::u32::MAX; // Finalized
+        }
+        Ok(())
+    }
 }
