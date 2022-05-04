@@ -201,7 +201,10 @@ impl ValidatorSystem {
             );
             return Err(ProgramError::InvalidInstructionData);
         }
-        self.total_validator_score = self.total_validator_score.saturating_sub(record.score);
+        self.total_validator_score = self
+            .total_validator_score
+            .checked_sub(record.score)
+            .ok_or(CommonError::CalculationFailure)?;
 
         self.validator_list
             .remove(validator_list_data, index, "validator_list")?;

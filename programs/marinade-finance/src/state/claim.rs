@@ -126,7 +126,7 @@ impl<'info> Claim<'info> {
                 &[seeds],
             )
         })?;
-        self.state.on_transfer_from_reserve(lamports);
+        self.state.on_transfer_from_reserve(lamports)?;
 
         // move all rent-exempt ticket-account lamports to the user,
         // the ticket-account will be deleted eventually because is no longer rent-exempt

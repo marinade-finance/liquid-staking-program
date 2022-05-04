@@ -262,8 +262,12 @@ impl State {
             .expect("reserve balance overflow");
     }
 
-    pub fn on_transfer_from_reserve(&mut self, amount: u64) {
-        self.available_reserve_balance = self.available_reserve_balance.saturating_sub(amount);
+    pub fn on_transfer_from_reserve(&mut self, amount: u64) -> ProgramResult {
+        self.available_reserve_balance = self
+            .available_reserve_balance
+            .checked_sub(amount)
+            .ok_or(CommonError::CalculationFailure)?;
+        Ok(())
     }
 
     pub fn on_msol_mint(&mut self, amount: u64) {
@@ -273,8 +277,12 @@ impl State {
             .expect("msol supply overflow");
     }
 
-    pub fn on_msol_burn(&mut self, amount: u64) {
-        self.msol_supply = self.msol_supply.saturating_sub(amount);
+    pub fn on_msol_burn(&mut self, amount: u64) -> ProgramResult {
+        self.msol_supply = self
+            .msol_supply
+            .checked_sub(amount)
+            .ok_or(CommonError::CalculationFailure)?;
+        Ok(())
     }
 
     /*

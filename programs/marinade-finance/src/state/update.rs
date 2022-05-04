@@ -6,6 +6,7 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::token::{mint_to, MintTo};
 
+use crate::error::CommonError;
 use crate::{
     checks::check_address,
     stake_system::{StakeRecord, StakeSystemHelpers},
@@ -344,7 +345,7 @@ impl<'info> UpdateDeactivated<'info> {
                 &[seeds],
             )
         })?;
-        self.state.on_transfer_from_reserve(rent);
+        self.state.on_transfer_from_reserve(rent)?;
 
         if stake.is_emergency_unstaking == 0 {
             // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)
@@ -352,13 +353,15 @@ impl<'info> UpdateDeactivated<'info> {
                 .state
                 .stake_system
                 .delayed_unstake_cooling_down
-                .saturating_sub(stake.last_update_delegated_lamports);
+                .checked_sub(stake.last_update_delegated_lamports)
+                .ok_or(CommonError::CalculationFailure)?;
         } else {
             // remove from emergency_cooling_down (amount is now in the reserve, is no longer cooling-down)
             self.state.emergency_cooling_down = self
                 .state
                 .emergency_cooling_down
-                .saturating_sub(stake.last_update_delegated_lamports);
+                .checked_sub(stake.last_update_delegated_lamports)
+                .ok_or(CommonError::CalculationFailure)?;
         }
 
         // We update mSOL price in case we receive "extra deactivating rewards" after the start of Delayed-unstake.
