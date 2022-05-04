@@ -186,7 +186,7 @@ impl<'info> StakeReserve<'info> {
                 &[seeds],
             )
         })?;
-        self.state.on_transfer_from_reserve(stake_target);
+        self.state.on_transfer_from_reserve(stake_target)?;
 
         sol_log_compute_units();
         msg!("Initialize stake");

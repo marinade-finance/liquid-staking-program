@@ -133,6 +133,7 @@ impl<'info> Initialize<'info> {
         self.state.min_deposit = 1; // 1 lamport
         self.state.min_withdraw = 1; // 1 lamport
         self.state.staking_sol_cap = std::u64::MAX; // Unlimited
+        self.state.fix_forced_unstake_upgraded_stakes = std::u32::MAX; // Already upgraded
 
         LiqPoolInitialize::process(self, data.liq_pool)?;
 
