@@ -1,3 +1,4 @@
+use crate::error::CommonError;
 use crate::{checks::check_owner_program, stake_system::StakeSystemHelpers};
 use std::convert::TryFrom;
 
@@ -323,7 +324,10 @@ impl<'info> DeactivateStake<'info> {
             split_amount
         };
         // we now consider amount no longer "active" for this specific validator
-        validator.active_balance = validator.active_balance.saturating_sub(unstaked_amount);
+        validator.active_balance = validator
+            .active_balance
+            .checked_sub(unstaked_amount)
+            .ok_or(CommonError::CalculationFailure)?;
         // Any stake-delta activity must activate stake delta mode
         self.state.stake_system.last_stake_delta_epoch = self.clock.epoch;
         // and in state totals,
@@ -332,7 +336,8 @@ impl<'info> DeactivateStake<'info> {
             .state
             .validator_system
             .total_active_balance
-            .saturating_sub(unstaked_amount);
+            .checked_sub(unstaked_amount)
+            .ok_or(CommonError::CalculationFailure)?;
         self.state.stake_system.delayed_unstake_cooling_down = self
             .state
             .stake_system
