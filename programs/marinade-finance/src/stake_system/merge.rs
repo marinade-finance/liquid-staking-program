@@ -42,19 +42,11 @@ impl<'info> MergeStakes<'info> {
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
-        let mut destination_stake_info = self.state.stake_system.get(
+        let mut destination_stake_info = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             destination_stake_index,
+            self.destination_stake.to_account_info().key,
         )?;
-        if self.destination_stake.to_account_info().key != &destination_stake_info.stake_account {
-            msg!(
-                "Destination stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
-                self.destination_stake.to_account_info().key,
-                destination_stake_index,
-                &destination_stake_info.stake_account
-            );
-            return Err(ProgramError::InvalidAccountData);
-        }
         let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
         } else {
@@ -86,19 +78,11 @@ impl<'info> MergeStakes<'info> {
             return Err(ProgramError::InvalidArgument);
         }
         // Source stake
-        let source_stake_info = self
-            .state
-            .stake_system
-            .get(&self.stake_list.data.as_ref().borrow(), source_stake_index)?;
-        if self.source_stake.to_account_info().key != &source_stake_info.stake_account {
-            msg!(
-                    "Source stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
-                    self.source_stake.to_account_info().key,
-                    source_stake_index,
-                    &source_stake_info.stake_account
-                );
-            return Err(ProgramError::InvalidAccountData);
-        }
+        let source_stake_info = self.state.stake_system.get_checked(
+            &self.stake_list.data.as_ref().borrow(),
+            source_stake_index,
+            self.source_stake.to_account_info().key,
+        )?;
         let source_delegation = if let Some(delegation) = self.source_stake.delegation() {
             delegation
         } else {

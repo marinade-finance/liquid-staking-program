@@ -149,8 +149,29 @@ impl StakeSystem {
         Ok(())
     }
 
-    pub fn get(&self, stake_list_data: &[u8], index: u32) -> Result<StakeRecord, ProgramError> {
+    fn get(&self, stake_list_data: &[u8], index: u32) -> Result<StakeRecord, ProgramError> {
         self.stake_list.get(stake_list_data, index, "stake_list")
+    }
+
+    /// get the stake account record from an index, and check that the account is the same passed as parameter to the instruction
+    pub fn get_checked(
+        &self,
+        stake_list_data: &[u8],
+        index: u32,
+        received_pubkey: &Pubkey,
+    ) -> Result<StakeRecord, ProgramError> {
+        let stake_record = self.get(stake_list_data, index)?;
+        if stake_record.stake_account != *received_pubkey {
+            msg!(
+                "Stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
+                received_pubkey,
+                index,
+                stake_record.stake_account,
+            );
+            Err(ProgramError::InvalidAccountData)
+        } else {
+            Ok(stake_record)
+        }
     }
 
     pub fn set(&self, stake_list_data: &mut [u8], index: u32, stake: StakeRecord) -> ProgramResult {

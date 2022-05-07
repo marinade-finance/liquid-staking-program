@@ -73,19 +73,15 @@ impl<'info> UpdateCommon<'info> {
         }
         self.state.msol_supply = self.msol_mint.supply;
 
-        let stake = self
-            .state
-            .stake_system
-            .get(&self.stake_list.data.as_ref().borrow(), stake_index)?;
+        let stake = self.state.stake_system.get_checked(
+            &self.stake_list.data.as_ref().borrow(),
+            stake_index,
+            self.stake_account.to_account_info().key,
+        )?;
         /*if stake.last_update_epoch == self.clock.epoch {
             msg!("Double update for stake {}", stake.stake_account);
             return Ok(()); // Not error. Maybe parallel update artifact
         }*/
-        check_address(
-            self.stake_account.to_account_info().key,
-            &stake.stake_account,
-            "stake_account",
-        )?;
 
         Ok(BeginOutput {
             stake,

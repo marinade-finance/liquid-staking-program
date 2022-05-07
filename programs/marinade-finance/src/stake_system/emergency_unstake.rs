@@ -28,19 +28,11 @@ impl<'info> EmergencyUnstake<'info> {
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
 
-        let mut stake = self
-            .state
-            .stake_system
-            .get(&self.stake_list.data.as_ref().borrow(), stake_index)?;
-        if self.stake_account.to_account_info().key != &stake.stake_account {
-            msg!(
-                "Stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
-                self.stake_account.to_account_info().key,
-                stake_index,
-                &stake.stake_account
-            );
-            return Err(ProgramError::InvalidAccountData);
-        }
+        let mut stake = self.state.stake_system.get_checked(
+            &self.stake_list.data.as_ref().borrow(),
+            stake_index,
+            self.stake_account.to_account_info().key,
+        )?;
 
         let mut validator = self
             .state

@@ -1,4 +1,6 @@
-use crate::{calc::proportional, checks::check_address, located::Located, Fee, State, ID, error::CommonError};
+use crate::{
+    calc::proportional, checks::check_address, error::CommonError, located::Located, Fee, State, ID,
+};
 use anchor_lang::prelude::*;
 
 pub mod add_liquidity;

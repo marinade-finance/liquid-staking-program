@@ -44,21 +44,12 @@ impl<'info> PartialUnstake<'info> {
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
-        let mut stake = self
-            .state
-            .stake_system
-            .get(&self.stake_list.data.as_ref().borrow(), stake_index)?;
+        let mut stake = self.state.stake_system.get_checked(
+            &self.stake_list.data.as_ref().borrow(),
+            stake_index,
+            self.stake_account.to_account_info().key,
+        )?;
 
-        // check the index matches the stake-account
-        if self.stake_account.to_account_info().key != &stake.stake_account {
-            msg!(
-                "Stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
-                self.stake_account.to_account_info().key,
-                stake_index,
-                &stake.stake_account
-            );
-            return Err(ProgramError::InvalidAccountData);
-        }
         // check the account is not already in emergency_unstake
         if stake.is_emergency_unstaking != 0 {
             return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
