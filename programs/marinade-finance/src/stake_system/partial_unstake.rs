@@ -1,5 +1,7 @@
-use crate::error::CommonError;
-use crate::{checks::check_owner_program, stake_system::StakeSystemHelpers};
+use crate::{
+    checks::{check_owner_program, check_stake_amount_and_validator},
+    stake_system::StakeSystemHelpers,
+};
 use std::convert::TryFrom;
 
 use anchor_lang::prelude::*;
@@ -10,18 +12,22 @@ use anchor_lang::solana_program::{
     system_instruction, system_program,
 };
 
-use crate::{
-    checks::{check_address, check_stake_amount_and_validator},
-    state::StateHelpers,
-    DeactivateStake,
-};
+use crate::{checks::check_address, PartialUnstake};
 
-impl<'info> DeactivateStake<'info> {
-    //
-    // fn deactivate_stake()
-    //
-    pub fn process(&mut self, stake_index: u32, validator_index: u32) -> ProgramResult {
-        self.state.check_reserve_address(self.reserve_pda.key)?;
+impl<'info> PartialUnstake<'info> {
+    pub fn process(
+        &mut self,
+        stake_index: u32,
+        validator_index: u32,
+        desired_unstake_amount: u64,
+    ) -> ProgramResult {
+        assert!(
+            desired_unstake_amount >= self.state.stake_system.min_stake,
+            "desired_unstake_amount too low"
+        );
+        self.state
+            .validator_system
+            .check_validator_manager_authority(self.validator_manager_authority.key)?;
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;
@@ -31,103 +37,76 @@ impl<'info> DeactivateStake<'info> {
         check_owner_program(&self.stake_account, &stake::program::ID, "stake_account")?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
         check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
-
-        let mut stake = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
-            stake_index,
-            self.stake_account.to_account_info().key,
-        )?;
-        // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
-        }
 
         let mut validator = self
             .state
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
-        // check that we're in the last slots of the epoch (stake-delta window)
-        if self.clock.slot
-            < self
-                .epoch_schedule
-                .get_last_slot_in_epoch(self.clock.epoch)
-                .saturating_sub(self.state.stake_system.slots_for_stake_delta)
-        {
-            msg!(
-                "Stake delta is available only last {} slots of epoch",
-                self.state.stake_system.slots_for_stake_delta
-            );
-            return Err(ProgramError::Custom(332));
+        let mut stake = self.state.stake_system.get_checked(
+            &self.stake_list.data.as_ref().borrow(),
+            stake_index,
+            self.stake_account.to_account_info().key,
+        )?;
+
+        // check the account is not already in emergency_unstake
+        if stake.is_emergency_unstaking != 0 {
+            return Err(crate::CommonError::StakeAccountIsEmergencyUnstaking.into());
         }
 
-        // compute total required stake delta (i128, must be negative)
-        let total_stake_delta_i128 = self.state.stake_delta(self.reserve_pda.lamports());
-        msg!("total_stake_delta_i128 {}", total_stake_delta_i128);
-        if total_stake_delta_i128 >= 0 {
-            msg!("Must stake {} instead of unstaking", total_stake_delta_i128);
-            return Err(ProgramError::InvalidAccountData);
-        }
-        // convert to u64
-        let total_unstake_delta =
-            u64::try_from(-total_stake_delta_i128).expect("Unstake delta overflow");
-        // compute total target stake (current total active stake minus delta)
-        let total_stake_target = self
-            .state
-            .validator_system
-            .total_active_balance
-            .saturating_sub(total_unstake_delta);
-
-        // check currently_staked in this account & validator vote-key
+        // check amount currently_staked in this account
+        // and that the account is delegated to the validator_index sent
         check_stake_amount_and_validator(
             &self.stake_account.inner,
             stake.last_update_delegated_lamports,
             &validator.validator_account,
         )?;
 
+        // compute total required stake delta (i128, must be negative)
+        let total_stake_delta_i128 = self.state.stake_delta(self.reserve_pda.lamports());
+        // compute total target stake (current total active stake +/- delta)
+        let total_stake_target_i128 =
+            self.state.validator_system.total_active_balance as i128 + total_stake_delta_i128;
+        // convert to u64
+        let total_stake_target =
+            u64::try_from(total_stake_target_i128).expect("total_stake_target+stake_delta");
         // compute target for this particular validator (total_stake_target * score/total_score)
         let validator_stake_target = self
             .state
             .validator_system
             .validator_stake_target(&validator, total_stake_target)?;
-
-        // compute how much we should unstake from this validator
-        if validator.active_balance <= validator_stake_target {
+        // if validator is already on-target (or the split will be lower than min_stake), exit now
+        if validator.active_balance <= validator_stake_target + self.state.stake_system.min_stake {
             msg!(
-                "Validator {} has already reached unstake target {}",
+                "Current validator {} stake {} is <= target {} +min_stake",
                 validator.validator_account,
+                validator.active_balance,
                 validator_stake_target
             );
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
-        let unstake_from_validator = validator.active_balance - validator_stake_target;
-        msg!(
-            "unstake {} from_validator {}",
-            unstake_from_validator,
-            &validator.validator_account
-        );
 
-        // compute how much this particular account should have
-        // making sure we are not trying to unstake more than total_unstake_delta
-        let stake_account_target = stake.last_update_delegated_lamports.saturating_sub(
-            if unstake_from_validator > total_unstake_delta {
-                total_unstake_delta
-            } else {
-                unstake_from_validator
-            },
-        );
+        // compute how much we can unstake from this validator, and cap unstake amount to it
+        let max_unstake_from_validator = validator.active_balance - validator_stake_target;
+        let unstake_amount = if desired_unstake_amount > max_unstake_from_validator {
+            max_unstake_from_validator
+        } else {
+            desired_unstake_amount
+        };
 
-        let unstaked_amount = if stake_account_target < 2 * self.state.stake_system.min_stake {
-            // unstake all if what will remain in the account is < twice min_stake
+        // compute how much this particular account will have after unstake
+        let stake_account_after = stake
+            .last_update_delegated_lamports
+            .saturating_sub(unstake_amount);
+
+        let unstaked_from_account = if stake_account_after < self.state.stake_system.min_stake {
+            // unstake all if what will remain in the account is < min_stake
             msg!("Deactivate whole stake {}", stake.stake_account);
             // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
             // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
+
+            // deactivate stake account
             self.state.with_stake_deposit_authority_seeds(|seeds| {
                 invoke_signed(
                     &stake::instruction::deactivate_stake(
@@ -143,6 +122,9 @@ impl<'info> DeactivateStake<'info> {
                     &[seeds],
                 )
             })?;
+
+            // mark as emergency_unstaking, so the SOL will be re-staked ASAP
+            stake.is_emergency_unstaking = 1;
 
             // Return rent reserve of unused split stake account if it is not empty
             if self.split_stake_account.owner == &stake::program::ID {
@@ -177,57 +159,36 @@ impl<'info> DeactivateStake<'info> {
                 }
             }
 
+            // effective unstaked_from_account
             stake.last_update_delegated_lamports
         } else {
-            // we must perform partial unstake
-            // Update validator.last_stake_delta_epoch for split-stakes only because probably we need to unstake multiple whole stakes for the same validator
-            if validator.last_stake_delta_epoch == self.clock.epoch {
-                // note: we don't consume self.state.extra_stake_delta_runs
-                // for unstake operations. Once delta stake is initiated
-                // only one unstake per validator is allowed (this maximizes mSOL price increase)
-                msg!(
-                    "Double delta stake command for validator {} in epoch {}",
-                    validator.validator_account,
-                    self.clock.epoch
-                );
-                return Ok(()); // Not an error. Don't fail other instructions in tx
-            }
-            validator.last_stake_delta_epoch = self.clock.epoch;
-
-            // because previous if's
-            // here stake_account_target is < last_update_delegated_lamports,
-            // and stake.last_update_delegated_lamports - stake_account_target > 2*min_stake
-            // assert anyway in case some bug is introduced in the code above
-            let split_amount = stake.last_update_delegated_lamports - stake_account_target;
-            assert!(
-                stake_account_target < stake.last_update_delegated_lamports
-                    && split_amount <= total_unstake_delta
-            );
+            // we must perform partial unstake of unstake_amount
 
             msg!(
                 "Deactivate split {} ({} lamports) from stake {}",
                 self.split_stake_account.key,
-                split_amount,
+                unstake_amount,
                 stake.stake_account
             );
 
+            // add new account to Marinade stake-accounts list
             self.state.stake_system.add(
                 &mut self.stake_list.data.as_ref().borrow_mut(),
                 self.split_stake_account.key,
-                split_amount,
+                unstake_amount,
                 &self.clock,
-                0, // is_emergency_unstaking? no
+                1, // is_emergency_unstaking
             )?;
 
-            let stake_accout_len = std::mem::size_of::<StakeState>();
+            let stake_account_len = std::mem::size_of::<StakeState>();
             if self.split_stake_account.owner == &system_program::ID {
                 // empty account
                 invoke(
                     &system_instruction::create_account(
                         self.split_stake_rent_payer.key,
                         self.split_stake_account.key,
-                        self.rent.minimum_balance(stake_accout_len),
-                        stake_accout_len as u64,
+                        self.rent.minimum_balance(stake_account_len),
+                        stake_account_len as u64,
                         &stake_program::ID,
                     ),
                     &[
@@ -237,17 +198,17 @@ impl<'info> DeactivateStake<'info> {
                     ],
                 )?;
             } else {
-                // ready unitialized stake (needed for testing because solana_program_test does not support system_instruction::create_account)
+                // ready uninitialized stake (needed for testing because solana_program_test does not support system_instruction::create_account)
                 check_owner_program(
                     &self.split_stake_account,
                     &stake::program::ID,
                     "split_stake_account",
                 )?;
-                if self.split_stake_account.data_len() < stake_accout_len {
+                if self.split_stake_account.data_len() < stake_account_len {
                     msg!(
                         "Split stake account {} must have at least {} bytes (got {})",
                         self.split_stake_account.key,
-                        stake_accout_len,
+                        stake_account_len,
                         self.split_stake_account.data_len()
                     );
                     return Err(ProgramError::InvalidAccountData);
@@ -276,11 +237,12 @@ impl<'info> DeactivateStake<'info> {
                 }
             }
 
+            // split & deactivate stake account
             self.state.with_stake_deposit_authority_seeds(|seeds| {
                 let split_instruction = stake::instruction::split(
                     self.stake_account.to_account_info().key,
                     self.stake_deposit_authority.key,
-                    split_amount,
+                    unstake_amount,
                     self.split_stake_account.key,
                 )
                 .last()
@@ -312,30 +274,19 @@ impl<'info> DeactivateStake<'info> {
                 )
             })?;
 
-            stake.last_update_delegated_lamports -= split_amount;
-            split_amount
+            // update amount accounted for this account
+            stake.last_update_delegated_lamports -= unstake_amount;
+
+            // effective unstaked_from_account
+            unstake_amount
         };
+
         // we now consider amount no longer "active" for this specific validator
-        validator.active_balance = validator
-            .active_balance
-            .checked_sub(unstaked_amount)
-            .ok_or(CommonError::CalculationFailure)?;
-        // Any stake-delta activity must activate stake delta mode
-        self.state.stake_system.last_stake_delta_epoch = self.clock.epoch;
+        validator.active_balance -= unstaked_from_account;
         // and in state totals,
         // move from total_active_balance -> total_cooling_down
-        self.state.validator_system.total_active_balance = self
-            .state
-            .validator_system
-            .total_active_balance
-            .checked_sub(unstaked_amount)
-            .ok_or(CommonError::CalculationFailure)?;
-        self.state.stake_system.delayed_unstake_cooling_down = self
-            .state
-            .stake_system
-            .delayed_unstake_cooling_down
-            .checked_add(unstaked_amount)
-            .expect("Cooling down overflow");
+        self.state.validator_system.total_active_balance -= unstaked_from_account;
+        self.state.emergency_cooling_down += unstaked_from_account;
 
         // update stake-list & validator-list
         self.state.stake_system.set(
@@ -343,7 +294,6 @@ impl<'info> DeactivateStake<'info> {
             stake_index,
             stake,
         )?;
-
         self.state.validator_system.set(
             &mut self.validator_list.data.as_ref().borrow_mut(),
             validator_index,

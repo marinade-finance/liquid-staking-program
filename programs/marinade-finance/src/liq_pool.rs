@@ -1,4 +1,6 @@
-use crate::{calc::proportional, checks::check_address, located::Located, Fee, State, ID};
+use crate::{
+    calc::proportional, checks::check_address, error::CommonError, located::Located, Fee, State, ID,
+};
 use anchor_lang::prelude::*;
 
 pub mod add_liquidity;
@@ -92,8 +94,12 @@ impl LiqPool {
             .expect("lp_supply overflow");
     }
 
-    pub fn on_lp_burn(&mut self, amount: u64) {
-        self.lp_supply = self.lp_supply.saturating_sub(amount);
+    pub fn on_lp_burn(&mut self, amount: u64) -> ProgramResult {
+        self.lp_supply = self
+            .lp_supply
+            .checked_sub(amount)
+            .ok_or(CommonError::CalculationFailure)?;
+        Ok(())
     }
 
     pub fn check_liquidity_cap(

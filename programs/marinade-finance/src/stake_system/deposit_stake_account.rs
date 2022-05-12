@@ -276,6 +276,7 @@ impl<'info> DepositStakeAccount<'info> {
             self.stake_account.to_account_info().key,
             delegation.stake,
             &self.clock,
+            0, // is_emergency_unstaking? no
         )?;
 
         let msol_to_mint = self.state.calc_msol_from_lamports(delegation.stake)?;

@@ -6,6 +6,7 @@ pub mod deactivate_stake;
 pub mod deposit_stake_account;
 pub mod emergency_unstake;
 pub mod merge;
+pub mod partial_unstake;
 pub mod stake_reserve;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
@@ -19,12 +20,17 @@ pub struct StakeRecord {
 impl StakeRecord {
     pub const DISCRIMINATOR: &'static [u8; 8] = b"staker__";
 
-    pub fn new(stake_account: &Pubkey, delegated_lamports: u64, clock: &Clock) -> Self {
+    pub fn new(
+        stake_account: &Pubkey,
+        delegated_lamports: u64,
+        clock: &Clock,
+        is_emergency_unstaking: u8,
+    ) -> Self {
         Self {
             stake_account: *stake_account,
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
-            is_emergency_unstaking: 0,
+            is_emergency_unstaking,
         }
     }
 }
@@ -128,17 +134,44 @@ impl StakeSystem {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
+        is_emergency_unstaking: u8,
     ) -> ProgramResult {
         self.stake_list.push(
             stake_list_data,
-            StakeRecord::new(stake_account, delegated_lamports, clock),
+            StakeRecord::new(
+                stake_account,
+                delegated_lamports,
+                clock,
+                is_emergency_unstaking,
+            ),
             "stake_list",
         )?;
         Ok(())
     }
 
-    pub fn get(&self, stake_list_data: &[u8], index: u32) -> Result<StakeRecord, ProgramError> {
+    fn get(&self, stake_list_data: &[u8], index: u32) -> Result<StakeRecord, ProgramError> {
         self.stake_list.get(stake_list_data, index, "stake_list")
+    }
+
+    /// get the stake account record from an index, and check that the account is the same passed as parameter to the instruction
+    pub fn get_checked(
+        &self,
+        stake_list_data: &[u8],
+        index: u32,
+        received_pubkey: &Pubkey,
+    ) -> Result<StakeRecord, ProgramError> {
+        let stake_record = self.get(stake_list_data, index)?;
+        if stake_record.stake_account != *received_pubkey {
+            msg!(
+                "Stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
+                received_pubkey,
+                index,
+                stake_record.stake_account,
+            );
+            Err(ProgramError::InvalidAccountData)
+        } else {
+            Ok(stake_record)
+        }
     }
 
     pub fn set(&self, stake_list_data: &mut [u8], index: u32, stake: StakeRecord) -> ProgramResult {

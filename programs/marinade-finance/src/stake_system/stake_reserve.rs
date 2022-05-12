@@ -186,7 +186,7 @@ impl<'info> StakeReserve<'info> {
                 &[seeds],
             )
         })?;
-        self.state.on_transfer_from_reserve(stake_target);
+        self.state.on_transfer_from_reserve(stake_target)?;
 
         sol_log_compute_units();
         msg!("Initialize stake");
@@ -230,6 +230,7 @@ impl<'info> StakeReserve<'info> {
             &self.stake_account.key(),
             stake_target,
             &self.clock,
+            0, // is_emergency_unstaking? no
         )?;
 
         // self.state.epoch_stake_orders -= amount;

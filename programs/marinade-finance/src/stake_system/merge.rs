@@ -42,9 +42,10 @@ impl<'info> MergeStakes<'info> {
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
-        let mut destination_stake_info = self.state.stake_system.get(
+        let mut destination_stake_info = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             destination_stake_index,
+            self.destination_stake.to_account_info().key,
         )?;
         let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
@@ -77,10 +78,11 @@ impl<'info> MergeStakes<'info> {
             return Err(ProgramError::InvalidArgument);
         }
         // Source stake
-        let source_stake_info = self
-            .state
-            .stake_system
-            .get(&self.stake_list.data.as_ref().borrow(), source_stake_index)?;
+        let source_stake_info = self.state.stake_system.get_checked(
+            &self.stake_list.data.as_ref().borrow(),
+            source_stake_index,
+            self.source_stake.to_account_info().key,
+        )?;
         let source_delegation = if let Some(delegation) = self.source_stake.delegation() {
             delegation
         } else {

@@ -179,7 +179,7 @@ impl<'info> RemoveLiquidity<'info> {
             ),
             tokens,
         )?;
-        self.state.liq_pool.on_lp_burn(tokens);
+        self.state.liq_pool.on_lp_burn(tokens)?;
 
         msg!("end instruction rem-liq");
         Ok(())
