@@ -25,3 +25,7 @@ anchor-debug = []
 
 [profile.release]
 overflow-checks = true
+
+[dev-dependencies]
+soltes = { path = "../../../soltes" }
+solana-sdk = "1.7.11"

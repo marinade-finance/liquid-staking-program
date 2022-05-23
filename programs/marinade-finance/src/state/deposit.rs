@@ -170,3 +170,22 @@ impl<'info> Deposit<'info> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::State;
+
+    use super::*;
+    use solana_sdk::signature::Keypair;
+    use solana_sdk::signature::Signer;
+    use soltes::*;
+
+    #[test]
+    fn simple_deposit() -> ProgramResult {
+        setup();
+
+        crate::__private::__global::deposit(&crate::id(), &[], &34u64.try_to_vec()?)?;
+
+        Ok(())
+    }
+}
