@@ -173,18 +173,120 @@ impl<'info> Deposit<'info> {
 
 #[cfg(test)]
 mod tests {
+    use crate::liq_pool::LiqPool;
+    use crate::list::List;
+    use crate::stake_system::StakeSystem;
+    use crate::validator_system::ValidatorSystem;
+    use crate::Fee;
     use crate::State;
 
     use super::*;
+    use solana_sdk::program_option::COption;
+    use solana_sdk::program_pack::Pack;
     use solana_sdk::signature::Keypair;
     use solana_sdk::signature::Signer;
     use soltes::*;
+    use spl_token::{state::Account as SplToken, state::Mint as SplMint, ID as SPL_TOKEN_ID};
 
     #[test]
     fn simple_deposit() -> ProgramResult {
         setup();
 
-        crate::__private::__global::deposit(&crate::id(), &[], &34u64.try_to_vec()?)?;
+        let state_address = Keypair::new().pubkey();
+        let msol_mint_address = Keypair::new().pubkey();
+        let admin_authority = Keypair::new().pubkey();
+        let operational_sol_account = Keypair::new().pubkey();
+        let treasury_msol_account = Keypair::new().pubkey();
+        let stake_list_address = Keypair::new().pubkey();
+        let validator_list_address = Keypair::new().pubkey();
+        let validator_manager_authority = Keypair::new().pubkey();
+        let lp_mint_address = Keypair::new().pubkey();
+        let msol_leg_address = Keypair::new().pubkey();
+
+        let state = State {
+            msol_mint: msol_mint_address,
+            admin_authority,
+            operational_sol_account,
+            treasury_msol_account,
+            reserve_bump_seed: State::find_reserve_address(&state_address).1,
+            msol_mint_authority_bump_seed: State::find_msol_mint_authority(&state_address).1,
+            rent_exempt_for_token_acc: SplToken::LEN as u64,
+            reward_fee: Fee { basis_points: 1 },
+            stake_system: StakeSystem {
+                stake_list: List {
+                    account: stake_list_address,
+                    item_size: 1000,
+                    count: 0,
+                    new_account: Pubkey::default(),
+                    copied_count: 0,
+                },
+                delayed_unstake_cooling_down: 0,
+                stake_deposit_bump_seed: StakeSystem::find_stake_deposit_authority(&state_address)
+                    .1,
+                stake_withdraw_bump_seed: StakeSystem::find_stake_withdraw_authority(
+                    &state_address,
+                )
+                .1,
+                slots_for_stake_delta: 10,
+                last_stake_delta_epoch: 122,
+                min_stake: 10000,
+                extra_stake_delta_runs: 1,
+            },
+            validator_system: ValidatorSystem {
+                validator_list: List {
+                    account: validator_list_address,
+                    item_size: 1000,
+                    count: 0,
+                    new_account: Pubkey::default(),
+                    copied_count: 0,
+                },
+                manager_authority: validator_manager_authority,
+                total_validator_score: 0,
+                total_active_balance: 0,
+                auto_add_validator_enabled: 0,
+            },
+            liq_pool: LiqPool {
+                lp_mint: lp_mint_address,
+                lp_mint_authority_bump_seed: LiqPool::find_lp_mint_authority(&state_address).1,
+                sol_leg_bump_seed: LiqPool::find_sol_leg_address(&state_address).1,
+                msol_leg_authority_bump_seed: LiqPool::find_msol_leg_authority(&state_address).1,
+                msol_leg: msol_leg_address,
+                lp_liquidity_target: 100000000,
+                lp_max_fee: Fee { basis_points: 1000 },
+                lp_min_fee: Fee { basis_points: 100 },
+                treasury_cut: Fee { basis_points: 10 },
+                lp_supply: 0,
+                lent_from_sol_leg: 0,
+                liquidity_sol_cap: u64::MAX,
+            },
+            available_reserve_balance: 100000000,
+            msol_supply: 100000000,
+            msol_price: 1111111,
+            circulating_ticket_count: 0,
+            circulating_ticket_balance: 0,
+            lent_from_reserve: 0,
+            min_deposit: 0,
+            min_withdraw: 0,
+            staking_sol_cap: u64::MAX,
+            emergency_cooling_down: 0,
+        };
+        let mut state_account = AccountBuilder::new(state_address)
+            .with_data(state.try_to_vec().unwrap())
+            .with_owner(crate::ID);
+
+        let msol_mint = SplMint {
+            mint_authority: COption::Some(State::find_msol_mint_authority(&state_address).0),
+            supply: 0,
+            decimals: 9,
+            is_initialized: true,
+            freeze_authority: COption::None,
+        };
+
+        crate::__private::__global::deposit(
+            &crate::id(),
+            &[state_account.to_account_info(false, true),],
+            &34u64.try_to_vec()?,
+        )?;
 
         Ok(())
     }

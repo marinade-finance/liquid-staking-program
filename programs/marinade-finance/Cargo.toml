@@ -11,8 +11,8 @@ doctest = false
 
 
 [dependencies]
-anchor-lang = "0.14.0"
-anchor-spl = "0.14.0"
+anchor-lang = "=0.14.0"
+anchor-spl = "=0.14.0"
 # for manual parsing. Hope anchor-spl reexports this in next releases
 spl-token = { version = "3.1", features = ["no-entrypoint"] }
 # for stake state parsing. Hope solana-program reexports this in next releases
@@ -28,4 +28,4 @@ overflow-checks = true
 
 [dev-dependencies]
 soltes = { path = "../../../soltes" }
-solana-sdk = "1.7.11"
+solana-sdk = "=1.7.11"
