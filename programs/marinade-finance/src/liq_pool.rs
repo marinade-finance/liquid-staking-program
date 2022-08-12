@@ -1,12 +1,12 @@
 use crate::{
     calc::proportional, checks::check_address, error::CommonError, located::Located, Fee, State, ID,
 };
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::native_token::sol_to_lamports};
 
 pub mod add_liquidity;
+pub mod configure;
 pub mod initialize;
 pub mod remove_liquidity;
-pub mod set_lp_params;
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct LiqPool {
@@ -121,6 +121,24 @@ impl LiqPool {
             );
             return Err(ProgramError::Custom(3782));
         }
+        Ok(())
+    }
+
+    fn check_fees(&self) -> ProgramResult {
+        self.lp_min_fee.check()?;
+        self.lp_max_fee.check()?;
+        self.treasury_cut.check()?;
+        // hard-limit, max liquid unstake-fee of 10%
+        if self.lp_max_fee.basis_points > 1000 {
+            return Err(CommonError::FeeTooHigh.into());
+        }
+        if self.lp_min_fee > self.lp_max_fee {
+            return Err(CommonError::FeesWrongWayRound.into());
+        }
+        if self.lp_liquidity_target < sol_to_lamports(50.0) {
+            return Err(CommonError::LiquidityTargetTooLow.into())
+        }
+
         Ok(())
     }
 }

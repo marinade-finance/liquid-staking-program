@@ -14,7 +14,7 @@ use std::mem::MaybeUninit;
 
 pub mod change_authority;
 pub mod claim;
-pub mod config_marinade;
+pub mod configure;
 pub mod deposit;
 pub mod initialize;
 pub mod liquid_unstake;

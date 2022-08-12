@@ -157,19 +157,17 @@ pub mod marinade_finance {
         ctx.accounts.process(tokens)
     }
 
-    pub fn set_lp_params(
-        ctx: Context<SetLpParams>,
-        min_fee: Fee,
-        max_fee: Fee,
-        liquidity_target: u64,
+    pub fn configure_lp(
+        ctx: Context<ConfigureLp>,
+        params: ConfigureLpParams,
     ) -> ProgramResult {
         check_context(&ctx)?;
-        ctx.accounts.process(min_fee, max_fee, liquidity_target)
+        ctx.accounts.process(params)
     }
 
-    pub fn config_marinade(
-        ctx: Context<ConfigMarinade>,
-        params: ConfigMarinadeParams,
+    pub fn configure_marinade(
+        ctx: Context<ConfigureMarinade>,
+        params: ConfigureMarinadeParams,
     ) -> ProgramResult {
         check_context(&ctx)?;
         ctx.accounts.process(params)
@@ -744,8 +742,16 @@ impl<'info> DerefMut for UpdateDeactivated<'info> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
+pub struct ConfigureLpParams {
+    pub min_fee: Option<Fee>,
+    pub max_fee: Option<Fee>,
+    pub liquidity_target: Option<u64>,
+    pub treasury_cut: Option<Fee>,
+}
+
 #[derive(Accounts)]
-pub struct SetLpParams<'info> {
+pub struct ConfigureLp<'info> {
     #[account(mut)]
     pub state: ProgramAccount<'info, State>,
     #[account(signer)]
@@ -753,7 +759,7 @@ pub struct SetLpParams<'info> {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
-pub struct ConfigMarinadeParams {
+pub struct ConfigureMarinadeParams {
     pub rewards_fee: Option<Fee>,
     pub slots_for_stake_delta: Option<u64>,
     pub min_stake: Option<u64>,
@@ -765,7 +771,7 @@ pub struct ConfigMarinadeParams {
 }
 
 #[derive(Accounts)]
-pub struct ConfigMarinade<'info> {
+pub struct ConfigureMarinade<'info> {
     #[account(mut)]
     pub state: ProgramAccount<'info, State>,
     #[account(signer)]
