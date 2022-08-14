@@ -1,16 +1,16 @@
-use crate::ConfigureLp;
-use crate::ConfigureLpParams;
+use crate::ConfigLp;
+use crate::ConfigLpParams;
 use anchor_lang::prelude::ProgramResult;
 
-impl<'info> ConfigureLp<'info> {
+impl<'info> ConfigLp<'info> {
     pub fn process(
         &mut self,
-        ConfigureLpParams {
+        ConfigLpParams {
             min_fee,
             max_fee,
             liquidity_target,
             treasury_cut,
-        }: ConfigureLpParams,
+        }: ConfigLpParams,
     ) -> ProgramResult {
         self.state.check_admin_authority(self.admin_authority.key)?;
         if let Some(min_fee) = min_fee {

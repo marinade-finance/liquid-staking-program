@@ -157,17 +157,14 @@ pub mod marinade_finance {
         ctx.accounts.process(tokens)
     }
 
-    pub fn configure_lp(
-        ctx: Context<ConfigureLp>,
-        params: ConfigureLpParams,
-    ) -> ProgramResult {
+    pub fn config_lp(ctx: Context<ConfigLp>, params: ConfigLpParams) -> ProgramResult {
         check_context(&ctx)?;
         ctx.accounts.process(params)
     }
 
-    pub fn configure_marinade(
-        ctx: Context<ConfigureMarinade>,
-        params: ConfigureMarinadeParams,
+    pub fn config_marinade(
+        ctx: Context<ConfigMarinade>,
+        params: ConfigMarinadeParams,
     ) -> ProgramResult {
         check_context(&ctx)?;
         ctx.accounts.process(params)
@@ -272,7 +269,7 @@ impl Display for Fee {
 }
 
 impl Fee {
-    pub fn from_basis_points(basis_points: u32) -> Self {
+    pub const fn from_basis_points(basis_points: u32) -> Self {
         Self { basis_points }
     }
 
@@ -743,7 +740,7 @@ impl<'info> DerefMut for UpdateDeactivated<'info> {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
-pub struct ConfigureLpParams {
+pub struct ConfigLpParams {
     pub min_fee: Option<Fee>,
     pub max_fee: Option<Fee>,
     pub liquidity_target: Option<u64>,
@@ -751,7 +748,7 @@ pub struct ConfigureLpParams {
 }
 
 #[derive(Accounts)]
-pub struct ConfigureLp<'info> {
+pub struct ConfigLp<'info> {
     #[account(mut)]
     pub state: ProgramAccount<'info, State>,
     #[account(signer)]
@@ -759,7 +756,7 @@ pub struct ConfigureLp<'info> {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
-pub struct ConfigureMarinadeParams {
+pub struct ConfigMarinadeParams {
     pub rewards_fee: Option<Fee>,
     pub slots_for_stake_delta: Option<u64>,
     pub min_stake: Option<u64>,
@@ -771,7 +768,7 @@ pub struct ConfigureMarinadeParams {
 }
 
 #[derive(Accounts)]
-pub struct ConfigureMarinade<'info> {
+pub struct ConfigMarinade<'info> {
     #[account(mut)]
     pub state: ProgramAccount<'info, State>,
     #[account(signer)]

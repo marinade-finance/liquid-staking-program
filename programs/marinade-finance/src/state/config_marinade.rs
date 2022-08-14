@@ -1,13 +1,13 @@
-use crate::{CommonError, ConfigureMarinade, ConfigureMarinadeParams, MAX_REWARD_FEE};
+use crate::{CommonError, ConfigMarinade, ConfigMarinadeParams, MAX_REWARD_FEE};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 
-impl<'info> ConfigureMarinade<'info> {
+impl<'info> ConfigMarinade<'info> {
     const MIN_WITHDRAW_CAP: u64 = LAMPORTS_PER_SOL / 10;
     // fn config_marinade()
     pub fn process(
         &mut self,
-        ConfigureMarinadeParams {
+        ConfigMarinadeParams {
             rewards_fee,
             slots_for_stake_delta,
             min_stake,
@@ -16,7 +16,7 @@ impl<'info> ConfigureMarinade<'info> {
             staking_sol_cap,
             liquidity_sol_cap,
             auto_add_validator_enabled,
-        }: ConfigureMarinadeParams,
+        }: ConfigMarinadeParams,
     ) -> ProgramResult {
         self.state.check_admin_authority(self.admin_authority.key)?;
         if let Some(rewards_fee) = rewards_fee {

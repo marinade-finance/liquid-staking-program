@@ -1,10 +1,10 @@
 use crate::{
     calc::proportional, checks::check_address, error::CommonError, located::Located, Fee, State, ID,
 };
-use anchor_lang::{prelude::*, solana_program::native_token::sol_to_lamports};
+use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 
 pub mod add_liquidity;
-pub mod configure;
+pub mod config_lp;
 pub mod initialize;
 pub mod remove_liquidity;
 
@@ -37,6 +37,9 @@ impl LiqPool {
     pub const SOL_LEG_SEED: &'static [u8] = b"liq_sol";
     pub const MSOL_LEG_AUTHORITY_SEED: &'static [u8] = b"liq_st_sol_authority";
     pub const MSOL_LEG_SEED: &'static str = "liq_st_sol";
+    pub const MAX_FEE: Fee = Fee::from_basis_points(1000); // 10%
+    pub const MIN_LIQUIDITY_TARGET: u64 = 50 * LAMPORTS_PER_SOL; // 50 SOL
+    pub const MAX_TREASURY_CUT: Fee = Fee::from_basis_points(7500); // 75%
 
     pub fn find_lp_mint_authority(state: &Pubkey) -> (Pubkey, u8) {
         Pubkey::find_program_address(
@@ -129,14 +132,17 @@ impl LiqPool {
         self.lp_max_fee.check()?;
         self.treasury_cut.check()?;
         // hard-limit, max liquid unstake-fee of 10%
-        if self.lp_max_fee.basis_points > 1000 {
+        if self.lp_max_fee > Self::MAX_FEE {
             return Err(CommonError::FeeTooHigh.into());
         }
         if self.lp_min_fee > self.lp_max_fee {
             return Err(CommonError::FeesWrongWayRound.into());
         }
-        if self.lp_liquidity_target < sol_to_lamports(50.0) {
-            return Err(CommonError::LiquidityTargetTooLow.into())
+        if self.lp_liquidity_target < Self::MIN_LIQUIDITY_TARGET {
+            return Err(CommonError::LiquidityTargetTooLow.into());
+        }
+        if self.treasury_cut > Self::MAX_TREASURY_CUT {
+            return Err(CommonError::NumberTooHigh.into());
         }
 
         Ok(())
