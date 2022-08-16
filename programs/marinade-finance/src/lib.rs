@@ -157,14 +157,9 @@ pub mod marinade_finance {
         ctx.accounts.process(tokens)
     }
 
-    pub fn set_lp_params(
-        ctx: Context<SetLpParams>,
-        min_fee: Fee,
-        max_fee: Fee,
-        liquidity_target: u64,
-    ) -> ProgramResult {
+    pub fn config_lp(ctx: Context<ConfigLp>, params: ConfigLpParams) -> ProgramResult {
         check_context(&ctx)?;
-        ctx.accounts.process(min_fee, max_fee, liquidity_target)
+        ctx.accounts.process(params)
     }
 
     pub fn config_marinade(
@@ -274,7 +269,7 @@ impl Display for Fee {
 }
 
 impl Fee {
-    pub fn from_basis_points(basis_points: u32) -> Self {
+    pub const fn from_basis_points(basis_points: u32) -> Self {
         Self { basis_points }
     }
 
@@ -744,8 +739,16 @@ impl<'info> DerefMut for UpdateDeactivated<'info> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
+pub struct ConfigLpParams {
+    pub min_fee: Option<Fee>,
+    pub max_fee: Option<Fee>,
+    pub liquidity_target: Option<u64>,
+    pub treasury_cut: Option<Fee>,
+}
+
 #[derive(Accounts)]
-pub struct SetLpParams<'info> {
+pub struct ConfigLp<'info> {
     #[account(mut)]
     pub state: ProgramAccount<'info, State>,
     #[account(signer)]

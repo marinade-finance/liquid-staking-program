@@ -4,7 +4,7 @@ use crate::{
         check_address, check_freeze_authority, check_mint_authority, check_mint_empty,
         check_owner_program, check_token_mint, check_token_owner,
     },
-    CommonError, Fee, Initialize, LiqPoolInitialize, LiqPoolInitializeData,
+    Initialize, LiqPoolInitialize, LiqPoolInitializeData,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
@@ -69,25 +69,11 @@ impl<'info> LiqPoolInitialize<'info> {
         parent.state.liq_pool.msol_leg_authority_bump_seed = msol_authority_bump_seed;
         Ok(())
     }
-    pub fn check_fees(min_fee: Fee, max_fee: Fee) -> ProgramResult {
-        min_fee.check()?;
-        max_fee.check()?;
-        //hard-limit, max liquid unstake-fee of 10%
-        if max_fee.basis_points > 1000 {
-            return Err(CommonError::FeeTooHigh.into());
-        }
-        if min_fee > max_fee {
-            return Err(CommonError::FeesWrongWayRound.into());
-        }
-        Ok(())
-    }
 
     pub fn process(parent: &mut Initialize, data: LiqPoolInitializeData) -> ProgramResult {
         Self::check_liq_mint(parent)?;
         Self::check_sol_account_pda(parent)?;
         Self::check_msol_account(parent)?;
-        Self::check_fees(data.lp_min_fee, data.lp_max_fee)?;
-        data.lp_treasury_cut.check()?;
 
         parent.state.liq_pool.lp_mint = *parent.liq_pool.lp_mint.to_account_info().key;
 
@@ -99,6 +85,8 @@ impl<'info> LiqPoolInitialize<'info> {
         parent.state.liq_pool.lp_min_fee = data.lp_min_fee; // Fee { basis_points: 30 }; //0.3%
         parent.state.liq_pool.lp_max_fee = data.lp_max_fee; // Fee { basis_points: 300 }; //3%
         parent.state.liq_pool.liquidity_sol_cap = std::u64::MAX; // Unlimited
+
+        parent.state.liq_pool.check_fees()?;
 
         Ok(())
     }
