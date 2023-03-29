@@ -2,26 +2,23 @@
 name = "marinade-finance"
 version = "0.1.0"
 description = "Liquid Staking for the Solana Blockchain - Anchor-based on-chain program"
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
 name = "marinade_finance"
-doctest = false
-
-
-[dependencies]
-anchor-lang = "0.14.0"
-anchor-spl = "0.14.0"
-# for manual parsing. Hope anchor-spl reexports this in next releases
-spl-token = { version = "3.1", features = ["no-entrypoint"] }
-# for stake state parsing. Hope solana-program reexports this in next releases
-bincode = "1.3.3"
 
 [features]
-default = []
 no-entrypoint = []
-anchor-debug = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
 
 [profile.release]
 overflow-checks = true
+
+[dependencies]
+anchor-lang = "0.27.0"
+anchor-spl = { version = "0.27.0", default-features = false, features = ["stake", "mint", "spl-token", "token"] }
+bincode = "1.3.3"

@@ -13,7 +13,7 @@ use anchor_lang::solana_program::{
 use crate::{checks::check_address, EmergencyUnstake};
 
 impl<'info> EmergencyUnstake<'info> {
-    pub fn process(&mut self, stake_index: u32, validator_index: u32) -> ProgramResult {
+    pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
         self.state
             .validator_system
             .check_validator_manager_authority(self.validator_manager_authority.key)?;
@@ -42,12 +42,12 @@ impl<'info> EmergencyUnstake<'info> {
         // One more level of protection: need to run setScore(0) before this. I don't know is it really a good idea
         if validator.score != 0 {
             msg!("Emergency unstake validator must have 0 score");
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         // check that the account is delegated to the right validator
         check_stake_amount_and_validator(
-            &self.stake_account.inner,
+            &self.stake_account,
             stake.last_update_delegated_lamports,
             &validator.validator_account,
         )?;
@@ -61,10 +61,10 @@ impl<'info> EmergencyUnstake<'info> {
                     self.stake_deposit_authority.key,
                 ),
                 &[
-                    self.stake_program.clone(),
+                    self.stake_program.to_account_info(),
                     self.stake_account.to_account_info(),
                     self.clock.to_account_info(),
-                    self.stake_deposit_authority.clone(),
+                    self.stake_deposit_authority.to_account_info(),
                 ],
                 &[seeds],
             )

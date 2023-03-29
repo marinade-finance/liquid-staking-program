@@ -20,7 +20,7 @@ impl<'info> PartialUnstake<'info> {
         stake_index: u32,
         validator_index: u32,
         desired_unstake_amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         assert!(
             desired_unstake_amount >= self.state.stake_system.min_stake,
             "desired_unstake_amount too low"
@@ -34,7 +34,7 @@ impl<'info> PartialUnstake<'info> {
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_owner_program(&self.stake_account, &stake::program::ID, "stake_account")?;
+        check_owner_program(self.stake_account.as_ref(), &stake::program::ID, "stake_account")?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
@@ -58,7 +58,7 @@ impl<'info> PartialUnstake<'info> {
         // check amount currently_staked in this account
         // and that the account is delegated to the validator_index sent
         check_stake_amount_and_validator(
-            &self.stake_account.inner,
+            &self.stake_account,
             stake.last_update_delegated_lamports,
             &validator.validator_account,
         )?;
@@ -114,10 +114,10 @@ impl<'info> PartialUnstake<'info> {
                         self.stake_deposit_authority.key,
                     ),
                     &[
-                        self.stake_program.clone(),
+                        self.stake_program.to_account_info(),
                         self.stake_account.to_account_info(),
                         self.clock.to_account_info(),
-                        self.stake_deposit_authority.clone(),
+                        self.stake_deposit_authority.to_account_info(),
                     ],
                     &[seeds],
                 )
@@ -149,9 +149,9 @@ impl<'info> PartialUnstake<'info> {
                             None,
                         ),
                         &[
-                            self.stake_program.clone(),
-                            self.split_stake_account.clone(),
-                            self.split_stake_rent_payer.clone(),
+                            self.stake_program.to_account_info(),
+                            self.split_stake_account.to_account_info(),
+                            self.split_stake_rent_payer.to_account_info(),
                             self.clock.to_account_info(),
                             self.stake_history.to_account_info(),
                         ],
@@ -192,9 +192,9 @@ impl<'info> PartialUnstake<'info> {
                         &stake_program::ID,
                     ),
                     &[
-                        self.system_program.clone(),
-                        self.split_stake_rent_payer.clone(),
-                        self.split_stake_account.clone(),
+                        self.system_program.to_account_info(),
+                        self.split_stake_rent_payer.to_account_info(),
+                        self.split_stake_account.to_account_info(),
                     ],
                 )?;
             } else {
@@ -211,7 +211,7 @@ impl<'info> PartialUnstake<'info> {
                         stake_account_len,
                         self.split_stake_account.data_len()
                     );
-                    return Err(ProgramError::InvalidAccountData);
+                    return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
                 }
                 if !self.rent.is_exempt(
                     self.split_stake_account.lamports(),
@@ -221,7 +221,7 @@ impl<'info> PartialUnstake<'info> {
                         "Split stake account {} must be rent-exempt",
                         self.split_stake_account.key
                     );
-                    return Err(ProgramError::InsufficientFunds);
+                    return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
                 }
                 match bincode::deserialize(&self.split_stake_account.data.as_ref().borrow())
                     .map_err(|err| ProgramError::BorshIoError(err.to_string()))?
@@ -232,7 +232,7 @@ impl<'info> PartialUnstake<'info> {
                             "Split stake {} must be uninitialized",
                             self.split_stake_account.key
                         );
-                        return Err(ProgramError::InvalidAccountData);
+                        return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
                     }
                 }
             }
@@ -251,10 +251,10 @@ impl<'info> PartialUnstake<'info> {
                 invoke_signed(
                     &split_instruction,
                     &[
-                        self.stake_program.clone(),
+                        self.stake_program.to_account_info(),
                         self.stake_account.to_account_info(),
                         self.split_stake_account.to_account_info(),
-                        self.stake_deposit_authority.clone(),
+                        self.stake_deposit_authority.to_account_info(),
                     ],
                     &[seeds],
                 )?;
@@ -265,10 +265,10 @@ impl<'info> PartialUnstake<'info> {
                         self.stake_deposit_authority.key,
                     ),
                     &[
-                        self.stake_program.clone(),
+                        self.stake_program.to_account_info(),
                         self.split_stake_account.to_account_info(),
                         self.clock.to_account_info(),
-                        self.stake_deposit_authority.clone(),
+                        self.stake_deposit_authority.to_account_info(),
                     ],
                     &[seeds],
                 )

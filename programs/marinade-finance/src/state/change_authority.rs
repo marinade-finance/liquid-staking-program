@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{ChangeAuthority, ChangeAuthorityData};
 
 impl<'info> ChangeAuthority<'info> {
-    pub fn process(&mut self, data: ChangeAuthorityData) -> ProgramResult {
+    pub fn process(&mut self, data: ChangeAuthorityData) -> Result<()> {
         self.state.check_admin_authority(self.admin_authority.key)?;
 
         if let Some(admin) = data.admin {

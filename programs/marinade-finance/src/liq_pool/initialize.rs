@@ -8,13 +8,14 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
+use anchor_spl::token::spl_token;
 
 impl<'info> LiqPoolInitialize<'info> {
-    pub fn check_liq_mint(parent: &mut Initialize) -> ProgramResult {
-        check_owner_program(&parent.liq_pool.lp_mint, &spl_token::ID, "lp_mint")?;
+    pub fn check_liq_mint(parent: &mut Initialize) -> Result<()> {
+        check_owner_program(parent.liq_pool.lp_mint.as_ref(), &spl_token::ID, "lp_mint")?;
         if parent.liq_pool.lp_mint.to_account_info().key == parent.msol_mint.to_account_info().key {
             msg!("Use different mints for stake and liquidity pool");
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
         let (authority_address, authority_bump_seed) =
             LiqPool::find_lp_mint_authority(parent.state_address());
@@ -29,7 +30,7 @@ impl<'info> LiqPoolInitialize<'info> {
         Ok(())
     }
 
-    pub fn check_sol_account_pda(parent: &mut Initialize) -> ProgramResult {
+    pub fn check_sol_account_pda(parent: &mut Initialize) -> Result<()> {
         check_owner_program(
             &parent.liq_pool.sol_leg_pda,
             &system_program::ID,
@@ -50,14 +51,14 @@ impl<'info> LiqPoolInitialize<'info> {
                     lamports,
                     parent.state.rent_exempt_for_token_acc
                 );
-                return Err(ProgramError::InvalidArgument);
+                return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
             }
         }
         Ok(())
     }
 
-    pub fn check_msol_account(parent: &mut Initialize) -> ProgramResult {
-        check_owner_program(&parent.liq_pool.msol_leg, &spl_token::ID, "liq_msol_leg")?;
+    pub fn check_msol_account(parent: &mut Initialize) -> Result<()> {
+        check_owner_program(parent.liq_pool.msol_leg.as_ref(), &spl_token::ID, "liq_msol_leg")?;
         check_token_mint(
             &parent.liq_pool.msol_leg,
             *parent.msol_mint.to_account_info().key,
@@ -70,7 +71,7 @@ impl<'info> LiqPoolInitialize<'info> {
         Ok(())
     }
 
-    pub fn process(parent: &mut Initialize, data: LiqPoolInitializeData) -> ProgramResult {
+    pub fn process(parent: &mut Initialize, data: LiqPoolInitializeData) -> Result<()> {
         Self::check_liq_mint(parent)?;
         Self::check_sol_account_pda(parent)?;
         Self::check_msol_account(parent)?;

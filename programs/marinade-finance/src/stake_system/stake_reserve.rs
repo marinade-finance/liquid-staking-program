@@ -2,7 +2,6 @@ use crate::{
     checks::{check_address, check_owner_program},
     error::CommonError,
     stake_system::StakeSystemHelpers,
-    stake_wrapper::StakeWrapper,
     state::StateHelpers,
     StakeReserve,
 };
@@ -17,18 +16,19 @@ use anchor_lang::solana_program::{
     system_instruction, system_program,
     sysvar::stake_history,
 };
+use anchor_spl::stake::StakeAccount;
 use std::convert::TryFrom;
 use std::ops::Deref;
 
 impl<'info> StakeReserve<'info> {
-    fn check_stake_history(&self) -> ProgramResult {
+    fn check_stake_history(&self) -> Result<()> {
         if !stake_history::check_id(self.stake_history.key) {
             msg!(
                 "Stake history sysvar must be {}. Got {}",
                 stake_history::ID,
                 self.stake_history.key
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
         Ok(())
     }
@@ -38,7 +38,7 @@ impl<'info> StakeReserve<'info> {
     /// Receives self.stake_account where to stake, normally an empty account (new keypair)
     /// stakes from available delta-stake in data.validator_index
     /// pub fn stake_reserve()
-    pub fn process(&mut self, validator_index: u32) -> ProgramResult {
+    pub fn process(&mut self, validator_index: u32) -> Result<()> {
         sol_log_compute_units();
         msg!("Stake reserve");
         self.state
@@ -49,24 +49,24 @@ impl<'info> StakeReserve<'info> {
         self.check_stake_history()?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_owner_program(&self.stake_account, &stake::program::ID, "stake")?;
-        match StakeWrapper::deref(&self.stake_account) {
+        check_owner_program(self.stake_account.as_ref(), &stake::program::ID, "stake")?;
+        match StakeAccount::deref(&self.stake_account) {
             StakeState::Uninitialized => (),
             _ => {
                 msg!("Stake {} must be uninitialized", self.stake_account.key());
-                return Err(ProgramError::InvalidAccountData);
+                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
             }
         }
         if self.stake_account.to_account_info().lamports()
-            != StakeState::get_rent_exempt_reserve(&self.rent)
+            != self.rent.minimum_balance(std::mem::size_of::<StakeState>())
         {
             msg!(
                 "Stake {} must have balance {} but has {} lamports",
                 self.stake_account.key(),
-                StakeState::get_rent_exempt_reserve(&self.rent),
+                self.rent.minimum_balance(std::mem::size_of::<StakeState>()),
                 self.stake_account.to_account_info().lamports()
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         check_address(self.stake_config.key, &stake::config::ID, "stake_config")?;
@@ -136,7 +136,7 @@ impl<'info> StakeReserve<'info> {
                 "Stake delta is available only last {} slots of epoch",
                 self.state.stake_system.slots_for_stake_delta
             );
-            return Err(ProgramError::Custom(332));
+            return Err(Error::from(ProgramError::Custom(332)).with_source(source!()));
         }
 
         let validator_stake_target = self
@@ -179,8 +179,8 @@ impl<'info> StakeReserve<'info> {
                     stake_target,
                 ),
                 &[
-                    self.system_program.clone(),
-                    self.reserve_pda.clone(),
+                    self.system_program.to_account_info(),
+                    self.reserve_pda.to_account_info(),
                     self.stake_account.to_account_info(),
                 ],
                 &[seeds],
@@ -197,7 +197,7 @@ impl<'info> StakeReserve<'info> {
                 &Lockup::default(),
             ),
             &[
-                self.stake_program.clone(),
+                self.stake_program.to_account_info(),
                 self.stake_account.to_account_info(),
                 self.rent.to_account_info(),
             ],
@@ -213,12 +213,12 @@ impl<'info> StakeReserve<'info> {
                     self.validator_vote.key,
                 ),
                 &[
-                    self.stake_program.clone(),
+                    self.stake_program.to_account_info(),
                     self.stake_account.to_account_info(),
-                    self.stake_deposit_authority.clone(),
-                    self.validator_vote.clone(),
+                    self.stake_deposit_authority.to_account_info(),
+                    self.validator_vote.to_account_info(),
                     self.clock.to_account_info(),
-                    self.stake_history.clone(),
+                    self.stake_history.to_account_info(),
                     self.stake_config.to_account_info(),
                 ],
                 &[seeds],

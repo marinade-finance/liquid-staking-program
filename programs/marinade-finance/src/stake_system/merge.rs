@@ -17,17 +17,17 @@ impl<'info> MergeStakes<'info> {
         destination_stake_index: u32,
         source_stake_index: u32,
         validator_index: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;
         check_owner_program(
-            &self.destination_stake,
+            self.destination_stake.as_ref(),
             &stake::program::ID,
             "destination_stake",
         )?;
-        check_owner_program(&self.source_stake, &stake::program::ID, "source_stake")?;
+        check_owner_program(self.source_stake.as_ref(), &stake::program::ID, "source_stake")?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.to_account_info().key)?;
         self.state
@@ -54,7 +54,7 @@ impl<'info> MergeStakes<'info> {
                 "Destination stake {} must be delegated",
                 self.destination_stake.to_account_info().key
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         };
         if destination_delegation.deactivation_epoch != std::u64::MAX {
             msg!(
@@ -67,7 +67,7 @@ impl<'info> MergeStakes<'info> {
                 "Destination stake {} is not updated",
                 self.destination_stake.to_account_info().key
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
         if destination_delegation.voter_pubkey != validator.validator_account {
             msg!(
@@ -75,7 +75,7 @@ impl<'info> MergeStakes<'info> {
                 destination_delegation.voter_pubkey,
                 validator.validator_account
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
         // Source stake
         let source_stake_info = self.state.stake_system.get_checked(
@@ -90,7 +90,7 @@ impl<'info> MergeStakes<'info> {
                 "Source stake {} must be delegated",
                 self.source_stake.to_account_info().key
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         };
         if source_delegation.deactivation_epoch != std::u64::MAX {
             msg!(
@@ -109,7 +109,7 @@ impl<'info> MergeStakes<'info> {
                 "Source stake {} is not updated",
                 self.source_stake.to_account_info().key
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
         if source_delegation.voter_pubkey != validator.validator_account {
             msg!(
@@ -117,7 +117,7 @@ impl<'info> MergeStakes<'info> {
                 source_delegation.voter_pubkey,
                 validator.validator_account
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
         self.state.with_stake_deposit_authority_seeds(|seeds| {
             invoke_signed(
@@ -127,7 +127,7 @@ impl<'info> MergeStakes<'info> {
                     self.stake_deposit_authority.to_account_info().key,
                 )[0],
                 &[
-                    self.stake_program.clone(),
+                    self.stake_program.to_account_info(),
                     self.destination_stake.to_account_info(),
                     self.source_stake.to_account_info(),
                     self.clock.to_account_info(),
@@ -198,12 +198,12 @@ impl<'info> MergeStakes<'info> {
                         None,
                     ),
                     &[
-                        self.stake_program.clone(),
+                        self.stake_program.to_account_info(),
                         self.destination_stake.to_account_info(),
-                        self.operational_sol_account.clone(),
+                        self.operational_sol_account.to_account_info(),
                         self.clock.to_account_info(),
                         self.stake_history.to_account_info(),
-                        self.stake_withdraw_authority.clone(),
+                        self.stake_withdraw_authority.to_account_info(),
                     ],
                     &[seeds],
                 )

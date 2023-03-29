@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{error::CommonError, SetValidatorScore};
 
 impl<'info> SetValidatorScore<'info> {
-    pub fn process(&mut self, index: u32, validator_vote: Pubkey, score: u32) -> ProgramResult {
+    pub fn process(&mut self, index: u32, validator_vote: Pubkey, score: u32) -> Result<()> {
         self.state
             .validator_system
             .check_validator_manager_authority(self.manager_authority.key)?;
@@ -22,7 +22,7 @@ impl<'info> SetValidatorScore<'info> {
                 index,
                 validator.validator_account
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
 
         self.state.validator_system.total_validator_score = self

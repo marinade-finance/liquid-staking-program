@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-#[error]
+#[error_code]
 pub enum CommonError {
     #[msg("Wrong reserve owner. Must be a system account")]
     WrongReserveOwner,

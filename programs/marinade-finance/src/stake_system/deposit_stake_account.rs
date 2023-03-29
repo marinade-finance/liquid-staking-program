@@ -6,7 +6,7 @@ use anchor_lang::solana_program::{
     stake::state::StakeAuthorize,
     system_instruction, system_program,
 };
-use anchor_spl::token::{mint_to, MintTo};
+use anchor_spl::token::{mint_to, MintTo, spl_token};
 
 use crate::error::CommonError;
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
 impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 2;
     // fn deposit_stake_account()
-    pub fn process(&mut self, validator_index: u32) -> ProgramResult {
+    pub fn process(&mut self, validator_index: u32) -> Result<()> {
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;
@@ -28,7 +28,7 @@ impl<'info> DepositStakeAccount<'info> {
             .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
-        check_owner_program(&self.stake_account, &stake::program::ID, "stake")?;
+        check_owner_program(self.stake_account.as_ref(), &stake::program::ID, "stake")?;
         check_token_mint(&self.mint_to, self.state.msol_mint, "mint_to")?;
         check_owner_program(&self.rent_payer, &system_program::ID, "rent_payer")?;
 
@@ -50,7 +50,7 @@ impl<'info> DepositStakeAccount<'info> {
                 "Warning: mSOL minted {} lamports outside of marinade",
                 self.msol_mint.supply - self.state.msol_supply
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         let delegation = self.stake_account.delegation().ok_or_else(|| {
@@ -66,7 +66,7 @@ impl<'info> DepositStakeAccount<'info> {
                 "Deposited stake {} must not be cooling down",
                 self.stake_account.to_account_info().key
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         if self.clock.epoch
@@ -83,7 +83,7 @@ impl<'info> DepositStakeAccount<'info> {
                     .checked_add(Self::WAIT_EPOCHS)
                     .unwrap()
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         if delegation.stake < self.state.stake_system.min_stake {
@@ -93,7 +93,7 @@ impl<'info> DepositStakeAccount<'info> {
                 delegation.stake,
                 self.state.stake_system.min_stake
             );
-            return Err(ProgramError::InsufficientFunds);
+            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
 
         if self.stake_account.to_account_info().lamports()
@@ -104,7 +104,7 @@ impl<'info> DepositStakeAccount<'info> {
                 self.stake_account.to_account_info().lamports()
                     - (delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve)
             );
-            return Err(ProgramError::Custom(6212));
+            return Err(Error::from(ProgramError::Custom(6212)).with_source(source!()));
         }
 
         self.state.check_staking_cap(delegation.stake)?;
@@ -130,7 +130,7 @@ impl<'info> DepositStakeAccount<'info> {
                     "Rent payer must have at least {} lamports",
                     self.rent.minimum_balance(0)
                 );
-                return Err(ProgramError::InsufficientFunds);
+                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
             }
             // Add extra validator with 0 score
             let state_address = *self.state.to_account_info().key;
@@ -160,9 +160,9 @@ impl<'info> DepositStakeAccount<'info> {
                             &ID,
                         ),
                         &[
-                            self.system_program.clone(),
-                            self.rent_payer.clone(),
-                            self.duplication_flag.clone(),
+                            self.system_program.to_account_info(),
+                            self.rent_payer.to_account_info(),
+                            self.duplication_flag.to_account_info(),
                         ],
                         &[seeds],
                     )
@@ -202,7 +202,7 @@ impl<'info> DepositStakeAccount<'info> {
                     self.stake_account.to_account_info().key,
                     new_staker
                 );
-                return Err(ProgramError::InvalidAccountData);
+                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
             }
 
             // Clean old lockup
@@ -218,9 +218,9 @@ impl<'info> DepositStakeAccount<'info> {
                         self.stake_authority.key,
                     ),
                     &[
-                        self.stake_program.clone(),
+                        self.stake_program.to_account_info(),
                         self.stake_account.to_account_info(),
-                        self.stake_authority.clone(),
+                        self.stake_authority.to_account_info(),
                     ],
                 )?;
             }
@@ -234,10 +234,10 @@ impl<'info> DepositStakeAccount<'info> {
                     None,
                 ),
                 &[
-                    self.stake_program.clone(),
+                    self.stake_program.to_account_info(),
                     self.stake_account.to_account_info(),
                     self.clock.to_account_info(),
-                    self.stake_authority.clone(),
+                    self.stake_authority.to_account_info(),
                 ],
             )?;
         }
@@ -251,7 +251,7 @@ impl<'info> DepositStakeAccount<'info> {
                     self.stake_account.to_account_info().key,
                     new_withdrawer
                 );
-                return Err(ProgramError::InvalidAccountData);
+                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
             }
 
             invoke(
@@ -263,10 +263,10 @@ impl<'info> DepositStakeAccount<'info> {
                     None,
                 ),
                 &[
-                    self.stake_program.clone(),
+                    self.stake_program.to_account_info(),
                     self.stake_account.to_account_info(),
                     self.clock.to_account_info(),
-                    self.stake_authority.clone(),
+                    self.stake_authority.to_account_info(),
                 ],
             )?;
         }
@@ -284,11 +284,11 @@ impl<'info> DepositStakeAccount<'info> {
         self.state.with_msol_mint_authority_seeds(|mint_seeds| {
             mint_to(
                 CpiContext::new_with_signer(
-                    self.token_program.clone(),
+                    self.token_program.to_account_info(),
                     MintTo {
                         mint: self.msol_mint.to_account_info(),
                         to: self.mint_to.to_account_info(),
-                        authority: self.msol_mint_authority.clone(),
+                        authority: self.msol_mint_authority.to_account_info(),
                     },
                     &[mint_seeds],
                 ),

@@ -2,7 +2,7 @@ use std::ops::DerefMut;
 
 use anchor_lang::prelude::*;
 /* Parsed account together with location key concept.
- * For example ProgramAccount or CpiAccount from anchor.
+ * For example Account from anchor.
  */
 pub trait Located<T> {
     fn as_ref(&self) -> &T;

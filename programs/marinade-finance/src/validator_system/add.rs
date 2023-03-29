@@ -8,7 +8,7 @@ use crate::{
 //use super::{ValidatorRecord, ValidatorSystem};
 
 impl<'info> AddValidator<'info> {
-    pub fn process(&mut self, score: u32) -> ProgramResult {
+    pub fn process(&mut self, score: u32) -> Result<()> {
         self.state
             .validator_system
             .check_validator_manager_authority(self.manager_authority.key)?;
@@ -26,7 +26,7 @@ impl<'info> AddValidator<'info> {
                 "Rent payer must have at least {} lamports",
                 self.rent.minimum_balance(0)
             );
-            return Err(ProgramError::InsufficientFunds);
+            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
         check_address(
             self.system_program.key,
@@ -62,9 +62,9 @@ impl<'info> AddValidator<'info> {
                         &ID,
                     ),
                     &[
-                        self.system_program.clone(),
-                        self.rent_payer.clone(),
-                        self.duplication_flag.clone(),
+                        self.system_program.to_account_info(),
+                        self.rent_payer.to_account_info(),
+                        self.duplication_flag.to_account_info(),
                     ],
                     &[seeds],
                 )

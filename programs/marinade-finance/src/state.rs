@@ -10,6 +10,7 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
+use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
 pub mod change_authority;
@@ -106,12 +107,12 @@ impl State {
         Pubkey::create_with_seed(state, Self::VALIDATOR_LIST_SEED, &ID).unwrap()
     }
 
-    pub fn check_admin_authority(&self, admin_authority: &Pubkey) -> ProgramResult {
+    pub fn check_admin_authority(&self, admin_authority: &Pubkey) -> Result<()> {
         check_address(admin_authority, &self.admin_authority, "admin_authority")?;
         Ok(())
     }
 
-    pub fn check_operational_sol_account(&self, operational_sol_account: &Pubkey) -> ProgramResult {
+    pub fn check_operational_sol_account(&self, operational_sol_account: &Pubkey) -> Result<()> {
         check_address(
             operational_sol_account,
             &self.operational_sol_account,
@@ -120,7 +121,7 @@ impl State {
     }
 
     /*
-    pub fn check_msol_mint(&self, msol_mint: &Pubkey) -> ProgramResult {
+    pub fn check_msol_mint(&self, msol_mint: &Pubkey) -> Result<()> {
         check_address(msol_mint, &self.msol_mint, "msol_mint")?;
         Ok(())
     }*/
@@ -128,7 +129,7 @@ impl State {
     pub fn check_treasury_msol_account<'info>(
         &self,
         treasury_msol_account: &AccountInfo<'info>,
-    ) -> Result<bool, ProgramError> {
+    ) -> Result<bool> {
         check_address(
             treasury_msol_account.key,
             &self.treasury_msol_account,
@@ -168,7 +169,7 @@ impl State {
         }
     }
 
-    pub fn check_msol_mint(&mut self, msol_mint: &Pubkey) -> ProgramResult {
+    pub fn check_msol_mint(&mut self, msol_mint: &Pubkey) -> Result<()> {
         check_address(msol_mint, &self.msol_mint, "msol_mint")
     }
 
@@ -189,7 +190,7 @@ impl State {
             .expect("Total SOLs under control overflow")
     }
 
-    pub fn check_staking_cap(&self, transfering_lamports: u64) -> ProgramResult {
+    pub fn check_staking_cap(&self, transfering_lamports: u64) -> Result<()> {
         let result_amount = self
             .total_lamports_under_control()
             .checked_add(transfering_lamports)
@@ -203,7 +204,7 @@ impl State {
                 result_amount,
                 self.staking_sol_cap
             );
-            return Err(ProgramError::Custom(3782));
+            return Err(Error::from(ProgramError::Custom(3782)).with_source(source!()));
         }
         Ok(())
     }
@@ -215,7 +216,7 @@ impl State {
     }
 
     /// calculate the amount of msol tokens corresponding to certain lamport amount
-    pub fn calc_msol_from_lamports(&self, stake_lamports: u64) -> Result<u64, CommonError> {
+    pub fn calc_msol_from_lamports(&self, stake_lamports: u64) -> Result<u64> {
         shares_from_value(
             stake_lamports,
             self.total_virtual_staked_lamports(),
@@ -224,7 +225,7 @@ impl State {
     }
     /// calculate lamports value from some msol_amount
     /// result_lamports = msol_amount * msol_price
-    pub fn calc_lamports_from_msol_amount(&self, msol_amount: u64) -> Result<u64, CommonError> {
+    pub fn calc_lamports_from_msol_amount(&self, msol_amount: u64) -> Result<u64> {
         value_from_shares(
             msol_amount,
             self.total_virtual_staked_lamports(),
@@ -262,7 +263,7 @@ impl State {
             .expect("reserve balance overflow");
     }
 
-    pub fn on_transfer_from_reserve(&mut self, amount: u64) -> ProgramResult {
+    pub fn on_transfer_from_reserve(&mut self, amount: u64) -> Result<()> {
         self.available_reserve_balance = self
             .available_reserve_balance
             .checked_sub(amount)
@@ -277,7 +278,7 @@ impl State {
             .expect("msol supply overflow");
     }
 
-    pub fn on_msol_burn(&mut self, amount: u64) -> ProgramResult {
+    pub fn on_msol_burn(&mut self, amount: u64) -> Result<()> {
         self.msol_supply = self
             .msol_supply
             .checked_sub(amount)
@@ -303,8 +304,8 @@ pub trait StateHelpers {
     fn reserve_address(&self) -> Pubkey;
     fn with_reserve_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
 
-    fn check_reserve_address(&self, reserve: &Pubkey) -> ProgramResult;
-    fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> ProgramResult;
+    fn check_reserve_address(&self, reserve: &Pubkey) -> Result<()>;
+    fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> Result<()>;
 }
 
 impl<T> StateHelpers for T
@@ -337,11 +338,11 @@ where
         ])
     }
 
-    fn check_reserve_address(&self, reserve: &Pubkey) -> ProgramResult {
+    fn check_reserve_address(&self, reserve: &Pubkey) -> Result<()> {
         check_address(reserve, &self.reserve_address(), "reserve")
     }
 
-    fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> ProgramResult {
+    fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> Result<()> {
         check_address(
             msol_mint_authority,
             &self.msol_mint_authority(),

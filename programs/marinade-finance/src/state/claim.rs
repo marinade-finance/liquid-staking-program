@@ -18,7 +18,7 @@ const EXTRA_WAIT_SECONDS: i64 = 30 * 60;
 /// Checks that transfer request amount is less than total requested for unstake
 impl<'info> Claim<'info> {
     //
-    fn check_ticket_account(&self) -> ProgramResult {
+    fn check_ticket_account(&self) -> Result<()> {
         // ticket account program-owner must be marinade  (TODO: I think it was checked by anchor already)
         check_owner_program(
             &self.ticket_account,
@@ -30,7 +30,7 @@ impl<'info> Claim<'info> {
                 "Ticket has wrong marinade instance {}",
                 self.ticket_account.state_address
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         // should be initialized - checked by anchor
@@ -39,13 +39,13 @@ impl<'info> Claim<'info> {
         // not used
         if self.ticket_account.lamports_amount == 0 {
             msg!("Used ticket");
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         };
 
         //check if ticket is due
         if self.clock.epoch < self.ticket_account.created_epoch + WAIT_EPOCHS {
             msg!("Ticket not due yet");
-            return Err(CommonError::TicketNotDue.into());
+            return err!(CommonError::TicketNotDue);
         }
         // Wait X MORE HOURS FROM THE beginning of the EPOCH to give the bot time to withdraw inactive-stake-accounts
         if self.ticket_account.created_epoch + WAIT_EPOCHS == self.clock.epoch
@@ -56,18 +56,18 @@ impl<'info> Claim<'info> {
                 self.clock.epoch_start_timestamp,
                 self.clock.unix_timestamp
             );
-            return Err(CommonError::TicketNotReady.into());
+            return err!(CommonError::TicketNotReady);
         }
 
         if self.ticket_account.beneficiary != *self.transfer_sol_to.key {
             msg!("wrong beneficiary");
-            return Err(CommonError::WrongBeneficiary.into());
+            return err!(CommonError::WrongBeneficiary);
         };
 
         Ok(())
     }
 
-    pub fn process(&mut self) -> ProgramResult {
+    pub fn process(&mut self) -> Result<()> {
         // fn claim()
         check_address(
             self.system_program.to_account_info().key,
@@ -89,7 +89,7 @@ impl<'info> Claim<'info> {
                 lamports,
                 self.state.circulating_ticket_balance
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         // Real balance not virtual field
@@ -119,9 +119,9 @@ impl<'info> Claim<'info> {
                     lamports,
                 ),
                 &[
-                    self.system_program.clone(),
-                    self.reserve_pda.clone(),
-                    self.transfer_sol_to.clone(),
+                    self.system_program.to_account_info(),
+                    self.reserve_pda.to_account_info(),
+                    self.transfer_sol_to.to_account_info(),
                 ],
                 &[seeds],
             )

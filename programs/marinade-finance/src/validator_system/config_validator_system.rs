@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 impl<'info> crate::ConfigValidatorSystem<'info> {
-    pub fn process(&mut self, extra_runs: u32) -> ProgramResult {
+    pub fn process(&mut self, extra_runs: u32) -> Result<()> {
         self.state
             .validator_system
             .check_validator_manager_authority(self.manager_authority.key)?;

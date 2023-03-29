@@ -4,10 +4,10 @@ use super::LiqPoolHelpers;
 use crate::{calc::shares_from_value, checks::*};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
-use anchor_spl::token::{mint_to, MintTo};
+use anchor_spl::token::{mint_to, MintTo, spl_token};
 
 impl<'info> AddLiquidity<'info> {
-    fn check_transfer_from(&self, lamports: u64) -> ProgramResult {
+    fn check_transfer_from(&self, lamports: u64) -> Result<()> {
         check_owner_program(&self.transfer_from, &system_program::ID, "transfer_from")?;
         if self.transfer_from.lamports() < lamports {
             msg!(
@@ -16,18 +16,18 @@ impl<'info> AddLiquidity<'info> {
                 self.transfer_from.lamports(),
                 lamports
             );
-            return Err(ProgramError::InsufficientFunds);
+            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
         Ok(())
     }
 
-    fn check_mint_to(&self) -> ProgramResult {
+    fn check_mint_to(&self) -> Result<()> {
         check_token_mint(&self.mint_to, self.state.liq_pool.lp_mint, "mint_to")?;
         Ok(())
     }
 
     // fn add_liquidity()
-    pub fn process(&mut self, lamports: u64) -> ProgramResult {
+    pub fn process(&mut self, lamports: u64) -> Result<()> {
         msg!("add-liq pre check");
         check_min_amount(lamports, self.state.min_deposit, "add_liquidity")?;
         self.state
@@ -58,7 +58,7 @@ impl<'info> AddLiquidity<'info> {
         // Update virtual lp_supply by real one
         if self.lp_mint.supply > self.state.liq_pool.lp_supply {
             msg!("Someone minted lp tokens without our permission or bug found");
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
         self.state.liq_pool.lp_supply = self.lp_mint.supply;
         // we need to compute how many LP-shares to mint for this deposit in the liq-pool
@@ -101,9 +101,9 @@ impl<'info> AddLiquidity<'info> {
                 lamports,
             ),
             &[
-                self.transfer_from.clone(),
-                self.liq_pool_sol_leg_pda.clone(),
-                self.system_program.clone(),
+                self.transfer_from.to_account_info(),
+                self.liq_pool_sol_leg_pda.to_account_info(),
+                self.system_program.to_account_info(),
             ],
         )?;
 
@@ -111,11 +111,11 @@ impl<'info> AddLiquidity<'info> {
         self.state.with_lp_mint_authority_seeds(|mint_seeds| {
             mint_to(
                 CpiContext::new_with_signer(
-                    self.token_program.clone(),
+                    self.token_program.to_account_info(),
                     MintTo {
                         mint: self.lp_mint.to_account_info(),
                         to: self.mint_to.to_account_info(),
-                        authority: self.lp_mint_authority.clone(),
+                        authority: self.lp_mint_authority.to_account_info(),
                     },
                     &[mint_seeds],
                 ),

@@ -1,6 +1,6 @@
 use crate::ConfigLp;
 use crate::ConfigLpParams;
-use anchor_lang::prelude::ProgramResult;
+use anchor_lang::prelude::*;
 
 impl<'info> ConfigLp<'info> {
     pub fn process(
@@ -11,7 +11,7 @@ impl<'info> ConfigLp<'info> {
             liquidity_target,
             treasury_cut,
         }: ConfigLpParams,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         self.state.check_admin_authority(self.admin_authority.key)?;
         if let Some(min_fee) = min_fee {
             self.state.liq_pool.lp_min_fee = min_fee;

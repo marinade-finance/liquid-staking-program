@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::RemoveValidator;
 
 impl<'info> RemoveValidator<'info> {
-    pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> ProgramResult {
+    pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> Result<()> {
         self.state
             .validator_system
             .check_validator_manager_authority(self.manager_authority.key)?;
@@ -19,7 +19,7 @@ impl<'info> RemoveValidator<'info> {
             .get(&self.validator_list.data.borrow(), index)?;
         if validator.validator_account != validator_vote {
             msg!("Removing validator index is wrong");
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
         if self.duplication_flag.key
             != &validator.duplication_flag_address(self.state.to_account_info().key)
@@ -29,7 +29,7 @@ impl<'info> RemoveValidator<'info> {
                 self.duplication_flag.key,
                 validator.duplication_flag_address(self.state.to_account_info().key)
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
 
         self.state.validator_system.remove(

@@ -9,6 +9,7 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program_pack::Pack, system_program};
+use anchor_spl::token::spl_token;
 
 use super::State;
 
@@ -26,12 +27,12 @@ impl<'info> Initialize<'info> {
         self.state.to_account_info().key
     }
 
-    fn check_state(&self) -> ProgramResult {
+    fn check_state(&self) -> Result<()> {
         // all checked by anchor
         Ok(())
     }
 
-    fn check_reserve_pda(&mut self) -> ProgramResult {
+    fn check_reserve_pda(&mut self) -> Result<()> {
         check_owner_program(&self.reserve_pda, &system_program::ID, "reserve_pda")?;
         let (address, bump) = State::find_reserve_address(self.state_address());
         check_address(self.reserve_pda.key, &address, "reserve_pda")?;
@@ -44,14 +45,14 @@ impl<'info> Initialize<'info> {
                     lamports,
                     self.state.rent_exempt_for_token_acc
                 );
-                return Err(ProgramError::InvalidArgument);
+                return Err(Error::from(ProgramError::InvalidArgument));
             }
         }
         Ok(())
     }
 
-    fn check_msol_mint(&mut self) -> ProgramResult {
-        check_owner_program(&self.msol_mint, &spl_token::ID, "msol_mint")?;
+    fn check_msol_mint(&mut self) -> Result<()> {
+        check_owner_program(self.msol_mint.as_ref(), &spl_token::ID, "msol_mint")?;
         let (authority_address, authority_bump_seed) =
             State::find_msol_mint_authority(self.state_address());
 
@@ -62,14 +63,14 @@ impl<'info> Initialize<'info> {
         Ok(())
     }
 
-    fn check_treasury_accounts(&self) -> ProgramResult {
+    fn check_treasury_accounts(&self) -> Result<()> {
         /* check_owner_program(
             &self.treasury_sol_account,
             &system_program::ID,
             "treasury_sol_account",
         )?;*/
         check_owner_program(
-            &self.treasury_msol_account,
+            self.treasury_msol_account.as_ref(),
             &anchor_spl::token::ID,
             "treasury_msol_account",
         )?;
@@ -81,7 +82,7 @@ impl<'info> Initialize<'info> {
         Ok(())
     }
 
-    pub fn process(&mut self, data: InitializeData) -> ProgramResult {
+    pub fn process(&mut self, data: InitializeData) -> Result<()> {
         check_address(
             self.creator_authority.key,
             &Initialize::CREATOR_AUTHORITY,

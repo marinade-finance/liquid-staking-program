@@ -17,7 +17,7 @@ impl<'info> ConfigMarinade<'info> {
             liquidity_sol_cap,
             auto_add_validator_enabled,
         }: ConfigMarinadeParams,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         self.state.check_admin_authority(self.admin_authority.key)?;
         if let Some(rewards_fee) = rewards_fee {
             rewards_fee.check_max(MAX_REWARD_FEE)?;

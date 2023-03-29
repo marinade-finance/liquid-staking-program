@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
-use anchor_spl::token::{mint_to, transfer, MintTo, Transfer};
+use anchor_spl::token::{mint_to, transfer, MintTo, Transfer, spl_token};
 
 use crate::{
     checks::{check_address, check_min_amount, check_owner_program, check_token_mint},
@@ -10,21 +10,21 @@ use crate::{
 };
 
 impl<'info> Deposit<'info> {
-    fn check_transfer_from(&self, lamports: u64) -> ProgramResult {
+    fn check_transfer_from(&self, lamports: u64) -> Result<()> {
         check_owner_program(&self.transfer_from, &system_program::ID, "transfer_from")?;
         if self.transfer_from.lamports() < lamports {
-            return Err(ProgramError::InsufficientFunds);
+            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
         Ok(())
     }
 
-    fn check_mint_to(&self) -> ProgramResult {
+    fn check_mint_to(&self) -> Result<()> {
         check_token_mint(&self.mint_to, self.state.msol_mint, "mint_to")?;
         Ok(())
     }
 
     // fn deposit_sol()
-    pub fn process(&mut self, lamports: u64) -> ProgramResult {
+    pub fn process(&mut self, lamports: u64) -> Result<()> {
         check_min_amount(lamports, self.state.min_deposit, "deposit SOL")?;
         self.state.check_reserve_address(self.reserve_pda.key)?;
         self.state
@@ -55,7 +55,7 @@ impl<'info> Deposit<'info> {
                 "Warning: mSOL minted {} lamports outside of marinade",
                 self.msol_mint.supply - self.state.msol_supply
             );
-            return Err(ProgramError::InvalidAccountData);
+            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
         let user_lamports = lamports;
@@ -88,11 +88,11 @@ impl<'info> Deposit<'info> {
             self.state.with_liq_pool_msol_leg_authority_seeds(|seeds| {
                 transfer(
                     CpiContext::new_with_signer(
-                        self.token_program.clone(),
+                        self.token_program.to_account_info(),
                         Transfer {
                             from: self.liq_pool_msol_leg.to_account_info(),
                             to: self.mint_to.to_account_info(),
-                            authority: self.liq_pool_msol_leg_authority.clone(),
+                            authority: self.liq_pool_msol_leg_authority.to_account_info(),
                         },
                         &[seeds],
                     ),
@@ -108,9 +108,9 @@ impl<'info> Deposit<'info> {
                     lamports_for_the_liq_pool,
                 ),
                 &[
-                    self.transfer_from.clone(),
-                    self.liq_pool_sol_leg_pda.clone(),
-                    self.system_program.clone(),
+                    self.transfer_from.to_account_info(),
+                    self.liq_pool_sol_leg_pda.to_account_info(),
+                    self.system_program.to_account_info(),
                 ],
             )?;
 
@@ -140,9 +140,9 @@ impl<'info> Deposit<'info> {
                     user_lamports,
                 ),
                 &[
-                    self.transfer_from.clone(),
-                    self.reserve_pda.clone(),
-                    self.system_program.clone(),
+                    self.transfer_from.to_account_info(),
+                    self.reserve_pda.to_account_info(),
+                    self.system_program.to_account_info(),
                 ],
             )?;
             self.state.on_transfer_to_reserve(user_lamports);
@@ -150,11 +150,11 @@ impl<'info> Deposit<'info> {
                 self.state.with_msol_mint_authority_seeds(|mint_seeds| {
                     mint_to(
                         CpiContext::new_with_signer(
-                            self.token_program.clone(),
+                            self.token_program.to_account_info(),
                             MintTo {
                                 mint: self.msol_mint.to_account_info(),
                                 to: self.mint_to.to_account_info(),
-                                authority: self.msol_mint_authority.clone(),
+                                authority: self.msol_mint_authority.to_account_info(),
                             },
                             &[mint_seeds],
                         ),

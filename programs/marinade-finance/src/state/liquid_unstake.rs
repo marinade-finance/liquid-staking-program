@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
-use anchor_spl::token::{transfer, Transfer};
+use anchor_spl::token::{transfer, Transfer, spl_token};
 
 use crate::checks::check_min_amount;
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
 };
 
 impl<'info> LiquidUnstake<'info> {
-    fn check_get_msol_from(&self, msol_amount: u64) -> ProgramResult {
+    fn check_get_msol_from(&self, msol_amount: u64) -> Result<()> {
         check_token_mint(&self.get_msol_from, self.state.msol_mint, "get_msol_from")?;
         // if delegated, check delegated amount
         if *self.get_msol_from_authority.key == self.get_msol_from.owner {
@@ -20,7 +20,7 @@ impl<'info> LiquidUnstake<'info> {
                     msol_amount,
                     self.get_msol_from.amount
                 );
-                return Err(ProgramError::InsufficientFunds);
+                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
             }
         } else if self
             .get_msol_from
@@ -35,25 +35,25 @@ impl<'info> LiquidUnstake<'info> {
                     self.get_msol_from.delegated_amount,
                     msol_amount
                 );
-                return Err(ProgramError::InsufficientFunds);
+                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
             }
         } else {
             msg!(
                 "Token must be delegated to {}",
                 self.get_msol_from_authority.key
             );
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
         Ok(())
     }
 
-    fn check_transfer_sol_to(&self) -> ProgramResult {
+    fn check_transfer_sol_to(&self) -> Result<()> {
         check_owner_program(&self.transfer_sol_to, &system_program::ID, "transfer_from")?;
         Ok(())
     }
 
     // fn liquid_unstake()
-    pub fn process(&mut self, msol_amount: u64) -> ProgramResult {
+    pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         msg!("enter LiquidUnstake");
 
         self.state
@@ -123,9 +123,9 @@ impl<'info> LiquidUnstake<'info> {
                         working_lamports_value,
                     ),
                     &[
-                        self.liq_pool_sol_leg_pda.clone(),
-                        self.transfer_sol_to.clone(),
-                        self.system_program.clone(),
+                        self.liq_pool_sol_leg_pda.to_account_info(),
+                        self.transfer_sol_to.to_account_info(),
+                        self.system_program.to_account_info(),
                     ],
                     &[sol_seeds],
                 )
@@ -143,11 +143,11 @@ impl<'info> LiquidUnstake<'info> {
         //transfer mSOL to the liq-pool
         transfer(
             CpiContext::new(
-                self.token_program.clone(),
+                self.token_program.to_account_info(),
                 Transfer {
                     from: self.get_msol_from.to_account_info(),
                     to: self.liq_pool_msol_leg.to_account_info(),
-                    authority: self.get_msol_from_authority.clone(),
+                    authority: self.get_msol_from_authority.to_account_info(),
                 },
             ),
             msol_amount - treasury_msol_cut,
@@ -157,11 +157,11 @@ impl<'info> LiquidUnstake<'info> {
         if treasury_msol_cut > 0 {
             transfer(
                 CpiContext::new(
-                    self.token_program.clone(),
+                    self.token_program.to_account_info(),
                     Transfer {
                         from: self.get_msol_from.to_account_info(),
                         to: self.treasury_msol_account.to_account_info(),
-                        authority: self.get_msol_from_authority.clone(),
+                        authority: self.get_msol_from_authority.to_account_info(),
                     },
                 ),
                 treasury_msol_cut,
