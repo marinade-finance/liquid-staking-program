@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
 
 use crate::{
-    checks::{check_address, check_owner_program},
+    checks::{check_address},
     state::StateHelpers,
     Claim, CommonError,
 };
@@ -19,12 +19,6 @@ const EXTRA_WAIT_SECONDS: i64 = 30 * 60;
 impl<'info> Claim<'info> {
     //
     fn check_ticket_account(&self) -> Result<()> {
-        // ticket account program-owner must be marinade  (TODO: I think it was checked by anchor already)
-        check_owner_program(
-            &self.ticket_account,
-            &crate::ID, //owner-program should be marinade
-            "ticket_account",
-        )?;
         if &self.ticket_account.state_address != self.state.to_account_info().key {
             msg!(
                 "Ticket has wrong marinade instance {}",
@@ -73,11 +67,6 @@ impl<'info> Claim<'info> {
             self.system_program.to_account_info().key,
             &system_program::ID,
             "system_program",
-        )?;
-        check_owner_program(
-            &self.transfer_sol_to,
-            &system_program::ID,
-            "transfer_sol_to",
         )?;
         self.state.check_reserve_address(self.reserve_pda.key)?;
         self.check_ticket_account()?;

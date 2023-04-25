@@ -33,7 +33,6 @@ impl<'info> Initialize<'info> {
     }
 
     fn check_reserve_pda(&mut self) -> Result<()> {
-        check_owner_program(&self.reserve_pda, &system_program::ID, "reserve_pda")?;
         let (address, bump) = State::find_reserve_address(self.state_address());
         check_address(self.reserve_pda.key, &address, "reserve_pda")?;
         self.state.reserve_bump_seed = bump;
@@ -52,7 +51,6 @@ impl<'info> Initialize<'info> {
     }
 
     fn check_msol_mint(&mut self) -> Result<()> {
-        check_owner_program(self.msol_mint.as_ref(), &spl_token::ID, "msol_mint")?;
         let (authority_address, authority_bump_seed) =
             State::find_msol_mint_authority(self.state_address());
 
@@ -64,16 +62,6 @@ impl<'info> Initialize<'info> {
     }
 
     fn check_treasury_accounts(&self) -> Result<()> {
-        /* check_owner_program(
-            &self.treasury_sol_account,
-            &system_program::ID,
-            "treasury_sol_account",
-        )?;*/
-        check_owner_program(
-            self.treasury_msol_account.as_ref(),
-            &anchor_spl::token::ID,
-            "treasury_msol_account",
-        )?;
         check_token_mint(
             &self.treasury_msol_account,
             *self.msol_mint.to_account_info().key,

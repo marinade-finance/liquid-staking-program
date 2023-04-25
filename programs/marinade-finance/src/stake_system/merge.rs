@@ -5,7 +5,7 @@ use anchor_lang::solana_program::{
 };
 
 use crate::{
-    checks::{check_address, check_owner_program},
+    checks::{check_address},
     error::CommonError,
     stake_system::StakeSystemHelpers,
     MergeStakes,
@@ -22,12 +22,6 @@ impl<'info> MergeStakes<'info> {
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;
-        check_owner_program(
-            self.destination_stake.as_ref(),
-            &stake::program::ID,
-            "destination_stake",
-        )?;
-        check_owner_program(self.source_stake.as_ref(), &stake::program::ID, "source_stake")?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.to_account_info().key)?;
         self.state
