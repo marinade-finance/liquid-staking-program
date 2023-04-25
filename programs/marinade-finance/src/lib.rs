@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, system_program};
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_spl::{
     stake::{Stake, StakeAccount},
@@ -483,6 +483,7 @@ pub struct DepositStakeAccount<'info> {
     #[account(mut)]
     pub duplication_flag: UncheckedAccount<'info>,
     #[account(mut)]
+    #[account(owner = system_program::ID)]
     pub rent_payer: Signer<'info>,
 
     #[account(mut)]
