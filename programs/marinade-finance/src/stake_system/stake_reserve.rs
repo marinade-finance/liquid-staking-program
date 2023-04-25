@@ -1,5 +1,5 @@
 use crate::{
-    checks::{check_address, check_owner_program},
+    checks::{check_address},
     error::CommonError,
     stake_system::StakeSystemHelpers,
     state::StateHelpers,
@@ -49,7 +49,6 @@ impl<'info> StakeReserve<'info> {
         self.check_stake_history()?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_owner_program(self.stake_account.as_ref(), &stake::program::ID, "stake")?;
         match StakeAccount::deref(&self.stake_account) {
             StakeState::Uninitialized => (),
             _ => {

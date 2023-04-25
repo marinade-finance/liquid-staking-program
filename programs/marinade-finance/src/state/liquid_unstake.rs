@@ -4,7 +4,7 @@ use anchor_spl::token::{transfer, Transfer, spl_token};
 
 use crate::checks::check_min_amount;
 use crate::{
-    checks::{check_address, check_owner_program, check_token_mint},
+    checks::{check_address, check_token_mint},
     liq_pool::LiqPoolHelpers,
     CommonError, LiquidUnstake,
 };
@@ -47,11 +47,6 @@ impl<'info> LiquidUnstake<'info> {
         Ok(())
     }
 
-    fn check_transfer_sol_to(&self) -> Result<()> {
-        check_owner_program(&self.transfer_sol_to, &system_program::ID, "transfer_from")?;
-        Ok(())
-    }
-
     // fn liquid_unstake()
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         msg!("enter LiquidUnstake");
@@ -64,7 +59,6 @@ impl<'info> LiquidUnstake<'info> {
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
         self.check_get_msol_from(msol_amount)?;
-        self.check_transfer_sol_to()?;
         let is_treasury_msol_ready_for_transfer = self
             .state
             .check_treasury_msol_account(&self.treasury_msol_account)?;

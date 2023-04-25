@@ -1,6 +1,6 @@
 use crate::{
     calc::proportional,
-    checks::{check_address, check_min_amount, check_owner_program, check_token_mint},
+    checks::{check_address, check_min_amount, check_token_mint},
     liq_pool::LiqPoolHelpers,
     RemoveLiquidity,
 };
@@ -46,15 +46,6 @@ impl<'info> RemoveLiquidity<'info> {
         Ok(())
     }
 
-    fn check_transfer_sol_to(&self) -> Result<()> {
-        check_owner_program(
-            &self.transfer_sol_to,
-            &system_program::ID,
-            "transfer_sol_to",
-        )?;
-        Ok(())
-    }
-
     fn check_transfer_msol_to(&self) -> Result<()> {
         check_token_mint(
             &self.transfer_msol_to,
@@ -72,7 +63,6 @@ impl<'info> RemoveLiquidity<'info> {
         // self.state
         //     .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.check_burn_from(tokens)?;
-        self.check_transfer_sol_to()?;
         self.check_transfer_msol_to()?;
         self.state
             .check_liq_pool_sol_leg_pda(self.liq_pool_sol_leg_pda.key)?;

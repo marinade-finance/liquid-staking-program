@@ -1,5 +1,5 @@
 use crate::{
-    checks::{check_owner_program, check_stake_amount_and_validator},
+    checks::{check_stake_amount_and_validator},
     error::CommonError,
     stake_system::StakeSystemHelpers,
 };
@@ -23,7 +23,6 @@ impl<'info> EmergencyUnstake<'info> {
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_owner_program(&self.stake_account, &stake::program::ID, "stake_account")?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;

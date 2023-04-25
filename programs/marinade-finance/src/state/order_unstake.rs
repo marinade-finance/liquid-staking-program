@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, spl_token};
 
 use crate::{
-    checks::{check_address, check_min_amount, check_owner_program, check_token_mint},
+    checks::{check_address, check_min_amount, check_token_mint},
     OrderUnstake,
 };
 
@@ -49,24 +49,10 @@ impl<'info> OrderUnstake<'info> {
         Ok(())
     }
 
-    fn check_new_ticket_account(&self) -> Result<()> {
-        // ticket account program-owner must be marinade (TODO: I think it was checked by anchor already)
-        check_owner_program(
-            self.new_ticket_account.as_ref(),
-            &crate::ID, //owner-program should be marinade
-            "new_ticket_account",
-        )?;
-
-        // should be uninitialized - checked by anchor
-        // should be rent-exempt - checked by anchor
-        Ok(())
-    }
-
     // fn order_unstake() // create delayed-unstake Ticket-account
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         // fn order_unstake()
         check_address(self.token_program.key, &spl_token::ID, "token_program")?;
-        self.check_new_ticket_account()?;
         self.state
             .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.check_burn_msol_from(msol_amount)?;

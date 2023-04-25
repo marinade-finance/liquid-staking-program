@@ -28,7 +28,6 @@ impl<'info> DeactivateStake<'info> {
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_owner_program(self.stake_account.as_ref(), &stake::program::ID, "stake_account")?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         check_address(

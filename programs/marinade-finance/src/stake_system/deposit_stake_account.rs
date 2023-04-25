@@ -8,9 +8,10 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::token::{mint_to, MintTo, spl_token};
 
+use crate::checks::check_owner_program;
 use crate::error::CommonError;
 use crate::{
-    checks::{check_address, check_owner_program, check_token_mint},
+    checks::{check_address, check_token_mint},
     stake_system::StakeSystemHelpers,
     state::StateHelpers,
     DepositStakeAccount, ID,
@@ -28,9 +29,7 @@ impl<'info> DepositStakeAccount<'info> {
             .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
-        check_owner_program(self.stake_account.as_ref(), &stake::program::ID, "stake")?;
         check_token_mint(&self.mint_to, self.state.msol_mint, "mint_to")?;
-        check_owner_program(&self.rent_payer, &system_program::ID, "rent_payer")?;
 
         check_address(
             self.system_program.key,

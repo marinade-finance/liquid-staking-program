@@ -2,17 +2,14 @@ use super::LiqPool;
 use crate::{
     checks::{
         check_address, check_freeze_authority, check_mint_authority, check_mint_empty,
-        check_owner_program, check_token_mint, check_token_owner,
+        check_token_mint, check_token_owner,
     },
     Initialize, LiqPoolInitialize, LiqPoolInitializeData,
 };
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_program;
-use anchor_spl::token::spl_token;
 
 impl<'info> LiqPoolInitialize<'info> {
     pub fn check_liq_mint(parent: &mut Initialize) -> Result<()> {
-        check_owner_program(parent.liq_pool.lp_mint.as_ref(), &spl_token::ID, "lp_mint")?;
         if parent.liq_pool.lp_mint.to_account_info().key == parent.msol_mint.to_account_info().key {
             msg!("Use different mints for stake and liquidity pool");
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
@@ -31,11 +28,6 @@ impl<'info> LiqPoolInitialize<'info> {
     }
 
     pub fn check_sol_account_pda(parent: &mut Initialize) -> Result<()> {
-        check_owner_program(
-            &parent.liq_pool.sol_leg_pda,
-            &system_program::ID,
-            "liq_sol_account_pda",
-        )?;
         let (address, bump) = LiqPool::find_sol_leg_address(parent.state_address());
         check_address(
             parent.liq_pool.sol_leg_pda.key,
@@ -58,7 +50,6 @@ impl<'info> LiqPoolInitialize<'info> {
     }
 
     pub fn check_msol_account(parent: &mut Initialize) -> Result<()> {
-        check_owner_program(parent.liq_pool.msol_leg.as_ref(), &spl_token::ID, "liq_msol_leg")?;
         check_token_mint(
             &parent.liq_pool.msol_leg,
             *parent.msol_mint.to_account_info().key,
