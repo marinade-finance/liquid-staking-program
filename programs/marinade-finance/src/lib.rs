@@ -389,8 +389,8 @@ pub struct AddLiquidity<'info> {
     // #[account(owner = "11111111111111111111111111111111")]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    // #[check_owner_program("11111111111111111111111111111111")]
-    #[account(mut)] //, owner = "11111111111111111111111111111111")]
+    #[account(mut)]
+    #[account(owner = system_program::ID)]
     pub transfer_from: Signer<'info>,
 
     // #[check_owner_program("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")]
@@ -451,6 +451,7 @@ pub struct Deposit<'info> {
     pub reserve_pda: SystemAccount<'info>,
 
     #[account(mut)]
+    #[account(owner = system_program::ID)]
     pub transfer_from: Signer<'info>,
 
     #[account(mut)]
@@ -546,6 +547,7 @@ pub struct AddValidator<'info> {
     #[account(mut)]
     pub duplication_flag: UncheckedAccount<'info>,
     #[account(mut)]
+    #[account(owner = system_program::ID)]
     pub rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -788,6 +790,7 @@ pub struct DeactivateStake<'info> {
     #[account(mut)]
     pub split_stake_account: Signer<'info>,
     #[account(mut)]
+    #[account(owner = system_program::ID)]
     pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -841,6 +844,7 @@ pub struct PartialUnstake<'info> {
     #[account(mut)]
     pub split_stake_account: Signer<'info>,
     #[account(mut)]
+    #[account(owner = system_program::ID)]
     pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
