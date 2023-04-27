@@ -30,9 +30,6 @@ impl<'info> AddLiquidity<'info> {
         msg!("add-liq pre check");
         check_min_amount(lamports, self.state.min_deposit, "add_liquidity")?;
         self.state
-            .liq_pool
-            .check_lp_mint(self.lp_mint.to_account_info().key)?;
-        self.state
             .check_lp_mint_authority(self.lp_mint_authority.key)?;
         // self.state
         //     .check_msol_mint(self.msol_mint.to_account_info().key)?;

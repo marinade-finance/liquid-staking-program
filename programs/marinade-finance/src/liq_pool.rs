@@ -64,10 +64,6 @@ impl LiqPool {
         Pubkey::create_with_seed(state, Self::MSOL_LEG_SEED, &spl_token::ID).unwrap()
     }
 
-    pub fn check_lp_mint(&mut self, lp_mint: &Pubkey) -> Result<()> {
-        check_address(lp_mint, &self.lp_mint, "lp_mint")
-    }
-
     pub fn check_liq_pool_msol_leg(&self, liq_pool_msol_leg: &Pubkey) -> Result<()> {
         check_address(liq_pool_msol_leg, &self.msol_leg, "liq_pool_msol_leg")
     }

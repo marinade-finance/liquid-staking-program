@@ -57,9 +57,6 @@ impl<'info> RemoveLiquidity<'info> {
 
     pub fn process(&mut self, tokens: u64) -> Result<()> {
         msg!("rem-liq pre check");
-        self.state
-            .liq_pool
-            .check_lp_mint(self.lp_mint.to_account_info().key)?;
         // self.state
         //     .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.check_burn_from(tokens)?;

@@ -373,7 +373,7 @@ pub struct AddLiquidity<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
 
-    #[account(mut)]
+    #[account(mut, constraint = lp_mint.key() == state.liq_pool.lp_mint)]
     pub lp_mint: Box<Account<'info, Mint>>,
 
     /// CHECK: PDA
@@ -406,7 +406,7 @@ pub struct RemoveLiquidity<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
 
-    #[account(mut)]
+    #[account(mut, constraint = {lp_mint.key() == state.liq_pool.lp_mint})]
     pub lp_mint: Box<Account<'info, Mint>>,
 
     #[account(mut)]
