@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
 
 use crate::{
-    checks::{check_address, check_owner_program},
+    checks::{check_address},
     AddValidator, ID,
 };
 //use super::{ValidatorRecord, ValidatorSystem};
@@ -15,12 +15,6 @@ impl<'info> AddValidator<'info> {
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;
-        check_owner_program(
-            &self.duplication_flag,
-            &system_program::ID,
-            "duplication_flag",
-        )?;
-        check_owner_program(&self.rent_payer, &system_program::ID, "rent_payer")?;
         if !self.rent.is_exempt(self.rent_payer.lamports(), 0) {
             msg!(
                 "Rent payer must have at least {} lamports",

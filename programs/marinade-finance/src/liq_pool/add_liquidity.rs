@@ -8,7 +8,6 @@ use anchor_spl::token::{mint_to, MintTo, spl_token};
 
 impl<'info> AddLiquidity<'info> {
     fn check_transfer_from(&self, lamports: u64) -> Result<()> {
-        check_owner_program(&self.transfer_from, &system_program::ID, "transfer_from")?;
         if self.transfer_from.lamports() < lamports {
             msg!(
                 "{} balance is {} but expected {}",

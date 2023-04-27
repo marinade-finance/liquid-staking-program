@@ -1,14 +1,14 @@
 use crate::{
     checks::{
         check_address, check_freeze_authority, check_mint_authority, check_mint_empty,
-        check_owner_program, check_token_mint,
+        check_token_mint,
     },
     stake_system::StakeSystem,
     validator_system::ValidatorSystem,
-    Initialize, InitializeData, LiqPoolInitialize, ID, MAX_REWARD_FEE,
+    Initialize, InitializeData, LiqPoolInitialize, MAX_REWARD_FEE,
 };
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program_pack::Pack, system_program};
+use anchor_lang::solana_program::{program_pack::Pack};
 use anchor_spl::token::spl_token;
 
 use super::State;
@@ -85,13 +85,6 @@ impl<'info> Initialize<'info> {
         self.check_reserve_pda()?;
         self.check_msol_mint()?;
         self.check_treasury_accounts()?;
-        check_owner_program(
-            &self.operational_sol_account,
-            &system_program::ID,
-            "operational_sol",
-        )?;
-        check_owner_program(&self.stake_list, &ID, "stake_list")?;
-        check_owner_program(&self.validator_list, &ID, "validator_list")?;
 
         self.state.msol_mint = *self.msol_mint.to_account_info().key;
         self.state.admin_authority = data.admin_authority;

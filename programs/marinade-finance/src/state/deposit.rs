@@ -3,7 +3,7 @@ use anchor_lang::solana_program::{program::invoke, system_instruction, system_pr
 use anchor_spl::token::{mint_to, transfer, MintTo, Transfer, spl_token};
 
 use crate::{
-    checks::{check_address, check_min_amount, check_owner_program, check_token_mint},
+    checks::{check_address, check_min_amount, check_token_mint},
     liq_pool::LiqPoolHelpers,
     state::StateHelpers,
     Deposit,
@@ -11,7 +11,6 @@ use crate::{
 
 impl<'info> Deposit<'info> {
     fn check_transfer_from(&self, lamports: u64) -> Result<()> {
-        check_owner_program(&self.transfer_from, &system_program::ID, "transfer_from")?;
         if self.transfer_from.lamports() < lamports {
             return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
