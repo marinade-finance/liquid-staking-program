@@ -353,7 +353,7 @@ pub struct LiqPoolInitializeData {
 //-----------------------------------------------------
 #[derive(Accounts)]
 pub struct ChangeAuthority<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = admin_authority)]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }
@@ -747,7 +747,7 @@ pub struct ConfigLpParams {
 
 #[derive(Accounts)]
 pub struct ConfigLp<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = admin_authority)]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }
@@ -766,7 +766,7 @@ pub struct ConfigMarinadeParams {
 
 #[derive(Accounts)]
 pub struct ConfigMarinade<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = admin_authority)]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }

@@ -107,11 +107,6 @@ impl State {
         Pubkey::create_with_seed(state, Self::VALIDATOR_LIST_SEED, &ID).unwrap()
     }
 
-    pub fn check_admin_authority(&self, admin_authority: &Pubkey) -> Result<()> {
-        check_address(admin_authority, &self.admin_authority, "admin_authority")?;
-        Ok(())
-    }
-
     pub fn check_operational_sol_account(&self, operational_sol_account: &Pubkey) -> Result<()> {
         check_address(
             operational_sol_account,
