@@ -506,7 +506,7 @@ pub struct DepositStakeAccount<'info> {
 //-----------------------------------------------------
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = treasury_msol_account)]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
@@ -662,7 +662,7 @@ pub struct StakeReserve<'info> {
 }
 #[derive(Accounts)]
 pub struct UpdateCommon<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = treasury_msol_account)]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
     #[account(mut)]

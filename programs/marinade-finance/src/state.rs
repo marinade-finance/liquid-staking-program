@@ -125,11 +125,6 @@ impl State {
         &self,
         treasury_msol_account: &AccountInfo<'info>,
     ) -> Result<bool> {
-        check_address(
-            treasury_msol_account.key,
-            &self.treasury_msol_account,
-            "treasury_msol_account",
-        )?;
 
         if treasury_msol_account.owner != &spl_token::ID {
             msg!(
