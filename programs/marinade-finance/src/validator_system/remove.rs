@@ -11,8 +11,6 @@ impl<'info> RemoveValidator<'info> {
             .validator_system
             .check_validator_list(&self.validator_list)?;
 
-        self.state
-            .check_operational_sol_account(self.operational_sol_account.key)?;
         let validator = self
             .state
             .validator_system

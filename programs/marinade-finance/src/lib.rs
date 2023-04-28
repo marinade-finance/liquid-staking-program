@@ -559,7 +559,7 @@ pub struct AddValidator<'info> {
 //-----------------------------------------------------
 #[derive(Accounts)]
 pub struct RemoveValidator<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = operational_sol_account)]
     pub state: Account<'info, State>,
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
@@ -858,7 +858,7 @@ pub struct PartialUnstake<'info> {
 
 #[derive(Accounts)]
 pub struct MergeStakes<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = operational_sol_account)]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
     #[account(mut)]
