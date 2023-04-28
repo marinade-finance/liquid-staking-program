@@ -35,8 +35,6 @@ impl<'info> AddLiquidity<'info> {
             .check_lp_mint(self.lp_mint.to_account_info().key)?;
         self.state
             .check_lp_mint_authority(self.lp_mint_authority.key)?;
-        // self.state
-        //     .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.state
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;

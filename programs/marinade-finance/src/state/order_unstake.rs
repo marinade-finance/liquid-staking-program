@@ -53,8 +53,6 @@ impl<'info> OrderUnstake<'info> {
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         // fn order_unstake()
         check_address(self.token_program.key, &spl_token::ID, "token_program")?;
-        self.state
-            .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.check_burn_msol_from(msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
 

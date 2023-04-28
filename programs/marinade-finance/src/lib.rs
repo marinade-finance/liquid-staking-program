@@ -433,7 +433,7 @@ pub struct RemoveLiquidity<'info> {
 //-----------------------------------------------------
 #[derive(Accounts)]
 pub struct Deposit<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = msol_mint)]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
@@ -467,7 +467,7 @@ pub struct Deposit<'info> {
 //-----------------------------------------------------
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = msol_mint)]
     pub state: Box<Account<'info, State>>,
 
     /// CHECK: manual account processing
@@ -506,7 +506,7 @@ pub struct DepositStakeAccount<'info> {
 //-----------------------------------------------------
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
-    #[account(mut, has_one = treasury_msol_account)]
+    #[account(mut, has_one = treasury_msol_account, has_one = msol_mint)]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
@@ -592,7 +592,7 @@ pub struct ConfigValidatorSystem<'info> {
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = msol_mint)]
     pub state: Box<Account<'info, State>>,
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
@@ -662,7 +662,7 @@ pub struct StakeReserve<'info> {
 }
 #[derive(Accounts)]
 pub struct UpdateCommon<'info> {
-    #[account(mut, has_one = treasury_msol_account)]
+    #[account(mut, has_one = treasury_msol_account, has_one = msol_mint)]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
     #[account(mut)]

@@ -28,8 +28,6 @@ impl<'info> Deposit<'info> {
         check_min_amount(lamports, self.state.min_deposit, "deposit SOL")?;
         self.state.check_reserve_address(self.reserve_pda.key)?;
         self.state
-            .check_msol_mint(self.msol_mint.to_account_info().key)?;
-        self.state
             .check_liq_pool_sol_leg_pda(self.liq_pool_sol_leg_pda.key)?;
         self.state
             .liq_pool

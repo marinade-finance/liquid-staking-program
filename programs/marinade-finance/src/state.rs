@@ -115,12 +115,6 @@ impl State {
         )
     }
 
-    /*
-    pub fn check_msol_mint(&self, msol_mint: &Pubkey) -> Result<()> {
-        check_address(msol_mint, &self.msol_mint, "msol_mint")?;
-        Ok(())
-    }*/
-
     pub fn check_treasury_msol_account<'info>(
         &self,
         treasury_msol_account: &AccountInfo<'info>,
@@ -157,10 +151,6 @@ impl State {
                 Ok(false) // Not an error. Admins may decide to reject fee transfers to themselves
             }
         }
-    }
-
-    pub fn check_msol_mint(&mut self, msol_mint: &Pubkey) -> Result<()> {
-        check_address(msol_mint, &self.msol_mint, "msol_mint")
     }
 
     pub fn total_cooling_down(&self) -> u64 {
