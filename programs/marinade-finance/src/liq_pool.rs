@@ -161,7 +161,6 @@ pub trait LiqPoolHelpers {
     fn liq_pool_msol_leg_authority(&self) -> Pubkey;
 
     fn check_lp_mint_authority(&self, lp_mint_authority: &Pubkey) -> Result<()>;
-    fn check_liq_pool_sol_leg_pda(&self, liq_pool_sol_leg_pda: &Pubkey) -> Result<()>;
     fn check_liq_pool_msol_leg_authority(
         &self,
         liq_pool_msol_leg_authority: &Pubkey,
@@ -220,14 +219,6 @@ where
             lp_mint_authority,
             &self.lp_mint_authority(),
             "lp_mint_authority",
-        )
-    }
-
-    fn check_liq_pool_sol_leg_pda(&self, liq_pool_sol_leg_pda: &Pubkey) -> Result<()> {
-        check_address(
-            liq_pool_sol_leg_pda,
-            &self.liq_pool_sol_leg_address(),
-            "liq_pool_sol_leg_pda",
         )
     }
 

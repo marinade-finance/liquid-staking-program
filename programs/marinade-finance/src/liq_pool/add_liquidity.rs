@@ -38,8 +38,6 @@ impl<'info> AddLiquidity<'info> {
         self.state
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
-        self.state
-            .check_liq_pool_sol_leg_pda(self.liq_pool_sol_leg_pda.key)?;
         self.check_transfer_from(lamports)?;
         self.state
             .liq_pool

@@ -68,7 +68,6 @@ impl<'info> Claim<'info> {
             &system_program::ID,
             "system_program",
         )?;
-        self.state.check_reserve_address(self.reserve_pda.key)?;
         self.check_ticket_account()?;
 
         let lamports = self.ticket_account.lamports_amount;
