@@ -27,9 +27,6 @@ impl<'info> MergeStakes<'info> {
         self.state
             .check_stake_withdraw_authority(self.stake_withdraw_authority.to_account_info().key)?;
 
-        self.state
-            .check_operational_sol_account(self.operational_sol_account.key)?;
-
         check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
         let mut validator = self
             .state

@@ -12,7 +12,6 @@ impl<'info> ConfigLp<'info> {
             treasury_cut,
         }: ConfigLpParams,
     ) -> Result<()> {
-        self.state.check_admin_authority(self.admin_authority.key)?;
         if let Some(min_fee) = min_fee {
             self.state.liq_pool.lp_min_fee = min_fee;
         }

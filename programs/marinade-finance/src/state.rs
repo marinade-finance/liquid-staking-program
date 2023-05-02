@@ -107,11 +107,6 @@ impl State {
         Pubkey::create_with_seed(state, Self::VALIDATOR_LIST_SEED, &ID).unwrap()
     }
 
-    pub fn check_admin_authority(&self, admin_authority: &Pubkey) -> Result<()> {
-        check_address(admin_authority, &self.admin_authority, "admin_authority")?;
-        Ok(())
-    }
-
     pub fn check_operational_sol_account(&self, operational_sol_account: &Pubkey) -> Result<()> {
         check_address(
             operational_sol_account,
@@ -120,21 +115,10 @@ impl State {
         )
     }
 
-    /*
-    pub fn check_msol_mint(&self, msol_mint: &Pubkey) -> Result<()> {
-        check_address(msol_mint, &self.msol_mint, "msol_mint")?;
-        Ok(())
-    }*/
-
     pub fn check_treasury_msol_account<'info>(
         &self,
         treasury_msol_account: &AccountInfo<'info>,
     ) -> Result<bool> {
-        check_address(
-            treasury_msol_account.key,
-            &self.treasury_msol_account,
-            "treasury_msol_account",
-        )?;
 
         if treasury_msol_account.owner != &spl_token::ID {
             msg!(
@@ -167,10 +151,6 @@ impl State {
                 Ok(false) // Not an error. Admins may decide to reject fee transfers to themselves
             }
         }
-    }
-
-    pub fn check_msol_mint(&mut self, msol_mint: &Pubkey) -> Result<()> {
-        check_address(msol_mint, &self.msol_mint, "msol_mint")
     }
 
     pub fn total_cooling_down(&self) -> u64 {

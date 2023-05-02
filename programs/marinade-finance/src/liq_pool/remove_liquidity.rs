@@ -60,8 +60,6 @@ impl<'info> RemoveLiquidity<'info> {
         self.state
             .liq_pool
             .check_lp_mint(self.lp_mint.to_account_info().key)?;
-        // self.state
-        //     .check_msol_mint(self.msol_mint.to_account_info().key)?;
         self.check_burn_from(tokens)?;
         self.check_transfer_msol_to()?;
         self.state

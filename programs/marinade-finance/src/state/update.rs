@@ -31,8 +31,6 @@ impl<'info> UpdateCommon<'info> {
             .check_validator_list(self.validator_list.key)?;*/
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
-            .check_msol_mint(self.msol_mint.to_account_info().key)?;
-        self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
         let is_treasury_msol_ready_for_transfer = self
             .state
