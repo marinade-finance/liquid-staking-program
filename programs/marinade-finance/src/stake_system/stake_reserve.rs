@@ -45,7 +45,6 @@ impl<'info> StakeReserve<'info> {
             .validator_system
             .check_validator_list(&self.validator_list)?;
         self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.state.check_reserve_address(self.reserve_pda.key)?;
         self.check_stake_history()?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;

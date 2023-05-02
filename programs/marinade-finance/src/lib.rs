@@ -7,6 +7,7 @@ use anchor_spl::{
     token::{Mint, TokenAccount, Token},
 };
 use error::CommonError;
+use liq_pool::LiqPool;
 use std::{
     convert::{TryFrom, TryInto},
     fmt::Display,
@@ -384,7 +385,7 @@ pub struct AddLiquidity<'info> {
     // liq_pool_msol_leg to be able to compute current msol value in liq_pool
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
 
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
     // seeds = [&state.to_account_info().key.to_bytes()[..32], LiqPool::SOL_ACCOUNT_SEED], bump = state.liq_pool.sol_account_bump_seed)]
     // #[account(owner = "11111111111111111111111111111111")]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
@@ -420,7 +421,7 @@ pub struct RemoveLiquidity<'info> {
     pub transfer_msol_to: Box<Account<'info, TokenAccount>>,
 
     // legs
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
     #[account(mut)]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
@@ -439,7 +440,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
     #[account(mut)]
@@ -447,7 +448,7 @@ pub struct Deposit<'info> {
     /// CHECK: PDA
     pub liq_pool_msol_leg_authority: UncheckedAccount<'info>,
 
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
 
     #[account(mut)]
@@ -512,7 +513,7 @@ pub struct LiquidUnstake<'info> {
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
     #[account(mut)]
@@ -615,7 +616,7 @@ pub struct OrderUnstake<'info> {
 pub struct Claim<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
 
     #[account(mut)]
@@ -642,7 +643,7 @@ pub struct StakeReserve<'info> {
     /// CHECK: CPI
     #[account(mut)]
     pub validator_vote: UncheckedAccount<'info>,
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>, // must be uninitialized
@@ -671,7 +672,7 @@ pub struct UpdateCommon<'info> {
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
     pub stake_withdraw_authority: UncheckedAccount<'info>, // for getting non delegated SOLs
-    #[account(mut)]
+    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>, // all non delegated SOLs (if some attacker transfers it to stake) are sent to reserve_pda
 
     #[account(mut)]
@@ -776,6 +777,7 @@ pub struct DeactivateStake<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
     // Readonly. For stake delta calculation
+    #[account(seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
     /// CHECK: manual account processing
     #[account(mut)]

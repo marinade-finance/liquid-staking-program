@@ -26,9 +26,6 @@ impl<'info> Deposit<'info> {
     // fn deposit_sol()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
         check_min_amount(lamports, self.state.min_deposit, "deposit SOL")?;
-        self.state.check_reserve_address(self.reserve_pda.key)?;
-        self.state
-            .check_liq_pool_sol_leg_pda(self.liq_pool_sol_leg_pda.key)?;
         self.state
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
