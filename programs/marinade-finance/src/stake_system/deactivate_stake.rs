@@ -12,7 +12,6 @@ use anchor_lang::solana_program::{
 
 use crate::{
     checks::{check_address, check_stake_amount_and_validator},
-    state::StateHelpers,
     DeactivateStake,
 };
 
@@ -21,7 +20,6 @@ impl<'info> DeactivateStake<'info> {
     // fn deactivate_stake()
     //
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
-        self.state.check_reserve_address(self.reserve_pda.key)?;
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;

@@ -52,8 +52,6 @@ impl<'info> LiquidUnstake<'info> {
         msg!("enter LiquidUnstake");
 
         self.state
-            .check_liq_pool_sol_leg_pda(self.liq_pool_sol_leg_pda.key)?;
-        self.state
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
         self.check_get_msol_from(msol_amount)?;

@@ -284,7 +284,6 @@ pub trait StateHelpers {
     fn reserve_address(&self) -> Pubkey;
     fn with_reserve_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
 
-    fn check_reserve_address(&self, reserve: &Pubkey) -> Result<()>;
     fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> Result<()>;
 }
 
@@ -316,10 +315,6 @@ where
             State::RESERVE_SEED,
             &[self.as_ref().reserve_bump_seed],
         ])
-    }
-
-    fn check_reserve_address(&self, reserve: &Pubkey) -> Result<()> {
-        check_address(reserve, &self.reserve_address(), "reserve")
     }
 
     fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> Result<()> {

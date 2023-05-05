@@ -37,7 +37,6 @@ impl<'info> UpdateCommon<'info> {
             .check_treasury_msol_account(&self.treasury_msol_account)?;
         self.state
             .check_stake_withdraw_authority(self.stake_withdraw_authority.key)?;
-        self.state.check_reserve_address(self.reserve_pda.key)?;
         check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
         check_address(self.token_program.key, &spl_token::ID, "token_program")?;
 
