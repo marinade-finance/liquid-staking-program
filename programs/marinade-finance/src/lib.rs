@@ -301,17 +301,18 @@ pub struct Initialize<'info> {
     pub state: Box<Account<'info, State>>,
 
     pub reserve_pda: SystemAccount<'info>,
-    /// CHECK: manual account processing
-    #[account(mut, rent_exempt = enforce)]
+
+    /// CHECK: Manual account data management (fixed item size list)
+    #[account(mut, rent_exempt = enforce, owner = ID)]
     pub stake_list: UncheckedAccount<'info>,
-    /// CHECK: manual account processing
-    #[account(mut, rent_exempt = enforce)]
+
+    /// CHECK: Manual account data management (fixed item size list)
+    #[account(mut, rent_exempt = enforce, owner = ID)]
     pub validator_list: UncheckedAccount<'info>,
 
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    /// CHECK: not important
-    pub operational_sol_account: UncheckedAccount<'info>,
+    pub operational_sol_account: SystemAccount<'info>,
 
     pub liq_pool: LiqPoolInitialize<'info>,
 
@@ -393,8 +394,7 @@ pub struct AddLiquidity<'info> {
     #[account(owner = system_program::ID)]
     pub transfer_from: Signer<'info>,
 
-    // #[check_owner_program("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")]
-    #[account(mut)] // , owner = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")]
+    #[account(mut)]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
@@ -480,7 +480,7 @@ pub struct DepositStakeAccount<'info> {
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     pub stake_authority: Signer<'info>,
-    /// CHECK: manual account processing
+    /// CHECK: manual account processing, only required if adding validator (if allowed)
     #[account(mut)]
     pub duplication_flag: UncheckedAccount<'info>,
     #[account(mut)]
@@ -543,9 +543,9 @@ pub struct AddValidator<'info> {
 
     /// CHECK: todo
     pub validator_vote: UncheckedAccount<'info>,
-    /// CHECK: manual account processing
+    
     #[account(mut)]
-    pub duplication_flag: UncheckedAccount<'info>,
+    pub duplication_flag: SystemAccount<'info>,
     #[account(mut)]
     #[account(owner = system_program::ID)]
     pub rent_payer: Signer<'info>,
