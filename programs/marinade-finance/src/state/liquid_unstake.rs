@@ -4,14 +4,13 @@ use anchor_spl::token::{transfer, Transfer, spl_token};
 
 use crate::checks::check_min_amount;
 use crate::{
-    checks::{check_address, check_token_mint},
+    checks::{check_address},
     liq_pool::LiqPoolHelpers,
     CommonError, LiquidUnstake,
 };
 
 impl<'info> LiquidUnstake<'info> {
     fn check_get_msol_from(&self, msol_amount: u64) -> Result<()> {
-        check_token_mint(&self.get_msol_from, self.state.msol_mint, "get_msol_from")?;
         // if delegated, check delegated amount
         if *self.get_msol_from_authority.key == self.get_msol_from.owner {
             if self.get_msol_from.amount < msol_amount {

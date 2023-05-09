@@ -11,7 +11,7 @@ use anchor_spl::token::{mint_to, MintTo, spl_token};
 use crate::checks::check_owner_program;
 use crate::error::CommonError;
 use crate::{
-    checks::{check_address, check_token_mint},
+    checks::{check_address},
     stake_system::StakeSystemHelpers,
     state::StateHelpers,
     DepositStakeAccount, ID,
@@ -27,7 +27,6 @@ impl<'info> DepositStakeAccount<'info> {
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
-        check_token_mint(&self.mint_to, self.state.msol_mint, "mint_to")?;
 
         check_address(
             self.system_program.key,
