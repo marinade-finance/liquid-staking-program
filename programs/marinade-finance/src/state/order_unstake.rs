@@ -2,13 +2,12 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, spl_token};
 
 use crate::{
-    checks::{check_address, check_min_amount, check_token_mint},
+    checks::{check_address, check_min_amount},
     OrderUnstake,
 };
 
 impl<'info> OrderUnstake<'info> {
     fn check_burn_msol_from(&self, msol_amount: u64) -> Result<()> {
-        check_token_mint(&self.burn_msol_from, self.state.msol_mint, "burn_msol_from")?;
 
         if msol_amount == 0 {
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));

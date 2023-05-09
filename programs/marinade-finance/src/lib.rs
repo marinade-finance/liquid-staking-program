@@ -317,6 +317,7 @@ pub struct Initialize<'info> {
 
     pub liq_pool: LiqPoolInitialize<'info>,
 
+    #[account(token::mint = msol_mint)]
     pub treasury_msol_account: Box<Account<'info, TokenAccount>>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -380,9 +381,6 @@ pub struct AddLiquidity<'info> {
     /// CHECK: PDA
     pub lp_mint_authority: UncheckedAccount<'info>,
 
-    // msol_mint to be able to compute current msol value in liq_pool
-    // not needed because we use memorized value
-    // pub msol_mint: Account<'info, Mint>,
     // liq_pool_msol_leg to be able to compute current msol value in liq_pool
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
 
@@ -395,7 +393,8 @@ pub struct AddLiquidity<'info> {
     #[account(owner = system_program::ID)]
     pub transfer_from: Signer<'info>,
 
-    #[account(mut)]
+    // user SPL-Token account to send the newly minted LP tokens
+    #[account(mut, token::mint = state.liq_pool.lp_mint)]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
@@ -410,14 +409,14 @@ pub struct RemoveLiquidity<'info> {
     #[account(mut)]
     pub lp_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut)]
+    #[account(mut, token::mint = state.liq_pool.lp_mint)]
     pub burn_from: Box<Account<'info, TokenAccount>>,
     pub burn_from_authority: Signer<'info>,
 
     #[account(mut)]
     pub transfer_sol_to: SystemAccount<'info>,
 
-    #[account(mut)]
+    #[account(mut, token::mint = state.msol_mint)]
     pub transfer_msol_to: Box<Account<'info, TokenAccount>>,
 
     // legs
@@ -455,7 +454,8 @@ pub struct Deposit<'info> {
     #[account(owner = system_program::ID)]
     pub transfer_from: Signer<'info>,
 
-    #[account(mut)]
+    /// user mSOL Token account to send the mSOL
+    #[account(mut, token::mint = state.msol_mint)]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
@@ -490,7 +490,8 @@ pub struct DepositStakeAccount<'info> {
 
     #[account(mut)]
     pub msol_mint: Account<'info, Mint>,
-    #[account(mut)]
+    /// user mSOL Token account to send the mSOL
+    #[account(mut, token::mint = state.msol_mint)]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
@@ -522,7 +523,7 @@ pub struct LiquidUnstake<'info> {
     #[account(mut)]
     pub treasury_msol_account: UncheckedAccount<'info>,
 
-    #[account(mut)]
+    #[account(mut, token::mint = state.msol_mint)]
     pub get_msol_from: Box<Account<'info, TokenAccount>>,
     pub get_msol_from_authority: Signer<'info>, //burn_msol_from owner or delegate_authority
 
@@ -599,7 +600,7 @@ pub struct OrderUnstake<'info> {
     pub msol_mint: Box<Account<'info, Mint>>,
 
     // Note: Ticket beneficiary is burn_msol_from.owner
-    #[account(mut)]
+    #[account(mut, token::mint = state.msol_mint)]
     pub burn_msol_from: Box<Account<'info, TokenAccount>>,
 
     pub burn_msol_authority: Signer<'info>, // burn_msol_from acc must be pre-delegated with enough amount to this key or input owner signature here

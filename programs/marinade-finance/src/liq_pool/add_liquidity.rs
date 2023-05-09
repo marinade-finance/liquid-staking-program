@@ -20,11 +20,6 @@ impl<'info> AddLiquidity<'info> {
         Ok(())
     }
 
-    fn check_mint_to(&self) -> Result<()> {
-        check_token_mint(&self.mint_to, self.state.liq_pool.lp_mint, "mint_to")?;
-        Ok(())
-    }
-
     // fn add_liquidity()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
         msg!("add-liq pre check");
@@ -41,7 +36,6 @@ impl<'info> AddLiquidity<'info> {
         self.state
             .liq_pool
             .check_liquidity_cap(lamports, self.liq_pool_sol_leg_pda.lamports())?;
-        self.check_mint_to()?;
         check_address(
             self.system_program.key,
             &system_program::ID,

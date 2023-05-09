@@ -1,7 +1,6 @@
 use crate::{
     checks::{
-        check_address, check_freeze_authority, check_mint_authority, check_mint_empty,
-        check_token_mint,
+        check_address, check_freeze_authority, check_mint_authority, check_mint_empty
     },
     stake_system::StakeSystem,
     validator_system::ValidatorSystem,
@@ -61,15 +60,6 @@ impl<'info> Initialize<'info> {
         Ok(())
     }
 
-    fn check_treasury_accounts(&self) -> Result<()> {
-        check_token_mint(
-            &self.treasury_msol_account,
-            *self.msol_mint.to_account_info().key,
-            "treasury_msol_account",
-        )?;
-        Ok(())
-    }
-
     pub fn process(&mut self, data: InitializeData) -> Result<()> {
         check_address(
             self.creator_authority.key,
@@ -84,7 +74,6 @@ impl<'info> Initialize<'info> {
         self.check_state()?;
         self.check_reserve_pda()?;
         self.check_msol_mint()?;
-        self.check_treasury_accounts()?;
 
         self.state.msol_mint = *self.msol_mint.to_account_info().key;
         self.state.admin_authority = data.admin_authority;

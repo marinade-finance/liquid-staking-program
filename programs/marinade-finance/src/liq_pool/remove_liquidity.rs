@@ -1,6 +1,6 @@
 use crate::{
     calc::proportional,
-    checks::{check_address, check_min_amount, check_token_mint},
+    checks::{check_address, check_min_amount},
     liq_pool::LiqPoolHelpers,
     RemoveLiquidity,
 };
@@ -10,7 +10,6 @@ use anchor_spl::token::{burn, transfer, Burn, Transfer, spl_token};
 
 impl<'info> RemoveLiquidity<'info> {
     fn check_burn_from(&self, tokens: u64) -> Result<()> {
-        check_token_mint(&self.burn_from, self.state.liq_pool.lp_mint, "burn_from")?;
         // if delegated, check delegated amount
         if *self.burn_from_authority.key == self.burn_from.owner {
             if self.burn_from.amount < tokens {
@@ -46,22 +45,12 @@ impl<'info> RemoveLiquidity<'info> {
         Ok(())
     }
 
-    fn check_transfer_msol_to(&self) -> Result<()> {
-        check_token_mint(
-            &self.transfer_msol_to,
-            self.state.msol_mint,
-            "transfer_msol_to",
-        )?;
-        Ok(())
-    }
-
     pub fn process(&mut self, tokens: u64) -> Result<()> {
         msg!("rem-liq pre check");
         self.state
             .liq_pool
             .check_lp_mint(self.lp_mint.to_account_info().key)?;
         self.check_burn_from(tokens)?;
-        self.check_transfer_msol_to()?;
         self.state
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;

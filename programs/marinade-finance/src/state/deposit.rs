@@ -3,7 +3,7 @@ use anchor_lang::solana_program::{program::invoke, system_instruction, system_pr
 use anchor_spl::token::{mint_to, transfer, MintTo, Transfer, spl_token};
 
 use crate::{
-    checks::{check_address, check_min_amount, check_token_mint},
+    checks::{check_address, check_min_amount},
     liq_pool::LiqPoolHelpers,
     state::StateHelpers,
     Deposit,
@@ -17,11 +17,6 @@ impl<'info> Deposit<'info> {
         Ok(())
     }
 
-    fn check_mint_to(&self) -> Result<()> {
-        check_token_mint(&self.mint_to, self.state.msol_mint, "mint_to")?;
-        Ok(())
-    }
-
     // fn deposit_sol()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
         check_min_amount(lamports, self.state.min_deposit, "deposit SOL")?;
@@ -29,7 +24,6 @@ impl<'info> Deposit<'info> {
             .liq_pool
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
         self.check_transfer_from(lamports)?;
-        self.check_mint_to()?;
         self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
         check_address(
