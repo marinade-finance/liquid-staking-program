@@ -1,4 +1,4 @@
-use crate::CommonError;
+use crate::MarinadeError;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::stake::state::StakeState;
 use anchor_spl::token::{Mint, TokenAccount};
@@ -13,7 +13,7 @@ pub fn check_min_amount(amount: u64, min_amount: u64, action_name: &str) -> Resu
             amount,
             min_amount,
         );
-        Err(CommonError::NumberTooLow.into())
+        Err(MarinadeError::NumberTooLow.into())
     }
 }
 
@@ -131,7 +131,7 @@ pub fn check_stake_amount_and_validator(
         }
         delegation.stake
     } else {
-        return Err(CommonError::StakeNotDelegated.into());
+        return Err(MarinadeError::StakeNotDelegated.into());
     };
     // do not allow to operate on an account where last_update_delegated_lamports != currently_staked
     if currently_staked != expected_stake_amount {
@@ -140,7 +140,7 @@ pub fn check_stake_amount_and_validator(
             expected_stake_amount,
             currently_staked
         );
-        return Err(CommonError::StakeAccountNotUpdatedYet.into());
+        return Err(MarinadeError::StakeAccountNotUpdatedYet.into());
     }
     Ok(())
 }

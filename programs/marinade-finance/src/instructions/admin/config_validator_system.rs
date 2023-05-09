@@ -1,0 +1,20 @@
+use anchor_lang::prelude::*;
+
+use crate::State;
+
+#[derive(Accounts)]
+pub struct ConfigValidatorSystem<'info> {
+    #[account(mut)]
+    pub state: Account<'info, State>,
+    pub manager_authority: Signer<'info>,
+}
+
+impl<'info> ConfigValidatorSystem<'info> {
+    pub fn process(&mut self, extra_runs: u32) -> Result<()> {
+        self.state
+            .validator_system
+            .check_validator_manager_authority(self.manager_authority.key)?;
+        self.state.stake_system.extra_stake_delta_runs = extra_runs; // TODO: think about is it stake or validator thing?
+        Ok(())
+    }
+}

@@ -1,0 +1,60 @@
+use anchor_lang::prelude::*;
+
+use crate::State;
+
+#[derive(Accounts)]
+pub struct RemoveValidator<'info> {
+    #[account(mut, has_one = operational_sol_account)]
+    pub state: Account<'info, State>,
+    pub manager_authority: Signer<'info>,
+    /// CHECK: manual account processing
+    #[account(mut)]
+    pub validator_list: UncheckedAccount<'info>,
+    /// CHECK: manual account processing
+    #[account(mut)]
+    pub duplication_flag: UncheckedAccount<'info>,
+    /// CHECK: not important
+    #[account(mut)]
+    pub operational_sol_account: UncheckedAccount<'info>,
+}
+
+impl<'info> RemoveValidator<'info> {
+    pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> Result<()> {
+        self.state
+            .validator_system
+            .check_validator_manager_authority(self.manager_authority.key)?;
+        self.state
+            .validator_system
+            .check_validator_list(&self.validator_list)?;
+
+        let validator = self
+            .state
+            .validator_system
+            .get(&self.validator_list.data.borrow(), index)?;
+        if validator.validator_account != validator_vote {
+            msg!("Removing validator index is wrong");
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        }
+        if self.duplication_flag.key
+            != &validator.duplication_flag_address(self.state.to_account_info().key)
+        {
+            msg!(
+                "Invalid duplication flag {}. Expected {}",
+                self.duplication_flag.key,
+                validator.duplication_flag_address(self.state.to_account_info().key)
+            );
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        }
+
+        self.state.validator_system.remove(
+            &mut self.validator_list.data.as_ref().borrow_mut(),
+            index,
+            validator,
+        )?;
+
+        let rent_return = self.duplication_flag.lamports();
+        **self.duplication_flag.try_borrow_mut_lamports()? = 0;
+        **self.operational_sol_account.try_borrow_mut_lamports()? += rent_return;
+        Ok(())
+    }
+}
