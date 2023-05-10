@@ -257,11 +257,4 @@ impl ValidatorSystem {
         Ok(())
     }
 
-    pub fn check_validator_manager_authority(&self, manager_authority: &Pubkey) -> Result<()> {
-        check_address(
-            manager_authority,
-            &self.manager_authority,
-            "validator_manager_authority",
-        )
-    }
 }

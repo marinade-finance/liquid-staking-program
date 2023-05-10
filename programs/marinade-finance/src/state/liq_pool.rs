@@ -1,5 +1,5 @@
 use crate::{
-    calc::proportional, checks::check_address, error::MarinadeError, located::Located, state::Fee,
+    calc::proportional, error::MarinadeError, located::Located, state::Fee,
     State, ID,
 };
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
@@ -58,14 +58,6 @@ impl LiqPool {
 
     pub fn default_msol_leg_address(state: &Pubkey) -> Pubkey {
         Pubkey::create_with_seed(state, Self::MSOL_LEG_SEED, &spl_token::ID).unwrap()
-    }
-
-    pub fn check_lp_mint(&mut self, lp_mint: &Pubkey) -> Result<()> {
-        check_address(lp_mint, &self.lp_mint, "lp_mint")
-    }
-
-    pub fn check_liq_pool_msol_leg(&self, liq_pool_msol_leg: &Pubkey) -> Result<()> {
-        check_address(liq_pool_msol_leg, &self.msol_leg, "liq_pool_msol_leg")
     }
 
     pub fn delta(&self) -> u32 {
@@ -155,10 +147,6 @@ pub trait LiqPoolHelpers {
 
     fn with_liq_pool_msol_leg_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
     fn liq_pool_msol_leg_authority(&self) -> Pubkey;
-
-    fn check_lp_mint_authority(&self, lp_mint_authority: &Pubkey) -> Result<()>;
-    fn check_liq_pool_msol_leg_authority(&self, liq_pool_msol_leg_authority: &Pubkey)
-        -> Result<()>;
 }
 
 impl<T> LiqPoolHelpers for T
@@ -208,22 +196,4 @@ where
         })
     }
 
-    fn check_lp_mint_authority(&self, lp_mint_authority: &Pubkey) -> Result<()> {
-        check_address(
-            lp_mint_authority,
-            &self.lp_mint_authority(),
-            "lp_mint_authority",
-        )
-    }
-
-    fn check_liq_pool_msol_leg_authority(
-        &self,
-        liq_pool_msol_leg_authority: &Pubkey,
-    ) -> Result<()> {
-        check_address(
-            liq_pool_msol_leg_authority,
-            &self.liq_pool_msol_leg_authority(),
-            "liq_pool_msol_leg_authority",
-        )
-    }
 }

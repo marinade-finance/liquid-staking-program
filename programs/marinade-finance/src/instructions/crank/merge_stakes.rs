@@ -5,9 +5,9 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 
-use crate::state::stake_system::StakeSystemHelpers;
+use crate::error::MarinadeError;
+use crate::state::stake_system::{StakeSystem, StakeSystemHelpers};
 use crate::State;
-use crate::{error::MarinadeError};
 
 #[derive(Accounts)]
 pub struct MergeStakes<'info> {
@@ -24,8 +24,14 @@ pub struct MergeStakes<'info> {
     #[account(mut)]
     pub source_stake: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED],
+            bump = state.stake_system.stake_deposit_bump_seed)]
     pub stake_deposit_authority: UncheckedAccount<'info>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            StakeSystem::STAKE_WITHDRAW_SEED],
+            bump = state.stake_system.stake_withdraw_bump_seed)]
     pub stake_withdraw_authority: UncheckedAccount<'info>,
     /// CHECK: not important
     #[account(mut)]
@@ -49,10 +55,6 @@ impl<'info> MergeStakes<'info> {
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;
-        self.state
-            .check_stake_deposit_authority(self.stake_deposit_authority.to_account_info().key)?;
-        self.state
-            .check_stake_withdraw_authority(self.stake_withdraw_authority.to_account_info().key)?;
 
         let mut validator = self
             .state

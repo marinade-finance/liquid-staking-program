@@ -8,6 +8,7 @@ use crate::ID;
 pub struct AddValidator<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
+    #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(mut)]
@@ -30,9 +31,6 @@ pub struct AddValidator<'info> {
 
 impl<'info> AddValidator<'info> {
     pub fn process(&mut self, score: u32) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_manager_authority(self.manager_authority.key)?;
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;

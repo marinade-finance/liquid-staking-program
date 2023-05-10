@@ -1,6 +1,5 @@
 use crate::{
     calc::{shares_from_value, value_from_shares},
-    checks::check_address,
     error::MarinadeError,
     located::Located, ID,
 };
@@ -103,14 +102,6 @@ impl State {
 
     pub fn default_validator_list_address(state: &Pubkey) -> Pubkey {
         Pubkey::create_with_seed(state, Self::VALIDATOR_LIST_SEED, &ID).unwrap()
-    }
-
-    pub fn check_operational_sol_account(&self, operational_sol_account: &Pubkey) -> Result<()> {
-        check_address(
-            operational_sol_account,
-            &self.operational_sol_account,
-            "operational_sol_account",
-        )
     }
 
     pub fn check_treasury_msol_account<'info>(
@@ -281,8 +272,6 @@ pub trait StateHelpers {
 
     fn reserve_address(&self) -> Pubkey;
     fn with_reserve_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-
-    fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> Result<()>;
 }
 
 impl<T> StateHelpers for T
@@ -315,11 +304,4 @@ where
         ])
     }
 
-    fn check_msol_mint_authority(&self, msol_mint_authority: &Pubkey) -> Result<()> {
-        check_address(
-            msol_mint_authority,
-            &self.msol_mint_authority(),
-            "msol_mint_authority",
-        )
-    }
 }

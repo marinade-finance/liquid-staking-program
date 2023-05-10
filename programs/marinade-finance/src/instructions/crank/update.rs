@@ -3,14 +3,12 @@
 use std::ops::{Deref, DerefMut};
 
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{
-    program::invoke_signed, stake, system_instruction, 
-};
+use anchor_lang::solana_program::{program::invoke_signed, stake, system_instruction};
 use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::error::MarinadeError;
-use crate::state::stake_system::{StakeRecord, StakeSystemHelpers};
+use crate::state::stake_system::{StakeRecord, StakeSystem, StakeSystemHelpers};
 use crate::{state::StateHelpers, State};
 
 #[derive(Accounts)]
@@ -23,13 +21,21 @@ pub struct UpdateCommon<'info> {
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            StakeSystem::STAKE_WITHDRAW_SEED],
+            bump = state.stake_system.stake_withdraw_bump_seed)]
     pub stake_withdraw_authority: UncheckedAccount<'info>, // for getting non delegated SOLs
-    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            State::RESERVE_SEED],
+            bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>, // all non delegated SOLs (if some attacker transfers it to stake) are sent to reserve_pda
 
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            State::MSOL_MINT_AUTHORITY_SEED],
+            bump = state.msol_mint_authority_bump_seed)]
     pub msol_mint_authority: UncheckedAccount<'info>,
     /// CHECK: in code
     #[account(mut)]
@@ -70,7 +76,7 @@ pub struct UpdateDeactivated<'info> {
     pub common: UpdateCommon<'info>,
 
     /// CHECK: not important
-    #[account(mut)]
+    #[account(mut, address = common.state.operational_sol_account)]
     pub operational_sol_account: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
@@ -102,13 +108,9 @@ impl<'info> UpdateCommon<'info> {
             .validator_system
             .check_validator_list(self.validator_list.key)?;*/
         self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.state
-            .check_msol_mint_authority(self.msol_mint_authority.key)?;
         let is_treasury_msol_ready_for_transfer = self
             .state
             .check_treasury_msol_account(&self.treasury_msol_account)?;
-        self.state
-            .check_stake_withdraw_authority(self.stake_withdraw_authority.key)?;
 
         let virtual_reserve_balance = self
             .state
@@ -336,9 +338,6 @@ impl<'info> UpdateDeactivated<'info> {
             stake,
             is_treasury_msol_ready_for_transfer,
         } = self.begin(stake_index)?;
-
-        self.state
-            .check_operational_sol_account(self.operational_sol_account.key)?;
 
         let delegation = self
             .stake_account

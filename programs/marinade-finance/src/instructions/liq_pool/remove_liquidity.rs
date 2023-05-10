@@ -13,7 +13,7 @@ pub struct RemoveLiquidity<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
 
-    #[account(mut)]
+    #[account(mut, address = state.liq_pool.lp_mint)]
     pub lp_mint: Box<Account<'info, Mint>>,
 
     #[account(mut, token::mint = state.liq_pool.lp_mint)]
@@ -27,11 +27,16 @@ pub struct RemoveLiquidity<'info> {
     pub transfer_msol_to: Box<Account<'info, TokenAccount>>,
 
     // legs
-    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED],
+            bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
-    #[account(mut)]
+    #[account(mut, address = state.liq_pool.msol_leg)]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            LiqPool::MSOL_LEG_AUTHORITY_SEED],
+            bump = state.liq_pool.msol_leg_authority_bump_seed)]
     pub liq_pool_msol_leg_authority: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
@@ -77,15 +82,7 @@ impl<'info> RemoveLiquidity<'info> {
 
     pub fn process(&mut self, tokens: u64) -> Result<()> {
         msg!("rem-liq pre check");
-        self.state
-            .liq_pool
-            .check_lp_mint(self.lp_mint.to_account_info().key)?;
         self.check_burn_from(tokens)?;
-        self.state
-            .liq_pool
-            .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
-        self.state
-            .check_liq_pool_msol_leg_authority(self.liq_pool_msol_leg_authority.key)?;
 
         // Update virtual lp_supply by real one
         if self.lp_mint.supply > self.state.liq_pool.lp_supply {

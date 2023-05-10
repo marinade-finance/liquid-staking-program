@@ -6,6 +6,7 @@ use crate::State;
 pub struct RemoveValidator<'info> {
     #[account(mut, has_one = operational_sol_account)]
     pub state: Account<'info, State>,
+    #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(mut)]
@@ -20,9 +21,6 @@ pub struct RemoveValidator<'info> {
 
 impl<'info> RemoveValidator<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_manager_authority(self.manager_authority.key)?;
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;

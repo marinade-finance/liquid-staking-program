@@ -6,6 +6,7 @@ use crate::{error::MarinadeError, State};
 pub struct SetValidatorScore<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
+    #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(mut)]
@@ -14,9 +15,6 @@ pub struct SetValidatorScore<'info> {
 
 impl<'info> SetValidatorScore<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey, score: u32) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_manager_authority(self.manager_authority.key)?;
         self.state
             .validator_system
             .check_validator_list(&self.validator_list)?;

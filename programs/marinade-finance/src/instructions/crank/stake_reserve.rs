@@ -1,7 +1,10 @@
 use crate::{
     checks::check_address,
     error::MarinadeError,
-    state::{stake_system::StakeSystemHelpers, StateHelpers},
+    state::{
+        stake_system::{StakeSystem, StakeSystemHelpers},
+        StateHelpers,
+    },
     State,
 };
 use anchor_lang::prelude::*;
@@ -32,11 +35,16 @@ pub struct StakeReserve<'info> {
     /// CHECK: CPI
     #[account(mut)]
     pub validator_vote: UncheckedAccount<'info>,
-    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            State::RESERVE_SEED],
+            bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>, // must be uninitialized
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED],
+            bump = state.stake_system.stake_deposit_bump_seed)]
     pub stake_deposit_authority: UncheckedAccount<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -78,8 +86,6 @@ impl<'info> StakeReserve<'info> {
             .check_validator_list(&self.validator_list)?;
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.check_stake_history()?;
-        self.state
-            .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         match StakeAccount::deref(&self.stake_account) {
             StakeState::Uninitialized => (),
             _ => {

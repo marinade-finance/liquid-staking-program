@@ -190,11 +190,9 @@ impl StakeSystem {
 pub trait StakeSystemHelpers {
     fn stake_withdraw_authority(&self) -> Pubkey;
     fn with_stake_withdraw_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-    fn check_stake_withdraw_authority(&self, stake_withdraw_authority: &Pubkey) -> Result<()>;
 
     fn stake_deposit_authority(&self) -> Pubkey;
     fn with_stake_deposit_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-    fn check_stake_deposit_authority(&self, stake_deposit_authority: &Pubkey) -> Result<()>;
 }
 
 impl<T> StakeSystemHelpers for T
@@ -215,14 +213,6 @@ where
         ])
     }
 
-    fn check_stake_withdraw_authority(&self, stake_withdraw_authority: &Pubkey) -> Result<()> {
-        check_address(
-            stake_withdraw_authority,
-            &self.stake_withdraw_authority(),
-            "stake_withdraw_authority",
-        )
-    }
-
     fn stake_deposit_authority(&self) -> Pubkey {
         self.with_stake_deposit_authority_seeds(|seeds| {
             Pubkey::create_program_address(seeds, &ID).unwrap()
@@ -235,13 +225,5 @@ where
             StakeSystem::STAKE_DEPOSIT_SEED,
             &[self.as_ref().stake_system.stake_deposit_bump_seed],
         ])
-    }
-
-    fn check_stake_deposit_authority(&self, stake_deposit_authority: &Pubkey) -> Result<()> {
-        check_address(
-            stake_deposit_authority,
-            &self.stake_deposit_authority(),
-            "stake_deposit_authority",
-        )
     }
 }

@@ -1,6 +1,6 @@
 use crate::checks::check_owner_program;
 use crate::error::MarinadeError;
-use crate::state::stake_system::StakeSystemHelpers;
+use crate::state::stake_system::{StakeSystem, StakeSystemHelpers};
 use crate::State;
 use std::convert::TryFrom;
 
@@ -13,14 +13,16 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 
-use crate::checks::{check_stake_amount_and_validator};
+use crate::checks::check_stake_amount_and_validator;
 
 #[derive(Accounts)]
 pub struct DeactivateStake<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
     // Readonly. For stake delta calculation
-    #[account(seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
+    #[account(seeds = [&state.key().to_bytes(), 
+            State::RESERVE_SEED], 
+            bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
     /// CHECK: manual account processing
     #[account(mut)]
@@ -31,6 +33,9 @@ pub struct DeactivateStake<'info> {
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+                StakeSystem::STAKE_DEPOSIT_SEED], 
+                bump = state.stake_system.stake_deposit_bump_seed)]
     pub stake_deposit_authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub split_stake_account: Signer<'info>,
@@ -57,10 +62,6 @@ impl<'info> DeactivateStake<'info> {
             .validator_system
             .check_validator_list(&self.validator_list)?;
         self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.state
-            .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        self.state
-            .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
 
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
