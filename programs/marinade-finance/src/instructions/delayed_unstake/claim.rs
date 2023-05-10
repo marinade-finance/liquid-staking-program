@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
 
-use crate::state::delayed_unstake_ticket::TicketAccountData as DelayedUnstakeTicket;
+use crate::state::delayed_unstake_ticket::TicketAccountData;
 use crate::State;
 use crate::{checks::check_address, state::StateHelpers, MarinadeError};
 
@@ -18,7 +18,7 @@ pub struct Claim<'info> {
     pub reserve_pda: SystemAccount<'info>,
 
     #[account(mut)]
-    pub delayed_unstake_ticket: Account<'info, DelayedUnstakeTicket>,
+    pub ticket_account: Account<'info, TicketAccountData>,
 
     #[account(mut)]
     pub transfer_sol_to: SystemAccount<'info>,
@@ -35,10 +35,10 @@ pub struct Claim<'info> {
 impl<'info> Claim<'info> {
     //
     fn check_ticket_account(&self) -> Result<()> {
-        if &self.delayed_unstake_ticket.state_address != self.state.to_account_info().key {
+        if &self.ticket_account.state_address != self.state.to_account_info().key {
             msg!(
                 "Ticket has wrong marinade instance {}",
-                self.delayed_unstake_ticket.state_address
+                self.ticket_account.state_address
             );
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
@@ -47,18 +47,18 @@ impl<'info> Claim<'info> {
         // "initialized" means the first 8 bytes are the Anchor's struct hash magic number
 
         // not used
-        if self.delayed_unstake_ticket.lamports_amount == 0 {
+        if self.ticket_account.lamports_amount == 0 {
             msg!("Used ticket");
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         };
 
         //check if ticket is due
-        if self.clock.epoch < self.delayed_unstake_ticket.created_epoch + WAIT_EPOCHS {
+        if self.clock.epoch < self.ticket_account.created_epoch + WAIT_EPOCHS {
             msg!("Ticket not due yet");
             return err!(MarinadeError::TicketNotDue);
         }
         // Wait X MORE HOURS FROM THE beginning of the EPOCH to give the bot time to withdraw inactive-stake-accounts
-        if self.delayed_unstake_ticket.created_epoch + WAIT_EPOCHS == self.clock.epoch
+        if self.ticket_account.created_epoch + WAIT_EPOCHS == self.clock.epoch
             && self.clock.unix_timestamp - self.clock.epoch_start_timestamp < EXTRA_WAIT_SECONDS
         {
             msg!(
@@ -69,7 +69,7 @@ impl<'info> Claim<'info> {
             return err!(MarinadeError::TicketNotReady);
         }
 
-        if self.delayed_unstake_ticket.beneficiary != *self.transfer_sol_to.key {
+        if self.ticket_account.beneficiary != *self.transfer_sol_to.key {
             msg!("wrong beneficiary");
             return err!(MarinadeError::WrongBeneficiary);
         };
@@ -86,7 +86,7 @@ impl<'info> Claim<'info> {
         )?;
         self.check_ticket_account()?;
 
-        let lamports = self.delayed_unstake_ticket.lamports_amount;
+        let lamports = self.ticket_account.lamports_amount;
         if lamports > self.state.circulating_ticket_balance {
             msg!(
                 "Requested to withdraw {} when only {} is total circulating_ticket_balance",
@@ -112,7 +112,7 @@ impl<'info> Claim<'info> {
         self.state.circulating_ticket_balance -= lamports;
         self.state.circulating_ticket_count -= 1;
         //disable ticket-account
-        self.delayed_unstake_ticket.lamports_amount = 0;
+        self.ticket_account.lamports_amount = 0;
 
         //transfer sol from reserve_pda to user
         self.state.with_reserve_seeds(|seeds| {
@@ -134,7 +134,7 @@ impl<'info> Claim<'info> {
 
         // move all rent-exempt ticket-account lamports to the user,
         // the ticket-account will be deleted eventually because is no longer rent-exempt
-        let source_account_info = self.delayed_unstake_ticket.to_account_info();
+        let source_account_info = self.ticket_account.to_account_info();
         let dest_account_info = self.transfer_sol_to.to_account_info();
         let dest_starting_lamports = dest_account_info.lamports();
         **dest_account_info.lamports.borrow_mut() = dest_starting_lamports

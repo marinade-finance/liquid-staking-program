@@ -3,7 +3,7 @@ use anchor_spl::token::{burn, spl_token, Burn, Mint, Token, TokenAccount};
 
 use crate::{
     checks::{check_address, check_min_amount},
-    state::delayed_unstake_ticket::TicketAccountData as DelayedUnstakeTicket,
+    state::delayed_unstake_ticket::TicketAccountData,
     State,
 };
 
@@ -21,7 +21,7 @@ pub struct OrderUnstake<'info> {
     pub burn_msol_authority: Signer<'info>, // burn_msol_from acc must be pre-delegated with enough amount to this key or input owner signature here
 
     #[account(zero, rent_exempt = enforce)]
-    pub new_delayed_unstake_ticket: Box<Account<'info, DelayedUnstakeTicket>>,
+    pub new_ticket_account: Box<Account<'info, TicketAccountData>>,
 
     pub clock: Sysvar<'info, Clock>,
     pub rent: Sysvar<'info, Rent>,
@@ -116,14 +116,14 @@ impl<'info> OrderUnstake<'info> {
         self.state.on_msol_burn(msol_amount)?;
 
         //initialize new_ticket_account
-        self.new_delayed_unstake_ticket.state_address = *self.state.to_account_info().key;
-        self.new_delayed_unstake_ticket.beneficiary = ticket_beneficiary;
-        self.new_delayed_unstake_ticket.lamports_amount = lamports_amount;
+        self.new_ticket_account.state_address = *self.state.to_account_info().key;
+        self.new_ticket_account.beneficiary = ticket_beneficiary;
+        self.new_ticket_account.lamports_amount = lamports_amount;
         // If user calls OrderUnstake after we start the stake/unstake delta (close to the end of the epoch),
         // we must set ticket-due as if unstaking was asked **next-epoch**
         // Because there's a delay until the bot actually starts the unstakes
         // and it's not guaranteed that the unstake for the user will be started this epoch
-        self.new_delayed_unstake_ticket.created_epoch = self.clock.epoch
+        self.new_ticket_account.created_epoch = self.clock.epoch
             + if self.clock.epoch == self.state.stake_system.last_stake_delta_epoch {
                 1
             } else {
