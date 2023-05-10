@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
 
 use crate::State;
-use crate::{checks::check_address, ID};
+use crate::ID;
 
 #[derive(Accounts)]
 pub struct AddValidator<'info> {
@@ -43,11 +43,6 @@ impl<'info> AddValidator<'info> {
             );
             return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
 
         msg!("Add validator {}", self.validator_vote.key);
 

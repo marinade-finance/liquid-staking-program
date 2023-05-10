@@ -7,7 +7,7 @@ use anchor_spl::stake::{Stake, StakeAccount};
 
 use crate::state::stake_system::StakeSystemHelpers;
 use crate::State;
-use crate::{checks::check_address, error::MarinadeError};
+use crate::{error::MarinadeError};
 
 #[derive(Accounts)]
 pub struct MergeStakes<'info> {
@@ -54,7 +54,6 @@ impl<'info> MergeStakes<'info> {
         self.state
             .check_stake_withdraw_authority(self.stake_withdraw_authority.to_account_info().key)?;
 
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
         let mut validator = self
             .state
             .validator_system

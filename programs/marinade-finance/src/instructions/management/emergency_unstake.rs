@@ -7,8 +7,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{Stake, StakeAccount};
 
-use crate::checks::check_address;
-
 #[derive(Accounts)]
 pub struct EmergencyUnstake<'info> {
     #[account(mut)]
@@ -43,7 +41,6 @@ impl<'info> EmergencyUnstake<'info> {
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
 
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),

@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
-use anchor_spl::token::{spl_token, transfer, Mint, Token, TokenAccount, Transfer};
+use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 use crate::checks::check_min_amount;
 use crate::state::liq_pool::{LiqPool, LiqPoolHelpers};
 use crate::State;
-use crate::{checks::check_address, MarinadeError};
+use crate::MarinadeError;
 
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
@@ -83,12 +83,6 @@ impl<'info> LiquidUnstake<'info> {
         let is_treasury_msol_ready_for_transfer = self
             .state
             .check_treasury_msol_account(&self.treasury_msol_account)?;
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(self.token_program.key, &spl_token::ID, "token_program")?;
 
         let max_lamports = self
             .liq_pool_sol_leg_pda

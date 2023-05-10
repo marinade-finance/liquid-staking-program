@@ -4,14 +4,14 @@ use std::ops::{Deref, DerefMut};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
-    program::invoke_signed, stake, system_instruction, system_program,
+    program::invoke_signed, stake, system_instruction, 
 };
 use anchor_spl::stake::{Stake, StakeAccount};
-use anchor_spl::token::{mint_to, spl_token, Mint, MintTo, Token};
+use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::error::MarinadeError;
 use crate::state::stake_system::{StakeRecord, StakeSystemHelpers};
-use crate::{checks::check_address, state::StateHelpers, State};
+use crate::{state::StateHelpers, State};
 
 #[derive(Accounts)]
 pub struct UpdateCommon<'info> {
@@ -109,8 +109,6 @@ impl<'info> UpdateCommon<'info> {
             .check_treasury_msol_account(&self.treasury_msol_account)?;
         self.state
             .check_stake_withdraw_authority(self.stake_withdraw_authority.key)?;
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
-        check_address(self.token_program.key, &spl_token::ID, "token_program")?;
 
         let virtual_reserve_balance = self
             .state
@@ -339,11 +337,6 @@ impl<'info> UpdateDeactivated<'info> {
             is_treasury_msol_ready_for_transfer,
         } = self.begin(stake_index)?;
 
-        check_address(
-            self.system_program.to_account_info().key,
-            &system_program::ID,
-            "system_program",
-        )?;
         self.state
             .check_operational_sol_account(self.operational_sol_account.key)?;
 

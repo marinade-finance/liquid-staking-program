@@ -13,7 +13,7 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 
-use crate::checks::{check_address, check_stake_amount_and_validator};
+use crate::checks::{check_stake_amount_and_validator};
 
 #[derive(Accounts)]
 pub struct DeactivateStake<'info> {
@@ -61,12 +61,6 @@ impl<'info> DeactivateStake<'info> {
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
 
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
