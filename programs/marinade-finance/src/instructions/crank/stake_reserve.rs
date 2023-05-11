@@ -12,7 +12,7 @@ use anchor_lang::solana_program::{
         self,
         state::{Authorized, Lockup, StakeState},
     },
-    system_instruction, system_program,
+    system_instruction,
     sysvar::stake_history,
 };
 use anchor_spl::stake::{Stake, StakeAccount};
@@ -45,6 +45,7 @@ pub struct StakeReserve<'info> {
     /// CHECK: have no CPU budget to parse
     pub stake_history: UncheckedAccount<'info>,
     /// CHECK: CPI
+    #[account(address = stake::config::ID)]
     pub stake_config: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
@@ -97,14 +98,6 @@ impl<'info> StakeReserve<'info> {
             );
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
-
-        check_address(self.stake_config.key, &stake::config::ID, "stake_config")?;
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
 
         let staker = self.state.stake_deposit_authority();
         let withdrawer = self.state.stake_withdraw_authority();

@@ -7,13 +7,13 @@ use anchor_lang::solana_program::{
     system_instruction, system_program,
 };
 use anchor_spl::stake::{Stake, StakeAccount};
-use anchor_spl::token::{mint_to, spl_token, Mint, MintTo, Token, TokenAccount};
+use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 use crate::checks::check_owner_program;
 use crate::error::MarinadeError;
 use crate::state::stake_system::StakeSystemHelpers;
 use crate::State;
-use crate::{checks::check_address, state::StateHelpers, ID};
+use crate::{state::StateHelpers, ID};
 
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
@@ -64,18 +64,6 @@ impl<'info> DepositStakeAccount<'info> {
         self.state.stake_system.check_stake_list(&self.stake_list)?;
         self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
-
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(
-            self.token_program.to_account_info().key,
-            &spl_token::ID,
-            "token_program",
-        )?;
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
 
         // impossible to happen check (msol mint auth is a PDA)
         if self.msol_mint.supply > self.state.msol_supply {

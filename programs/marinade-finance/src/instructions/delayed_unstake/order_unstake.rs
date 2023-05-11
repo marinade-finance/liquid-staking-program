@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{burn, spl_token, Burn, Mint, Token, TokenAccount};
+use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 use crate::{
-    checks::{check_address, check_min_amount},
+    checks::check_min_amount,
     state::delayed_unstake_ticket::TicketAccountData,
     State,
 };
@@ -72,7 +72,6 @@ impl<'info> OrderUnstake<'info> {
     // fn order_unstake() // create delayed-unstake Ticket-account
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         // fn order_unstake()
-        check_address(self.token_program.key, &spl_token::ID, "token_program")?;
         self.check_burn_msol_from(msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
 

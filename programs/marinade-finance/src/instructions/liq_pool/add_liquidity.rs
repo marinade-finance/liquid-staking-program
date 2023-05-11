@@ -3,7 +3,7 @@ use crate::State;
 use crate::{calc::shares_from_value, checks::*};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
-use anchor_spl::token::{mint_to, spl_token, Mint, MintTo, Token, TokenAccount};
+use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 #[derive(Accounts)]
 pub struct AddLiquidity<'info> {
@@ -66,12 +66,6 @@ impl<'info> AddLiquidity<'info> {
         self.state
             .liq_pool
             .check_liquidity_cap(lamports, self.liq_pool_sol_leg_pda.lamports())?;
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(self.token_program.key, &spl_token::ID, "token_program")?;
 
         msg!("add-liq after check");
         // Update virtual lp_supply by real one

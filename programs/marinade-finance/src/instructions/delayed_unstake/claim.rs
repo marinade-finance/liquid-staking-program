@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
+use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 
 use crate::state::delayed_unstake_ticket::TicketAccountData;
 use crate::State;
-use crate::{checks::check_address, state::StateHelpers, MarinadeError};
+use crate::{state::StateHelpers, MarinadeError};
 
 ///How many epochs to wats for ticket. e.g.: Ticket created on epoch 14, ticket is due on epoch 15
 const WAIT_EPOCHS: u64 = 1;
@@ -79,11 +79,6 @@ impl<'info> Claim<'info> {
 
     pub fn process(&mut self) -> Result<()> {
         // fn claim()
-        check_address(
-            self.system_program.to_account_info().key,
-            &system_program::ID,
-            "system_program",
-        )?;
         self.check_ticket_account()?;
 
         let lamports = self.ticket_account.lamports_amount;

@@ -1,13 +1,13 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
 use anchor_spl::token::{
-    mint_to, spl_token, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
+    mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
 };
 
 use crate::state::liq_pool::{LiqPool, LiqPoolHelpers};
 use crate::State;
 use crate::{
-    checks::{check_address, check_min_amount},
+    checks::{check_min_amount},
     state::StateHelpers,
 };
 
@@ -62,16 +62,6 @@ impl<'info> Deposit<'info> {
         self.check_transfer_from(lamports)?;
         self.state
             .check_msol_mint_authority(self.msol_mint_authority.key)?;
-        check_address(
-            self.system_program.to_account_info().key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(
-            self.token_program.to_account_info().key,
-            &spl_token::ID,
-            "token_program",
-        )?;
 
         // impossible to happen check outside bug (msol mint auth is a PDA)
         if self.msol_mint.supply > self.state.msol_supply {

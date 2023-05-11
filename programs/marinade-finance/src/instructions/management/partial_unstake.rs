@@ -14,8 +14,6 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 
-use crate::checks::check_address;
-
 #[derive(Accounts)]
 pub struct PartialUnstake<'info> {
     #[account(mut)]
@@ -70,7 +68,6 @@ impl<'info> PartialUnstake<'info> {
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
         self.state
             .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        check_address(self.stake_program.key, &stake::program::ID, "stake_program")?;
 
         let mut validator = self
             .state

@@ -31,7 +31,10 @@ pub fn check_address(
             reference_address,
             actual_address
         );
-        Err(Error::from(ProgramError::InvalidArgument).with_source(source!()))
+        Err(Error::from(ProgramError::InvalidArgument)
+            .with_account_name(field_name)
+            .with_pubkeys((*actual_address, *reference_address))
+            .with_source(source!()))
     }
 }
 

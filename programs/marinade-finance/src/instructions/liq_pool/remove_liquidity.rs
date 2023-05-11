@@ -1,12 +1,12 @@
 use crate::{
     calc::proportional,
-    checks::{check_address, check_min_amount},
+    checks::check_min_amount,
     state::liq_pool::{LiqPool, LiqPoolHelpers},
     State,
 };
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
-use anchor_spl::token::{burn, spl_token, transfer, Burn, Mint, Token, TokenAccount, Transfer};
+use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+use anchor_spl::token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
 pub struct RemoveLiquidity<'info> {
@@ -86,12 +86,6 @@ impl<'info> RemoveLiquidity<'info> {
             .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
         self.state
             .check_liq_pool_msol_leg_authority(self.liq_pool_msol_leg_authority.key)?;
-        check_address(
-            self.system_program.key,
-            &system_program::ID,
-            "system_program",
-        )?;
-        check_address(self.token_program.key, &spl_token::ID, "token_program")?;
 
         // Update virtual lp_supply by real one
         if self.lp_mint.supply > self.state.liq_pool.lp_supply {
