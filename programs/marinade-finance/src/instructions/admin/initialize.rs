@@ -16,6 +16,7 @@ pub struct Initialize<'info> {
     #[account(zero, rent_exempt = enforce)]
     pub state: Box<Account<'info, State>>,
 
+    #[account(seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump )]
     pub reserve_pda: SystemAccount<'info>,
 
     /// CHECK: Manual account data management (fixed item size list)
@@ -81,25 +82,15 @@ impl<'info> Initialize<'info> {
         self.state.to_account_info().key
     }
 
-    fn check_state(&self) -> Result<()> {
-        // all checked by anchor
-        Ok(())
-    }
-
     fn check_reserve_pda(&mut self) -> Result<()> {
-        let (address, bump) = State::find_reserve_address(self.state_address());
-        check_address(self.reserve_pda.key, &address, "reserve_pda")?;
-        self.state.reserve_bump_seed = bump;
-        {
-            let lamports = self.reserve_pda.lamports();
-            if lamports != self.state.rent_exempt_for_token_acc {
-                msg!(
-                    "Invalid initial reserve lamports {} expected {}",
-                    lamports,
-                    self.state.rent_exempt_for_token_acc
-                );
-                return Err(Error::from(ProgramError::InvalidArgument));
-            }
+        let lamports = self.reserve_pda.lamports();
+        if lamports != self.state.rent_exempt_for_token_acc {
+            msg!(
+                "Invalid initial reserve lamports {} expected {}",
+                lamports,
+                self.state.rent_exempt_for_token_acc
+            );
+            return Err(Error::from(ProgramError::InvalidArgument));
         }
         Ok(())
     }
@@ -115,7 +106,7 @@ impl<'info> Initialize<'info> {
         Ok(())
     }
 
-    pub fn process(&mut self, data: InitializeData) -> Result<()> {
+    pub fn process(&mut self, data: InitializeData, reserve_pda_bump: u8) -> Result<()> {
         check_address(
             self.creator_authority.key,
             &Initialize::CREATOR_AUTHORITY,
@@ -126,7 +117,7 @@ impl<'info> Initialize<'info> {
         self.state.rent_exempt_for_token_acc =
             self.rent.minimum_balance(spl_token::state::Account::LEN);
 
-        self.check_state()?;
+        self.state.reserve_bump_seed = reserve_pda_bump;
         self.check_reserve_pda()?;
         self.check_msol_mint()?;
 

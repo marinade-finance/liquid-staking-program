@@ -15,10 +15,12 @@ pub struct LiquidUnstake<'info> {
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED],
+            bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    #[account(mut)]
+    #[account(mut, address = state.liq_pool.msol_leg)]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
     /// CHECK: in code
     #[account(mut)]
@@ -76,9 +78,6 @@ impl<'info> LiquidUnstake<'info> {
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         msg!("enter LiquidUnstake");
 
-        self.state
-            .liq_pool
-            .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
         self.check_get_msol_from(msol_amount)?;
         let is_treasury_msol_ready_for_transfer = self
             .state

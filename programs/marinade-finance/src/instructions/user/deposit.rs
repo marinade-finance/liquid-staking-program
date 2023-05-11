@@ -19,15 +19,22 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(), LiqPool::SOL_LEG_SEED], bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED],
+            bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    #[account(mut)]
+    #[account(mut, address = state.liq_pool.msol_leg)]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            LiqPool::MSOL_LEG_AUTHORITY_SEED],
+            bump = state.liq_pool.msol_leg_authority_bump_seed)]
     pub liq_pool_msol_leg_authority: UncheckedAccount<'info>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            State::RESERVE_SEED],
+            bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
 
     #[account(mut)]
@@ -39,6 +46,9 @@ pub struct Deposit<'info> {
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            State::MSOL_MINT_AUTHORITY_SEED],
+            bump = state.msol_mint_authority_bump_seed)]
     pub msol_mint_authority: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
@@ -56,12 +66,7 @@ impl<'info> Deposit<'info> {
     // fn deposit_sol()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
         check_min_amount(lamports, self.state.min_deposit, "deposit SOL")?;
-        self.state
-            .liq_pool
-            .check_liq_pool_msol_leg(self.liq_pool_msol_leg.to_account_info().key)?;
         self.check_transfer_from(lamports)?;
-        self.state
-            .check_msol_mint_authority(self.msol_mint_authority.key)?;
 
         // impossible to happen check outside bug (msol mint auth is a PDA)
         if self.msol_mint.supply > self.state.msol_supply {

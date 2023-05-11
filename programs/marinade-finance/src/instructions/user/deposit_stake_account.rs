@@ -44,6 +44,9 @@ pub struct DepositStakeAccount<'info> {
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            State::MSOL_MINT_AUTHORITY_SEED],
+            bump = state.msol_mint_authority_bump_seed)]
     pub msol_mint_authority: UncheckedAccount<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -62,8 +65,6 @@ impl<'info> DepositStakeAccount<'info> {
             .validator_system
             .check_validator_list(&self.validator_list)?;
         self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.state
-            .check_msol_mint_authority(self.msol_mint_authority.key)?;
 
         // impossible to happen check (msol mint auth is a PDA)
         if self.msol_mint.supply > self.state.msol_supply {

@@ -48,7 +48,7 @@ pub mod marinade_finance {
 
     pub fn initialize(ctx: Context<Initialize>, data: InitializeData) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts.process(data)?;
+        ctx.accounts.process(data, *ctx.bumps.get("reserve_pda").unwrap())?;
         Ok(())
     }
 

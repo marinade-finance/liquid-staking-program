@@ -14,7 +14,9 @@ const EXTRA_WAIT_SECONDS: i64 = 30 * 60;
 pub struct Claim<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
-    #[account(mut, seeds = [&state.key().to_bytes(), State::RESERVE_SEED], bump = state.reserve_bump_seed)]
+    #[account(mut, seeds = [&state.key().to_bytes(),
+            State::RESERVE_SEED],
+            bump = state.reserve_bump_seed)]
     pub reserve_pda: SystemAccount<'info>,
 
     #[account(mut)]

@@ -1,6 +1,8 @@
 use crate::{
-    checks::check_stake_amount_and_validator, error::MarinadeError,
-    state::stake_system::StakeSystemHelpers, State,
+    checks::check_stake_amount_and_validator,
+    error::MarinadeError,
+    state::stake_system::{StakeSystem, StakeSystemHelpers},
+    State,
 };
 
 use anchor_lang::prelude::*;
@@ -11,6 +13,7 @@ use anchor_spl::stake::{Stake, StakeAccount};
 pub struct EmergencyUnstake<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
+    #[account(address = state.validator_system.manager_authority)]
     pub validator_manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(mut)]
@@ -21,6 +24,9 @@ pub struct EmergencyUnstake<'info> {
     #[account(mut)]
     pub stake_account: Account<'info, StakeAccount>,
     /// CHECK: PDA
+    #[account(seeds = [&state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED],
+            bump = state.stake_system.stake_deposit_bump_seed)]
     pub stake_deposit_authority: UncheckedAccount<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -32,15 +38,8 @@ impl<'info> EmergencyUnstake<'info> {
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
         self.state
             .validator_system
-            .check_validator_manager_authority(self.validator_manager_authority.key)?;
-        self.state
-            .validator_system
             .check_validator_list(&self.validator_list)?;
         self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.state
-            .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
-        self.state
-            .check_stake_deposit_authority(self.stake_deposit_authority.key)?;
 
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
