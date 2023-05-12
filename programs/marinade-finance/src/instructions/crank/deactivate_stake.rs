@@ -39,8 +39,7 @@ pub struct DeactivateStake<'info> {
     pub stake_deposit_authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub split_stake_account: Signer<'info>,
-    #[account(mut)]
-    #[account(owner = system_program::ID)]
+    #[account(mut, owner = system_program::ID)]
     pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,

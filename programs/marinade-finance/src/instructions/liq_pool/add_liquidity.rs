@@ -28,8 +28,7 @@ pub struct AddLiquidity<'info> {
             bump = state.liq_pool.sol_leg_bump_seed)]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    #[account(mut)]
-    #[account(owner = system_program::ID)]
+    #[account(mut, owner = system_program::ID)]
     pub transfer_from: Signer<'info>,
 
     // user SPL-Token account to send the newly minted LP tokens
