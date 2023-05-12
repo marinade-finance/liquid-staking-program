@@ -53,7 +53,10 @@ pub fn check_owner_program<'info, A: ToAccountInfo<'info>>(
             owner,
             actual_owner
         );
-        Err(Error::from(ProgramError::InvalidArgument).with_source(source!()))
+        Err(Error::from(ProgramError::InvalidArgument)
+            .with_account_name(field_name)
+            .with_pubkeys((*actual_owner, *owner))
+            .with_source(source!()))
     }
 }
 

@@ -38,7 +38,7 @@ pub mod marinade_finance {
     use super::*;
 
     //----------------------------------------------------------------------------
-    // Stable Instructions, part of devnet-MVP-1 beta-test at marinade.finance
+    // Base Instructions
     //----------------------------------------------------------------------------
     // Includes: initialization, contract parameters
     // basic user functions: (liquid)stake, liquid-unstake
@@ -136,9 +136,7 @@ pub mod marinade_finance {
     }
 
     //-------------------------------------------------------------------------------------
-    // WIP Instructions, wil be part of devnet-MVP-2 beta-test release at marinade.finance
-    //-------------------------------------------------------------------------------------
-    // Includes advanced user options: deposit-stake-account, Delayed-Unstake
+    // Advanced instructions: deposit-stake-account, Delayed-Unstake
     // backend/bot "crank" related functions:
     // * order_unstake (starts stake-account deactivation)
     // * withdraw (delete & withdraw from a deactivated stake-account)
