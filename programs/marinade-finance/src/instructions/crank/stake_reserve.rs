@@ -1,11 +1,5 @@
 use crate::{
-    checks::check_address,
-    error::MarinadeError,
-    state::{
-        stake_system::{StakeSystem, StakeSystemHelpers},
-        StateHelpers,
-    },
-    State,
+    checks::check_address, error::MarinadeError, state::stake_system::StakeSystem, State, ID,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
@@ -105,8 +99,19 @@ impl<'info> StakeReserve<'info> {
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
-        let staker = self.state.stake_deposit_authority();
-        let withdrawer = self.state.stake_withdraw_authority();
+        let stake_deposit_auth_seeds = &[
+            &self.state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED,
+            &[self.state.stake_system.stake_deposit_bump_seed],
+        ];
+        let staker = Pubkey::create_program_address(stake_deposit_auth_seeds, &ID).unwrap();
+
+        let withdraw_auth_seeds = &[
+            &self.state.key().to_bytes(),
+            StakeSystem::STAKE_WITHDRAW_SEED,
+            &[self.state.stake_system.stake_withdraw_bump_seed],
+        ];
+        let withdrawer = Pubkey::create_program_address(withdraw_auth_seeds, &ID).unwrap();
 
         let stake_delta = self.state.stake_delta(self.reserve_pda.lamports());
         if stake_delta <= 0 {
@@ -197,23 +202,25 @@ impl<'info> StakeReserve<'info> {
         };
 
         // transfer SOL from reserve_pda to the stake-account
-        self.state.with_reserve_seeds(|seeds| {
-            sol_log_compute_units();
-            msg!("Transfer to stake account");
-            invoke_signed(
-                &system_instruction::transfer(
-                    self.reserve_pda.key,
-                    &self.stake_account.key(),
-                    stake_target,
-                ),
-                &[
-                    self.system_program.to_account_info(),
-                    self.reserve_pda.to_account_info(),
-                    self.stake_account.to_account_info(),
-                ],
-                &[seeds],
-            )
-        })?;
+        sol_log_compute_units();
+        msg!("Transfer to stake account");
+        invoke_signed(
+            &system_instruction::transfer(
+                self.reserve_pda.key,
+                &self.stake_account.key(),
+                stake_target,
+            ),
+            &[
+                self.system_program.to_account_info(),
+                self.reserve_pda.to_account_info(),
+                self.stake_account.to_account_info(),
+            ],
+            &[&[
+                &self.state.key().to_bytes(),
+                State::RESERVE_SEED,
+                &[self.state.reserve_bump_seed],
+            ]],
+        )?;
         self.state.on_transfer_from_reserve(stake_target)?;
 
         sol_log_compute_units();
@@ -231,27 +238,25 @@ impl<'info> StakeReserve<'info> {
             ],
         )?;
 
-        self.state.with_stake_deposit_authority_seeds(|seeds| {
-            sol_log_compute_units();
-            msg!("Delegate stake");
-            invoke_signed(
-                &stake::instruction::delegate_stake(
-                    &self.stake_account.key(),
-                    &staker,
-                    self.validator_vote.key,
-                ),
-                &[
-                    self.stake_program.to_account_info(),
-                    self.stake_account.to_account_info(),
-                    self.stake_deposit_authority.to_account_info(),
-                    self.validator_vote.to_account_info(),
-                    self.clock.to_account_info(),
-                    self.stake_history.to_account_info(),
-                    self.stake_config.to_account_info(),
-                ],
-                &[seeds],
-            )
-        })?;
+        sol_log_compute_units();
+        msg!("Delegate stake");
+        invoke_signed(
+            &stake::instruction::delegate_stake(
+                &self.stake_account.key(),
+                &staker,
+                self.validator_vote.key,
+            ),
+            &[
+                self.stake_program.to_account_info(),
+                self.stake_account.to_account_info(),
+                self.stake_deposit_authority.to_account_info(),
+                self.validator_vote.to_account_info(),
+                self.clock.to_account_info(),
+                self.stake_history.to_account_info(),
+                self.stake_config.to_account_info(),
+            ],
+            &[stake_deposit_auth_seeds],
+        )?;
 
         self.state.stake_system.add(
             &mut self.stake_list.data.as_ref().borrow_mut(),

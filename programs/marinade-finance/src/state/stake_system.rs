@@ -1,4 +1,4 @@
-use crate::{checks::check_address, located::Located, State, ID};
+use crate::{checks::check_address, ID};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::Epoch;
 
@@ -184,46 +184,5 @@ impl StakeSystem {
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
         Ok(())
-    }
-}
-
-pub trait StakeSystemHelpers {
-    fn stake_withdraw_authority(&self) -> Pubkey;
-    fn with_stake_withdraw_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-
-    fn stake_deposit_authority(&self) -> Pubkey;
-    fn with_stake_deposit_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-}
-
-impl<T> StakeSystemHelpers for T
-where
-    T: Located<State>,
-{
-    fn stake_withdraw_authority(&self) -> Pubkey {
-        self.with_stake_withdraw_authority_seeds(|seeds| {
-            Pubkey::create_program_address(seeds, &ID).unwrap()
-        })
-    }
-
-    fn with_stake_withdraw_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            StakeSystem::STAKE_WITHDRAW_SEED,
-            &[self.as_ref().stake_system.stake_withdraw_bump_seed],
-        ])
-    }
-
-    fn stake_deposit_authority(&self) -> Pubkey {
-        self.with_stake_deposit_authority_seeds(|seeds| {
-            Pubkey::create_program_address(seeds, &ID).unwrap()
-        })
-    }
-
-    fn with_stake_deposit_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            StakeSystem::STAKE_DEPOSIT_SEED,
-            &[self.as_ref().stake_system.stake_deposit_bump_seed],
-        ])
     }
 }

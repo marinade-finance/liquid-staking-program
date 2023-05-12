@@ -3,9 +3,9 @@ use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 use crate::checks::check_min_amount;
-use crate::state::liq_pool::{LiqPool, LiqPoolHelpers};
-use crate::State;
+use crate::state::liq_pool::LiqPool;
 use crate::MarinadeError;
+use crate::State;
 
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
@@ -123,21 +123,23 @@ impl<'info> LiquidUnstake<'info> {
 
         //transfer SOL from the liq-pool to the user
         if working_lamports_value > 0 {
-            self.state.with_liq_pool_sol_leg_seeds(|sol_seeds| {
-                invoke_signed(
-                    &system_instruction::transfer(
-                        self.liq_pool_sol_leg_pda.key,
-                        self.transfer_sol_to.key,
-                        working_lamports_value,
-                    ),
-                    &[
-                        self.liq_pool_sol_leg_pda.to_account_info(),
-                        self.transfer_sol_to.to_account_info(),
-                        self.system_program.to_account_info(),
-                    ],
-                    &[sol_seeds],
-                )
-            })?;
+            invoke_signed(
+                &system_instruction::transfer(
+                    self.liq_pool_sol_leg_pda.key,
+                    self.transfer_sol_to.key,
+                    working_lamports_value,
+                ),
+                &[
+                    self.liq_pool_sol_leg_pda.to_account_info(),
+                    self.transfer_sol_to.to_account_info(),
+                    self.system_program.to_account_info(),
+                ],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    LiqPool::SOL_LEG_SEED,
+                    &[self.state.liq_pool.sol_leg_bump_seed],
+                ]],
+            )?;
         }
 
         // cut 25% from the fee for the treasury

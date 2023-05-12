@@ -8,7 +8,6 @@ pub mod calc;
 pub mod checks;
 pub mod error;
 pub mod instructions;
-pub mod located;
 pub mod state;
 
 use instructions::*;
