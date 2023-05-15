@@ -147,12 +147,6 @@ impl<'info> DeactivateStake<'info> {
             },
         );
 
-        let stake_deposit_auth_seeds = &[
-            &self.state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED,
-            &[self.state.stake_system.stake_deposit_bump_seed],
-        ];
-
         let unstaked_amount = if stake_account_target < 2 * self.state.stake_system.min_stake {
             // unstake all if what will remain in the account is < twice min_stake
             msg!("Deactivate whole stake {}", stake.stake_account);
@@ -170,7 +164,11 @@ impl<'info> DeactivateStake<'info> {
                     self.clock.to_account_info(),
                     self.stake_deposit_authority.to_account_info(),
                 ],
-                &[stake_deposit_auth_seeds],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
             )?;
 
             // Return rent reserve of unused split stake account if it is not empty
@@ -326,7 +324,11 @@ impl<'info> DeactivateStake<'info> {
                     self.split_stake_account.to_account_info(),
                     self.stake_deposit_authority.to_account_info(),
                 ],
-                &[stake_deposit_auth_seeds],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
                 )?;
 
             invoke_signed(
@@ -340,7 +342,11 @@ impl<'info> DeactivateStake<'info> {
                     self.clock.to_account_info(),
                     self.stake_deposit_authority.to_account_info(),
                 ],
-                &[stake_deposit_auth_seeds],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
             )?;
 
             stake.last_update_delegated_lamports -= split_amount;

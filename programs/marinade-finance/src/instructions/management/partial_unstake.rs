@@ -130,12 +130,6 @@ impl<'info> PartialUnstake<'info> {
             .last_update_delegated_lamports
             .saturating_sub(unstake_amount);
 
-        let stake_deposit_auth_seeds = &[
-            &self.state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED,
-            &[self.state.stake_system.stake_deposit_bump_seed],
-        ];
-
         let unstaked_from_account = if stake_account_after < self.state.stake_system.min_stake {
             // unstake all if what will remain in the account is < min_stake
             msg!("Deactivate whole stake {}", stake.stake_account);
@@ -155,7 +149,11 @@ impl<'info> PartialUnstake<'info> {
                     self.clock.to_account_info(),
                     self.stake_deposit_authority.to_account_info(),
                 ],
-                &[stake_deposit_auth_seeds],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
             )?;
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
@@ -294,7 +292,11 @@ impl<'info> PartialUnstake<'info> {
                     self.split_stake_account.to_account_info(),
                     self.stake_deposit_authority.to_account_info(),
                 ],
-                &[stake_deposit_auth_seeds],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
             )?;
 
             invoke_signed(
@@ -308,7 +310,11 @@ impl<'info> PartialUnstake<'info> {
                     self.clock.to_account_info(),
                     self.stake_deposit_authority.to_account_info(),
                 ],
-                &[stake_deposit_auth_seeds],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
             )?;
 
             // update amount accounted for this account

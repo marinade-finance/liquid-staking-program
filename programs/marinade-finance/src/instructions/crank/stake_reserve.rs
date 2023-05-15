@@ -99,19 +99,25 @@ impl<'info> StakeReserve<'info> {
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
 
-        let stake_deposit_auth_seeds = &[
-            &self.state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED,
-            &[self.state.stake_system.stake_deposit_bump_seed],
-        ];
-        let staker = Pubkey::create_program_address(stake_deposit_auth_seeds, &ID).unwrap();
+        let staker = Pubkey::create_program_address(
+            &[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_DEPOSIT_SEED,
+                &[self.state.stake_system.stake_deposit_bump_seed],
+            ],
+            &ID,
+        )
+        .unwrap();
 
-        let withdraw_auth_seeds = &[
-            &self.state.key().to_bytes(),
-            StakeSystem::STAKE_WITHDRAW_SEED,
-            &[self.state.stake_system.stake_withdraw_bump_seed],
-        ];
-        let withdrawer = Pubkey::create_program_address(withdraw_auth_seeds, &ID).unwrap();
+        let withdrawer = Pubkey::create_program_address(
+            &[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_WITHDRAW_SEED,
+                &[self.state.stake_system.stake_withdraw_bump_seed],
+            ],
+            &ID,
+        )
+        .unwrap();
 
         let stake_delta = self.state.stake_delta(self.reserve_pda.lamports());
         if stake_delta <= 0 {
@@ -255,7 +261,11 @@ impl<'info> StakeReserve<'info> {
                 self.stake_history.to_account_info(),
                 self.stake_config.to_account_info(),
             ],
-            &[stake_deposit_auth_seeds],
+            &[&[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_DEPOSIT_SEED,
+                &[self.state.stake_system.stake_deposit_bump_seed],
+            ]],
         )?;
 
         self.state.stake_system.add(
