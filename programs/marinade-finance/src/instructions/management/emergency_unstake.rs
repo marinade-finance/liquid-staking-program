@@ -1,7 +1,7 @@
 use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
-    state::stake_system::{StakeSystem, StakeSystemHelpers},
+    state::stake_system::StakeSystem,
     State,
 };
 
@@ -67,21 +67,23 @@ impl<'info> EmergencyUnstake<'info> {
 
         let unstake_amount = stake.last_update_delegated_lamports;
         msg!("Deactivate whole stake {}", stake.stake_account);
-        self.state.with_stake_deposit_authority_seeds(|seeds| {
-            invoke_signed(
-                &stake::instruction::deactivate_stake(
-                    self.stake_account.to_account_info().key,
-                    self.stake_deposit_authority.key,
-                ),
-                &[
-                    self.stake_program.to_account_info(),
-                    self.stake_account.to_account_info(),
-                    self.clock.to_account_info(),
-                    self.stake_deposit_authority.to_account_info(),
-                ],
-                &[seeds],
-            )
-        })?;
+        invoke_signed(
+            &stake::instruction::deactivate_stake(
+                self.stake_account.to_account_info().key,
+                self.stake_deposit_authority.key,
+            ),
+            &[
+                self.stake_program.to_account_info(),
+                self.stake_account.to_account_info(),
+                self.clock.to_account_info(),
+                self.stake_deposit_authority.to_account_info(),
+            ],
+            &[&[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_DEPOSIT_SEED,
+                &[self.state.stake_system.stake_deposit_bump_seed],
+            ]],
+        )?;
 
         // check the account is not already in emergency_unstake
         if stake.is_emergency_unstaking != 0 {

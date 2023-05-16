@@ -1,7 +1,4 @@
-use crate::{
-    calc::proportional, error::MarinadeError, located::Located, state::Fee,
-    State, ID,
-};
+use crate::{calc::proportional, error::MarinadeError, state::Fee, ID};
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 use anchor_spl::token::spl_token;
 
@@ -136,64 +133,4 @@ impl LiqPool {
 
         Ok(())
     }
-}
-
-pub trait LiqPoolHelpers {
-    fn with_lp_mint_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-    fn lp_mint_authority(&self) -> Pubkey;
-
-    fn with_liq_pool_sol_leg_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-    fn liq_pool_sol_leg_address(&self) -> Pubkey;
-
-    fn with_liq_pool_msol_leg_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-    fn liq_pool_msol_leg_authority(&self) -> Pubkey;
-}
-
-impl<T> LiqPoolHelpers for T
-where
-    T: Located<State>,
-{
-    // call a function adding lp_mint_authority_seeds
-    fn with_lp_mint_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            LiqPool::LP_MINT_AUTHORITY_SEED,
-            &[self.as_ref().liq_pool.lp_mint_authority_bump_seed],
-        ])
-    }
-
-    fn lp_mint_authority(&self) -> Pubkey {
-        self.with_lp_mint_authority_seeds(|seeds| {
-            Pubkey::create_program_address(seeds, &ID).unwrap()
-        })
-    }
-
-    fn with_liq_pool_sol_leg_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            LiqPool::SOL_LEG_SEED,
-            &[self.as_ref().liq_pool.sol_leg_bump_seed],
-        ])
-    }
-
-    fn liq_pool_sol_leg_address(&self) -> Pubkey {
-        self.with_liq_pool_sol_leg_seeds(|seeds| {
-            Pubkey::create_program_address(seeds, &ID).unwrap()
-        })
-    }
-
-    fn with_liq_pool_msol_leg_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            LiqPool::MSOL_LEG_AUTHORITY_SEED,
-            &[self.as_ref().liq_pool.msol_leg_authority_bump_seed],
-        ])
-    }
-
-    fn liq_pool_msol_leg_authority(&self) -> Pubkey {
-        self.with_liq_pool_msol_leg_authority_seeds(|seeds| {
-            Pubkey::create_program_address(seeds, &ID).unwrap()
-        })
-    }
-
 }

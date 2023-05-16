@@ -8,8 +8,8 @@ use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::error::MarinadeError;
-use crate::state::stake_system::{StakeRecord, StakeSystem, StakeSystemHelpers};
-use crate::{state::StateHelpers, State};
+use crate::state::stake_system::{StakeRecord, StakeSystem};
+use crate::State;
 
 #[derive(Accounts)]
 pub struct UpdateCommon<'info> {
@@ -160,27 +160,29 @@ impl<'info> UpdateCommon<'info> {
 
     pub fn withdraw_to_reserve(&mut self, amount: u64) -> Result<()> {
         if amount > 0 {
-            self.state.with_stake_withdraw_authority_seeds(|seeds| {
-                // Move unstaked + rewards for restaking
-                invoke_signed(
-                    &stake::instruction::withdraw(
-                        self.stake_account.to_account_info().key,
-                        self.stake_withdraw_authority.key,
-                        self.reserve_pda.key,
-                        amount,
-                        None,
-                    ),
-                    &[
-                        self.stake_program.to_account_info(),
-                        self.stake_account.to_account_info(),
-                        self.reserve_pda.to_account_info(),
-                        self.clock.to_account_info(),
-                        self.stake_history.to_account_info(),
-                        self.stake_withdraw_authority.to_account_info(),
-                    ],
-                    &[seeds],
-                )
-            })?;
+            // Move unstaked + rewards for restaking
+            invoke_signed(
+                &stake::instruction::withdraw(
+                    self.stake_account.to_account_info().key,
+                    self.stake_withdraw_authority.key,
+                    self.reserve_pda.key,
+                    amount,
+                    None,
+                ),
+                &[
+                    self.stake_program.to_account_info(),
+                    self.stake_account.to_account_info(),
+                    self.reserve_pda.to_account_info(),
+                    self.clock.to_account_info(),
+                    self.stake_history.to_account_info(),
+                    self.stake_withdraw_authority.to_account_info(),
+                ],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_WITHDRAW_SEED,
+                    &[self.state.stake_system.stake_withdraw_bump_seed],
+                ]],
+            )?;
             self.state.on_transfer_to_reserve(amount);
         }
         Ok(())
@@ -188,20 +190,22 @@ impl<'info> UpdateCommon<'info> {
 
     pub fn mint_to_treasury(&mut self, msol_lamports: u64) -> Result<()> {
         if msol_lamports > 0 {
-            self.state.with_msol_mint_authority_seeds(|seeds| {
-                mint_to(
-                    CpiContext::new_with_signer(
-                        self.token_program.to_account_info(),
-                        MintTo {
-                            mint: self.msol_mint.to_account_info(),
-                            to: self.treasury_msol_account.to_account_info(),
-                            authority: self.msol_mint_authority.to_account_info(),
-                        },
-                        &[seeds],
-                    ),
-                    msol_lamports,
-                )
-            })?;
+            mint_to(
+                CpiContext::new_with_signer(
+                    self.token_program.to_account_info(),
+                    MintTo {
+                        mint: self.msol_mint.to_account_info(),
+                        to: self.treasury_msol_account.to_account_info(),
+                        authority: self.msol_mint_authority.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        State::MSOL_MINT_AUTHORITY_SEED,
+                        &[self.state.msol_mint_authority_bump_seed],
+                    ]],
+                ),
+                msol_lamports,
+            )?;
             self.state.on_msol_mint(msol_lamports);
         }
         Ok(())
@@ -387,21 +391,23 @@ impl<'info> UpdateDeactivated<'info> {
         self.common
             .withdraw_to_reserve(self.stake_account.to_account_info().lamports())?;
         // but send the rent-exempt lamports part to operational_sol_account for the future recreation of this slot's account
-        self.state.with_reserve_seeds(|seeds| {
-            invoke_signed(
-                &system_instruction::transfer(
-                    self.reserve_pda.key,
-                    self.operational_sol_account.key,
-                    rent,
-                ),
-                &[
-                    self.system_program.to_account_info(),
-                    self.reserve_pda.to_account_info(),
-                    self.operational_sol_account.to_account_info(),
-                ],
-                &[seeds],
-            )
-        })?;
+        invoke_signed(
+            &system_instruction::transfer(
+                self.reserve_pda.key,
+                self.operational_sol_account.key,
+                rent,
+            ),
+            &[
+                self.system_program.to_account_info(),
+                self.reserve_pda.to_account_info(),
+                self.operational_sol_account.to_account_info(),
+            ],
+            &[&[
+                &self.state.key().to_bytes(),
+                State::RESERVE_SEED,
+                &[self.state.reserve_bump_seed],
+            ]],
+        )?;
         self.state.on_transfer_from_reserve(rent)?;
 
         if stake.is_emergency_unstaking == 0 {

@@ -2,8 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 
 use crate::state::delayed_unstake_ticket::TicketAccountData;
+use crate::MarinadeError;
 use crate::State;
-use crate::{state::StateHelpers, MarinadeError};
 
 ///How many epochs to wats for ticket. e.g.: Ticket created on epoch 14, ticket is due on epoch 15
 const WAIT_EPOCHS: u64 = 1;
@@ -112,21 +112,19 @@ impl<'info> Claim<'info> {
         self.ticket_account.lamports_amount = 0;
 
         //transfer sol from reserve_pda to user
-        self.state.with_reserve_seeds(|seeds| {
-            invoke_signed(
-                &system_instruction::transfer(
-                    self.reserve_pda.key,
-                    self.transfer_sol_to.key,
-                    lamports,
-                ),
-                &[
-                    self.system_program.to_account_info(),
-                    self.reserve_pda.to_account_info(),
-                    self.transfer_sol_to.to_account_info(),
-                ],
-                &[seeds],
-            )
-        })?;
+        invoke_signed(
+            &system_instruction::transfer(self.reserve_pda.key, self.transfer_sol_to.key, lamports),
+            &[
+                self.system_program.to_account_info(),
+                self.reserve_pda.to_account_info(),
+                self.transfer_sol_to.to_account_info(),
+            ],
+            &[&[
+                &self.state.key().to_bytes(),
+                State::RESERVE_SEED,
+                &[self.state.reserve_bump_seed],
+            ]],
+        )?;
         self.state.on_transfer_from_reserve(lamports)?;
 
         // move all rent-exempt ticket-account lamports to the user,

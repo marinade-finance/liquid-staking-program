@@ -1,9 +1,4 @@
-use crate::{
-    calc::proportional,
-    checks::check_min_amount,
-    state::liq_pool::{LiqPool, LiqPoolHelpers},
-    State,
-};
+use crate::{calc::proportional, checks::check_min_amount, state::liq_pool::LiqPool, State};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 use anchor_spl::token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer};
@@ -128,40 +123,43 @@ impl<'info> RemoveLiquidity<'info> {
 
         if sol_out_amount > 0 {
             msg!("transfer SOL");
-            self.state.with_liq_pool_sol_leg_seeds(|sol_seeds| {
-                invoke_signed(
-                    &system_instruction::transfer(
-                        self.liq_pool_sol_leg_pda.key,
-                        self.transfer_sol_to.key,
-                        sol_out_amount,
-                    ),
-                    &[
-                        self.liq_pool_sol_leg_pda.to_account_info(),
-                        self.transfer_sol_to.to_account_info(),
-                        self.system_program.to_account_info(),
-                    ],
-                    &[sol_seeds],
-                )
-            })?;
+            invoke_signed(
+                &system_instruction::transfer(
+                    self.liq_pool_sol_leg_pda.key,
+                    self.transfer_sol_to.key,
+                    sol_out_amount,
+                ),
+                &[
+                    self.liq_pool_sol_leg_pda.to_account_info(),
+                    self.transfer_sol_to.to_account_info(),
+                    self.system_program.to_account_info(),
+                ],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    LiqPool::SOL_LEG_SEED,
+                    &[self.state.liq_pool.sol_leg_bump_seed],
+                ]],
+            )?;
         }
 
         if msol_out_amount > 0 {
             msg!("transfer mSOL");
-            self.state
-                .with_liq_pool_msol_leg_authority_seeds(|msol_seeds| {
-                    transfer(
-                        CpiContext::new_with_signer(
-                            self.token_program.to_account_info(),
-                            Transfer {
-                                from: self.liq_pool_msol_leg.to_account_info(),
-                                to: self.transfer_msol_to.to_account_info(),
-                                authority: self.liq_pool_msol_leg_authority.to_account_info(),
-                            },
-                            &[msol_seeds],
-                        ),
-                        msol_out_amount,
-                    )
-                })?;
+            transfer(
+                CpiContext::new_with_signer(
+                    self.token_program.to_account_info(),
+                    Transfer {
+                        from: self.liq_pool_msol_leg.to_account_info(),
+                        to: self.transfer_msol_to.to_account_info(),
+                        authority: self.liq_pool_msol_leg_authority.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        LiqPool::MSOL_LEG_AUTHORITY_SEED,
+                        &[self.state.liq_pool.msol_leg_authority_bump_seed],
+                    ]],
+                ),
+                msol_out_amount,
+            )?;
         }
 
         burn(

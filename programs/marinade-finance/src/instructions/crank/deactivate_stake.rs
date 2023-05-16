@@ -1,6 +1,6 @@
 use crate::checks::check_owner_program;
 use crate::error::MarinadeError;
-use crate::state::stake_system::{StakeSystem, StakeSystemHelpers};
+use crate::state::stake_system::StakeSystem;
 use crate::State;
 use std::convert::TryFrom;
 
@@ -152,21 +152,24 @@ impl<'info> DeactivateStake<'info> {
             msg!("Deactivate whole stake {}", stake.stake_account);
             // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
             // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
-            self.state.with_stake_deposit_authority_seeds(|seeds| {
-                invoke_signed(
-                    &stake::instruction::deactivate_stake(
-                        self.stake_account.to_account_info().key,
-                        self.stake_deposit_authority.key,
-                    ),
-                    &[
-                        self.stake_program.to_account_info(),
-                        self.stake_account.to_account_info(),
-                        self.clock.to_account_info(),
-                        self.stake_deposit_authority.to_account_info(),
-                    ],
-                    &[seeds],
-                )
-            })?;
+            
+            invoke_signed(
+                &stake::instruction::deactivate_stake(
+                    self.stake_account.to_account_info().key,
+                    self.stake_deposit_authority.key,
+                ),
+                &[
+                    self.stake_program.to_account_info(),
+                    self.stake_account.to_account_info(),
+                    self.clock.to_account_info(),
+                    self.stake_deposit_authority.to_account_info(),
+                ],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
+            )?;
 
             // Return rent reserve of unused split stake account if it is not empty
             if self.split_stake_account.owner == &stake::program::ID {
@@ -304,41 +307,47 @@ impl<'info> DeactivateStake<'info> {
                 }
             }
 
-            self.state.with_stake_deposit_authority_seeds(|seeds| {
-                let split_instruction = stake::instruction::split(
-                    self.stake_account.to_account_info().key,
-                    self.stake_deposit_authority.key,
-                    split_amount,
-                    self.split_stake_account.key,
-                )
-                .last()
-                .unwrap()
-                .clone();
-                invoke_signed(
-                    &split_instruction,
-                    &[
-                        self.stake_program.to_account_info(),
-                        self.stake_account.to_account_info(),
-                        self.split_stake_account.to_account_info(),
-                        self.stake_deposit_authority.to_account_info(),
-                    ],
-                    &[seeds],
+            let split_instruction = stake::instruction::split(
+                self.stake_account.to_account_info().key,
+                self.stake_deposit_authority.key,
+                split_amount,
+                self.split_stake_account.key,
+            )
+            .last()
+            .unwrap()
+            .clone();
+            invoke_signed(
+                &split_instruction,
+                &[
+                    self.stake_program.to_account_info(),
+                    self.stake_account.to_account_info(),
+                    self.split_stake_account.to_account_info(),
+                    self.stake_deposit_authority.to_account_info(),
+                ],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
                 )?;
 
-                invoke_signed(
-                    &stake::instruction::deactivate_stake(
-                        self.split_stake_account.to_account_info().key,
-                        self.stake_deposit_authority.key,
-                    ),
-                    &[
-                        self.stake_program.to_account_info(),
-                        self.split_stake_account.to_account_info(),
-                        self.clock.to_account_info(),
-                        self.stake_deposit_authority.to_account_info(),
-                    ],
-                    &[seeds],
-                )
-            })?;
+            invoke_signed(
+                &stake::instruction::deactivate_stake(
+                    self.split_stake_account.to_account_info().key,
+                    self.stake_deposit_authority.key,
+                ),
+                &[
+                    self.stake_program.to_account_info(),
+                    self.split_stake_account.to_account_info(),
+                    self.clock.to_account_info(),
+                    self.stake_deposit_authority.to_account_info(),
+                ],
+                &[&[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ]],
+            )?;
 
             stake.last_update_delegated_lamports -= split_amount;
             split_amount

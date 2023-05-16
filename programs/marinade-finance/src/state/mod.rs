@@ -1,7 +1,6 @@
 use crate::{
     calc::{shares_from_value, value_from_shares},
-    error::MarinadeError,
-    located::Located, ID,
+    error::MarinadeError, ID
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
@@ -264,44 +263,4 @@ impl State {
         self.epoch_unstake_orders += lamports_amount;
         self.unstakers[unstaker_index as usize].amount += lamports_amount;
     }*/
-}
-
-pub trait StateHelpers {
-    fn msol_mint_authority(&self) -> Pubkey;
-    fn with_msol_mint_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-
-    fn reserve_address(&self) -> Pubkey;
-    fn with_reserve_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
-}
-
-impl<T> StateHelpers for T
-where
-    T: Located<State>,
-{
-    fn msol_mint_authority(&self) -> Pubkey {
-        self.with_msol_mint_authority_seeds(|seeds| {
-            Pubkey::create_program_address(seeds, &ID).unwrap()
-        })
-    }
-
-    fn with_msol_mint_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            State::MSOL_MINT_AUTHORITY_SEED,
-            &[self.as_ref().msol_mint_authority_bump_seed],
-        ])
-    }
-
-    fn reserve_address(&self) -> Pubkey {
-        self.with_reserve_seeds(|seeds| Pubkey::create_program_address(seeds, &ID).unwrap())
-    }
-
-    fn with_reserve_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R {
-        f(&[
-            &self.key().to_bytes()[..32],
-            State::RESERVE_SEED,
-            &[self.as_ref().reserve_bump_seed],
-        ])
-    }
-
 }

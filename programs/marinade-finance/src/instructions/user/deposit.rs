@@ -1,15 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
-use anchor_spl::token::{
-    mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
-};
+use anchor_spl::token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer};
 
-use crate::state::liq_pool::{LiqPool, LiqPoolHelpers};
+use crate::state::liq_pool::LiqPool;
 use crate::State;
-use crate::{
-    checks::{check_min_amount},
-    state::StateHelpers,
-};
+use crate::{checks::check_min_amount};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -104,20 +99,23 @@ impl<'info> Deposit<'info> {
             };
 
             //transfer mSOL to the user
-            self.state.with_liq_pool_msol_leg_authority_seeds(|seeds| {
-                transfer(
-                    CpiContext::new_with_signer(
-                        self.token_program.to_account_info(),
-                        Transfer {
-                            from: self.liq_pool_msol_leg.to_account_info(),
-                            to: self.mint_to.to_account_info(),
-                            authority: self.liq_pool_msol_leg_authority.to_account_info(),
-                        },
-                        &[seeds],
-                    ),
-                    swap_msol_max,
-                )
-            })?;
+
+            transfer(
+                CpiContext::new_with_signer(
+                    self.token_program.to_account_info(),
+                    Transfer {
+                        from: self.liq_pool_msol_leg.to_account_info(),
+                        to: self.mint_to.to_account_info(),
+                        authority: self.liq_pool_msol_leg_authority.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        LiqPool::MSOL_LEG_AUTHORITY_SEED,
+                        &[self.state.liq_pool.msol_leg_authority_bump_seed],
+                    ]],
+                ),
+                swap_msol_max,
+            )?;
 
             //transfer lamports to the LiqPool
             invoke(
@@ -166,20 +164,22 @@ impl<'info> Deposit<'info> {
             )?;
             self.state.on_transfer_to_reserve(user_lamports);
             if msol_to_mint > 0 {
-                self.state.with_msol_mint_authority_seeds(|mint_seeds| {
-                    mint_to(
-                        CpiContext::new_with_signer(
-                            self.token_program.to_account_info(),
-                            MintTo {
-                                mint: self.msol_mint.to_account_info(),
-                                to: self.mint_to.to_account_info(),
-                                authority: self.msol_mint_authority.to_account_info(),
-                            },
-                            &[mint_seeds],
-                        ),
-                        msol_to_mint,
-                    )
-                })?;
+                mint_to(
+                    CpiContext::new_with_signer(
+                        self.token_program.to_account_info(),
+                        MintTo {
+                            mint: self.msol_mint.to_account_info(),
+                            to: self.mint_to.to_account_info(),
+                            authority: self.msol_mint_authority.to_account_info(),
+                        },
+                        &[&[
+                            &self.state.key().to_bytes(),
+                            State::MSOL_MINT_AUTHORITY_SEED,
+                            &[self.state.msol_mint_authority_bump_seed],
+                        ]],
+                    ),
+                    msol_to_mint,
+                )?;
                 self.state.on_msol_mint(msol_to_mint);
             }
             // self.state.stake_total += user_lamports; // auto calculated

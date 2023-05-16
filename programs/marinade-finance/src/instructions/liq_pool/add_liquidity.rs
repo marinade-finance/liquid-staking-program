@@ -1,4 +1,4 @@
-use crate::state::liq_pool::{LiqPool, LiqPoolHelpers};
+use crate::state::liq_pool::LiqPool;
 use crate::State;
 use crate::{calc::shares_from_value, checks::*};
 use anchor_lang::prelude::*;
@@ -116,20 +116,22 @@ impl<'info> AddLiquidity<'info> {
         )?;
 
         //mint liq-pool shares (mSOL-SOL-LP tokens) for the user
-        self.state.with_lp_mint_authority_seeds(|mint_seeds| {
-            mint_to(
-                CpiContext::new_with_signer(
-                    self.token_program.to_account_info(),
-                    MintTo {
-                        mint: self.lp_mint.to_account_info(),
-                        to: self.mint_to.to_account_info(),
-                        authority: self.lp_mint_authority.to_account_info(),
-                    },
-                    &[mint_seeds],
-                ),
-                shares_for_user,
-            )
-        })?;
+        mint_to(
+            CpiContext::new_with_signer(
+                self.token_program.to_account_info(),
+                MintTo {
+                    mint: self.lp_mint.to_account_info(),
+                    to: self.mint_to.to_account_info(),
+                    authority: self.lp_mint_authority.to_account_info(),
+                },
+                &[&[
+                    &self.state.key().to_bytes(),
+                    LiqPool::LP_MINT_AUTHORITY_SEED,
+                    &[self.state.liq_pool.lp_mint_authority_bump_seed],
+                ]],
+            ),
+            shares_for_user,
+        )?;
         self.state.liq_pool.on_lp_mint(shares_for_user);
 
         Ok(())

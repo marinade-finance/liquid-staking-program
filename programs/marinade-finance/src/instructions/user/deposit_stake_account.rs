@@ -11,9 +11,9 @@ use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 use crate::checks::check_owner_program;
 use crate::error::MarinadeError;
-use crate::state::stake_system::StakeSystemHelpers;
+use crate::state::stake_system::StakeSystem;
 use crate::State;
-use crate::{state::StateHelpers, ID};
+use crate::ID;
 
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
@@ -216,11 +216,19 @@ impl<'info> DepositStakeAccount<'info> {
         }
 
         {
-            let new_staker = self.state.stake_deposit_authority();
+            let new_staker = Pubkey::create_program_address(
+                &[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_DEPOSIT_SEED,
+                    &[self.state.stake_system.stake_deposit_bump_seed],
+                ],
+                &ID,
+            )
+            .unwrap();
             let old_staker = self.stake_account.meta().unwrap().authorized.staker;
             if old_staker == new_staker {
                 msg!(
-                    "Can not deposited stake {} already under marinade control. Expected staker differs from {}",
+                    "Can not deposit stake {} already under marinade stake auth. Expected staker differs from {}",
                     self.stake_account.to_account_info().key,
                     new_staker
                 );
@@ -265,11 +273,19 @@ impl<'info> DepositStakeAccount<'info> {
         }
 
         {
-            let new_withdrawer = self.state.stake_withdraw_authority();
+            let new_withdrawer = Pubkey::create_program_address(
+                &[
+                    &self.state.key().to_bytes(),
+                    StakeSystem::STAKE_WITHDRAW_SEED,
+                    &[self.state.stake_system.stake_withdraw_bump_seed],
+                ],
+                &ID,
+            )
+            .unwrap();
             let old_withdrawer = self.stake_account.meta().unwrap().authorized.withdrawer;
             if old_withdrawer == new_withdrawer {
                 msg!(
-                    "Can not deposited stake {} already under marinade control. Expected withdrawer differs from {}",
+                    "Can not deposit stake {} already under marinade withdraw auth. Expected withdrawer differs from {}",
                     self.stake_account.to_account_info().key,
                     new_withdrawer
                 );
@@ -303,20 +319,22 @@ impl<'info> DepositStakeAccount<'info> {
 
         let msol_to_mint = self.state.calc_msol_from_lamports(delegation.stake)?;
 
-        self.state.with_msol_mint_authority_seeds(|mint_seeds| {
-            mint_to(
-                CpiContext::new_with_signer(
-                    self.token_program.to_account_info(),
-                    MintTo {
-                        mint: self.msol_mint.to_account_info(),
-                        to: self.mint_to.to_account_info(),
-                        authority: self.msol_mint_authority.to_account_info(),
-                    },
-                    &[mint_seeds],
-                ),
-                msol_to_mint,
-            )
-        })?;
+        mint_to(
+            CpiContext::new_with_signer(
+                self.token_program.to_account_info(),
+                MintTo {
+                    mint: self.msol_mint.to_account_info(),
+                    to: self.mint_to.to_account_info(),
+                    authority: self.msol_mint_authority.to_account_info(),
+                },
+                &[&[
+                    &self.state.key().to_bytes(),
+                    State::MSOL_MINT_AUTHORITY_SEED,
+                    &[self.state.msol_mint_authority_bump_seed],
+                ]],
+            ),
+            msol_to_mint,
+        )?;
         self.state.on_msol_mint(msol_to_mint);
 
         self.state.validator_system.total_active_balance = self
