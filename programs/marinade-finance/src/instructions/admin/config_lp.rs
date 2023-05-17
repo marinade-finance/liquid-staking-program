@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{state::Fee, State};
+use crate::{state::Fee, State, MarinadeError};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub struct ConfigLpParams {
@@ -12,7 +12,7 @@ pub struct ConfigLpParams {
 
 #[derive(Accounts)]
 pub struct ConfigLp<'info> {
-    #[account(mut, has_one = admin_authority)]
+    #[account(mut, has_one = admin_authority @MarinadeError::InvalidAdminAuthority)]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }
