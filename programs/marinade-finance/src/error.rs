@@ -5,78 +5,78 @@ use anchor_lang::prelude::*;
 #[error_code]
 pub enum MarinadeError {
     #[msg("Wrong reserve owner. Must be a system account")]
-    WrongReserveOwner,
+    WrongReserveOwner, // 6000
     #[msg("Reserve must have no data, but has data")]
-    NonEmptyReserveData,
+    NonEmptyReserveData, // 6001
     #[msg("Invalid initial reserve lamports")]
-    InvalidInitialReserveLamports,
+    InvalidInitialReserveLamports, // 6002
     #[msg("Zero validator chunk size")]
-    ZeroValidatorChunkSize,
+    ZeroValidatorChunkSize, // 6003
     #[msg("Too big validator chunk size")]
-    TooBigValidatorChunkSize,
+    TooBigValidatorChunkSize, // 6004
     #[msg("Zero credit chunk size")]
-    ZeroCreditChunkSize,
+    ZeroCreditChunkSize, // 6005
     #[msg("Too big credit chunk size")]
-    TooBigCreditChunkSize,
+    TooBigCreditChunkSize, // 6006
     #[msg("Too low credit fee")]
-    TooLowCreditFee,
+    TooLowCreditFee, // 6007
     #[msg("Invalid mint authority")]
-    InvalidMintAuthority,
+    InvalidMintAuthority, // 6008
     #[msg("Non empty initial mint supply")]
-    MintHasInitialSupply,
+    MintHasInitialSupply, // 6009
     #[msg("Invalid owner fee state")]
-    InvalidOwnerFeeState,
+    InvalidOwnerFeeState, // 6010
 
     #[msg("Invalid program id. For using program from another account please update id in the code")]
-    InvalidProgramId,
+    InvalidProgramId, // 6011
 
     #[msg("Unexpected account")]
-    UnexpectedAccount,
+    UnexpectedAccount, // 6012
 
     #[msg("Calculation failure")]
-    CalculationFailure,
+    CalculationFailure, // 6013
 
     #[msg("You can't deposit a stake-account with lockup")]
-    AccountWithLockup,
+    AccountWithLockup, // 6014
 
     #[msg("Number too low")]
-    NumberTooLow,
+    NumberTooLow, // 6015
     #[msg("Number too high")]
-    NumberTooHigh,
+    NumberTooHigh, // 6016
 
     #[msg("Fee too high")]
-    FeeTooHigh,
+    FeeTooHigh, // 6017
 
     #[msg("Min fee > max fee")]
-    FeesWrongWayRound,
+    FeesWrongWayRound, // 6018
 
     #[msg("Liquidity target too low")]
-    LiquidityTargetTooLow,
+    LiquidityTargetTooLow, // 6019
 
     #[msg("Ticket not due. Wait more epochs")]
-    TicketNotDue,
+    TicketNotDue, // 6020
 
     #[msg("Ticket not ready. Wait a few hours and try again")]
-    TicketNotReady,
+    TicketNotReady, // 6021
 
     #[msg("Wrong Ticket Beneficiary")]
-    WrongBeneficiary,
+    WrongBeneficiary, // 6022
 
     #[msg("Stake Account not updated yet")]
-    StakeAccountNotUpdatedYet,
+    StakeAccountNotUpdatedYet, // 6023
 
     #[msg("Stake Account not delegated")]
-    StakeNotDelegated,
+    StakeNotDelegated, // 6024
 
     #[msg("Stake Account is emergency unstaking")]
-    StakeAccountIsEmergencyUnstaking,
+    StakeAccountIsEmergencyUnstaking, // 6025
 
     #[msg("Insufficient Liquidity in the Liquidity Pool")]
-    InsufficientLiquidity,
+    InsufficientLiquidity, // 6026
 
     #[msg("Invalid validator")]
-    InvalidValidator,
+    InvalidValidator, // 6027
 
     #[msg("Invalid admin authority")]
-    InvalidAdminAuthority,
+    InvalidAdminAuthority, // 6028
 }
