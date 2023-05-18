@@ -17,7 +17,7 @@ pub struct ConfigMarinadeParams {
 
 #[derive(Accounts)]
 pub struct ConfigMarinade<'info> {
-    #[account(mut, has_one = admin_authority)]
+    #[account(mut, has_one = admin_authority @ MarinadeError::InvalidAdminAuthority )]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }
