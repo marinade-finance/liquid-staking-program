@@ -20,3 +20,6 @@ keys
 *~
 .#*
 \#*#
+
+# ignore IDE related data
+.idea/
