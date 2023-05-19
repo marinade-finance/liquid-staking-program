@@ -1,85 +1,82 @@
 use anchor_lang::prelude::*;
 
+// NOTE: Anchor 0.27 adds 6000 for user error codes)
+// (old Anchor 0.18 added 300 for user error codes)
 #[error_code]
 pub enum MarinadeError {
     #[msg("Wrong reserve owner. Must be a system account")]
-    WrongReserveOwner,
+    WrongReserveOwner, // 6000
     #[msg("Reserve must have no data, but has data")]
-    NonEmptyReserveData,
+    NonEmptyReserveData, // 6001
     #[msg("Invalid initial reserve lamports")]
-    InvalidInitialReserveLamports,
+    InvalidInitialReserveLamports, // 6002
     #[msg("Zero validator chunk size")]
-    ZeroValidatorChunkSize,
+    ZeroValidatorChunkSize, // 6003
     #[msg("Too big validator chunk size")]
-    TooBigValidatorChunkSize,
+    TooBigValidatorChunkSize, // 6004
     #[msg("Zero credit chunk size")]
-    ZeroCreditChunkSize,
+    ZeroCreditChunkSize, // 6005
     #[msg("Too big credit chunk size")]
-    TooBigCreditChunkSize,
+    TooBigCreditChunkSize, // 6006
     #[msg("Too low credit fee")]
-    TooLowCreditFee,
+    TooLowCreditFee, // 6007
     #[msg("Invalid mint authority")]
-    InvalidMintAuthority,
+    InvalidMintAuthority, // 6008
     #[msg("Non empty initial mint supply")]
-    MintHasInitialSupply,
+    MintHasInitialSupply, // 6009
     #[msg("Invalid owner fee state")]
-    InvalidOwnerFeeState,
+    InvalidOwnerFeeState, // 6010
 
-    #[msg("1910 Invalid program id. For using program from another account please update id in the code")]
-    InvalidProgramId = 6116,
+    #[msg("Invalid program id. For using program from another account please update id in the code")]
+    InvalidProgramId, // 6011
 
-    #[msg("FFA0 Unexpected account")]
-    UnexpectedAccount = 65140,
+    #[msg("Unexpected account")]
+    UnexpectedAccount, // 6012
 
-    #[msg("CACF Calculation failure")]
-    CalculationFailure = 51619,
+    #[msg("Calculation failure")]
+    CalculationFailure, // 6013
 
-    // #[error("B8A5 Wrong reserve address {got}. Must be {expected}")]
-    // WrongReserveAddress { got: Pubkey, expected: Pubkey },
+    #[msg("You can't deposit a stake-account with lockup")]
+    AccountWithLockup, // 6014
 
-    // #[error("B5OA Wrong stake withdraw authority {got}. Must be {expected}")]
-    // WrongStakeWithdrawAuthority { got: Pubkey, expected: Pubkey },
+    #[msg("Number too low")]
+    NumberTooLow, // 6015
+    #[msg("Number too high")]
+    NumberTooHigh, // 6016
 
-    // #[error("B51A Wrong stake deposit authority {got}. Must be {expected}")]
-    // WrongStakeDepositAuthority { got: Pubkey, expected: Pubkey },
-    #[msg("B3AA You can't deposit a stake-account with lockup")]
-    AccountWithLockup = 45694,
+    #[msg("Fee too high")]
+    FeeTooHigh, // 6017
 
-    #[msg("2000 Number too low")]
-    NumberTooLow = 7892,
-    #[msg("2001 Number too high")]
-    NumberTooHigh = 7893,
+    #[msg("Min fee > max fee")]
+    FeesWrongWayRound, // 6018
 
-    #[msg("1100 Fee too high")]
-    FeeTooHigh = 4052,
+    #[msg("Liquidity target too low")]
+    LiquidityTargetTooLow, // 6019
 
-    #[msg("1101 Min fee > max fee")]
-    FeesWrongWayRound = 4053,
+    #[msg("Ticket not due. Wait more epochs")]
+    TicketNotDue, // 6020
 
-    #[msg("1102 Liquidity target too low")]
-    LiquidityTargetTooLow = 4054,
+    #[msg("Ticket not ready. Wait a few hours and try again")]
+    TicketNotReady, // 6021
 
-    #[msg("1103 Ticket not due. Wait more epochs")]
-    TicketNotDue = 4055,
+    #[msg("Wrong Ticket Beneficiary")]
+    WrongBeneficiary, // 6022
 
-    #[msg("1104 Ticket not ready. Wait a few hours and try again")]
-    TicketNotReady = 4056,
+    #[msg("Stake Account not updated yet")]
+    StakeAccountNotUpdatedYet, // 6023
 
-    #[msg("1105 Wrong Ticket Beneficiary")]
-    WrongBeneficiary = 4057,
+    #[msg("Stake Account not delegated")]
+    StakeNotDelegated, // 6024
 
-    #[msg("1106 Stake Account not updated yet")]
-    StakeAccountNotUpdatedYet = 4058,
+    #[msg("Stake Account is emergency unstaking")]
+    StakeAccountIsEmergencyUnstaking, // 6025
 
-    #[msg("1107 Stake Account not delegated")]
-    StakeNotDelegated = 4059,
+    #[msg("Insufficient Liquidity in the Liquidity Pool")]
+    InsufficientLiquidity, // 6026
 
-    #[msg("1108 Stake Account is emergency unstaking")]
-    StakeAccountIsEmergencyUnstaking = 4060,
+    #[msg("Invalid validator")]
+    InvalidValidator, // 6027
 
-    #[msg("1199 Insufficient Liquidity in the Liquidity Pool")]
-    InsufficientLiquidity = 4205,
-
-    #[msg("BAD1 Invalid validator")]
-    InvalidValidator = 47525,
+    #[msg("Invalid admin authority")]
+    InvalidAdminAuthority, // 6028
 }
