@@ -13,7 +13,10 @@ use anchor_spl::stake::{Stake, StakeAccount};
 pub struct EmergencyUnstake<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
-    #[account(address = state.validator_system.manager_authority)]
+    #[account(
+        address = state.validator_system.manager_authority
+            @ MarinadeError::InvalidValidatorManager
+    )]
     pub validator_manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(

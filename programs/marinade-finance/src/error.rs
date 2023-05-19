@@ -80,6 +80,9 @@ pub enum MarinadeError {
     #[msg("Invalid admin authority")]
     InvalidAdminAuthority, // 6028
 
+    #[msg("Invalid validator system manager")]
+    InvalidValidatorManager, // 6029
+
     #[msg("Invalid stake list account discriminator")]
     InvalidStakeListDiscriminator, // 6030
 
