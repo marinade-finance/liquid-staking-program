@@ -3,39 +3,68 @@
 use std::ops::{Deref, DerefMut};
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::stake_history;
 use anchor_lang::solana_program::{program::invoke_signed, stake, system_instruction};
 use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
-use crate::error::MarinadeError;
-use crate::state::stake_system::{StakeRecord, StakeSystem};
-use crate::State;
+use crate::{
+    error::MarinadeError,
+    state::{
+        stake_system::{StakeRecord, StakeSystem},
+        validator_system::ValidatorSystem,
+    },
+    State,
+};
 
 #[derive(Accounts)]
 pub struct UpdateCommon<'info> {
-    #[account(mut, has_one = treasury_msol_account, has_one = msol_mint)]
+    #[account(
+        mut,
+        has_one = treasury_msol_account,
+        has_one = msol_mint
+    )]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.stake_system.stake_list.account,
+        constraint = stake_list.data.borrow().as_ref().get(0..8)
+            == Some(StakeSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidStakeListDiscriminator,
+    )]
     pub stake_list: UncheckedAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            StakeSystem::STAKE_WITHDRAW_SEED],
-            bump = state.stake_system.stake_withdraw_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_WITHDRAW_SEED
+        ],
+        bump = state.stake_system.stake_withdraw_bump_seed
+    )]
     pub stake_withdraw_authority: UncheckedAccount<'info>, // for getting non delegated SOLs
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            State::RESERVE_SEED],
-            bump = state.reserve_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            State::RESERVE_SEED
+        ],
+        bump = state.reserve_bump_seed
+    )]
     pub reserve_pda: SystemAccount<'info>, // all non delegated SOLs (if some attacker transfers it to stake) are sent to reserve_pda
 
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            State::MSOL_MINT_AUTHORITY_SEED],
-            bump = state.msol_mint_authority_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            State::MSOL_MINT_AUTHORITY_SEED
+        ],
+        bump = state.msol_mint_authority_bump_seed
+    )]
     pub msol_mint_authority: UncheckedAccount<'info>,
     /// CHECK: in code
     #[account(mut)]
@@ -43,6 +72,7 @@ pub struct UpdateCommon<'info> {
 
     pub clock: Sysvar<'info, Clock>,
     /// CHECK: have no CPU budget to parse
+    #[account(address = stake_history::ID)]
     pub stake_history: UncheckedAccount<'info>,
 
     pub stake_program: Program<'info, Stake>,
@@ -53,7 +83,13 @@ pub struct UpdateCommon<'info> {
 pub struct UpdateActive<'info> {
     pub common: UpdateCommon<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = common.state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
 }
 
@@ -103,11 +139,6 @@ struct BeginOutput {
 
 impl<'info> UpdateCommon<'info> {
     fn begin(&mut self, stake_index: u32) -> Result<BeginOutput> {
-        /*
-        self.state
-            .validator_system
-            .check_validator_list(self.validator_list.key)?;*/
-        self.state.stake_system.check_stake_list(&self.stake_list)?;
         let is_treasury_msol_ready_for_transfer = self
             .state
             .check_treasury_msol_account(&self.treasury_msol_account)?;

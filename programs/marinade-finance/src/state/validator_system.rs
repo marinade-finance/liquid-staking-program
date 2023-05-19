@@ -1,6 +1,6 @@
 //use std::convert::TryInto;
 
-use crate::{calc::proportional, checks::check_address, error::MarinadeError, ID};
+use crate::{calc::proportional, error::MarinadeError, ID};
 use anchor_lang::prelude::*;
 
 use super::list::List;
@@ -18,7 +18,6 @@ pub struct ValidatorRecord {
 }
 
 impl ValidatorRecord {
-    pub const DISCRIMINATOR: &'static [u8; 8] = b"validatr";
     pub const DUPLICATE_FLAG_SEED: &'static [u8] = b"unique_validator";
 
     pub fn find_duplication_flag(state: &Pubkey, validator_account: &Pubkey) -> (Pubkey, u8) {
@@ -88,20 +87,14 @@ pub struct ValidatorSystem {
 }
 
 impl ValidatorSystem {
+    pub const DISCRIMINATOR: &'static [u8; 8] = b"validatr";
+
     pub fn bytes_for_list(count: u32, additional_record_space: u32) -> u32 {
         List::bytes_for(
             ValidatorRecord::default().try_to_vec().unwrap().len() as u32 + additional_record_space,
             count,
         )
     }
-
-    /*
-    pub fn list_capacity(account_len: usize) -> u32 {
-        List::<ValidatorRecordDiscriminator, ValidatorRecord, u32>::capacity_of(
-            ValidatorRecord::default().try_to_vec().unwrap().len() as u32,
-            account_len,
-        )
-    }*/
 
     pub fn new(
         validator_list_account: Pubkey,
@@ -111,7 +104,7 @@ impl ValidatorSystem {
     ) -> Result<Self> {
         Ok(Self {
             validator_list: List::new(
-                ValidatorRecord::DISCRIMINATOR,
+                Self::DISCRIMINATOR,
                 ValidatorRecord::default().try_to_vec().unwrap().len() as u32
                     + additional_record_space,
                 validator_list_account,
@@ -136,14 +129,6 @@ impl ValidatorSystem {
     pub fn validator_list_capacity(&self, validator_list_len: usize) -> Result<u32> {
         self.validator_list.capacity(validator_list_len)
     }
-
-    /*
-    pub fn validator_records<'a: 'info, 'info>(
-        &'a self,
-        validator_list: &'a AccountInfo<'info>,
-    ) -> impl Iterator<Item = Result<ValidatorRecord, ProgramError>> + 'a {
-        self.validator_list.iter(validator_list, "validator_list")
-    }*/
 
     pub fn validator_record_size(&self) -> u32 {
         self.validator_list.item_size()
@@ -243,18 +228,4 @@ impl ValidatorSystem {
             self.total_validator_score as u64,
         )
     }
-
-    pub fn check_validator_list<'info>(&self, validator_list: &AccountInfo<'info>) -> Result<()> {
-        check_address(
-            validator_list.key,
-            self.validator_list_address(),
-            "validator_list",
-        )?;
-        if &validator_list.data.borrow().as_ref()[0..8] != ValidatorRecord::DISCRIMINATOR {
-            msg!("Wrong validator list account discriminator");
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
-        Ok(())
-    }
-
 }

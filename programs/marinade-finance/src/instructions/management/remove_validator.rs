@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::State;
+use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
 
 #[derive(Accounts)]
 pub struct RemoveValidator<'info> {
@@ -9,7 +9,13 @@ pub struct RemoveValidator<'info> {
     #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
     #[account(mut)]
@@ -21,10 +27,6 @@ pub struct RemoveValidator<'info> {
 
 impl<'info> RemoveValidator<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-
         let validator = self
             .state
             .validator_system

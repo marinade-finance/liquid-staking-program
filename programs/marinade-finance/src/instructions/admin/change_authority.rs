@@ -1,10 +1,13 @@
 use anchor_lang::prelude::*;
 
-use crate::State;
+use crate::{State, error::MarinadeError};
 
 #[derive(Accounts)]
 pub struct ChangeAuthority<'info> {
-    #[account(mut, has_one = admin_authority @ MarinadeError::InvalidAdminAuthority )]
+    #[account(
+        mut,
+        has_one = admin_authority @ MarinadeError::InvalidAdminAuthority
+    )]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }

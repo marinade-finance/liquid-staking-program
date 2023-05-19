@@ -1,5 +1,7 @@
 use crate::{
-    checks::check_address, error::MarinadeError, state::stake_system::StakeSystem, State, ID,
+    error::MarinadeError,
+    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    State, ID, checks::check_address,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
@@ -21,30 +23,52 @@ pub struct StakeReserve<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.stake_system.stake_list.account,
+        constraint = stake_list.data.borrow().as_ref().get(0..8)
+            == Some(StakeSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidStakeListDiscriminator,
+    )]
     pub stake_list: UncheckedAccount<'info>,
     /// CHECK: CPI
     #[account(mut)]
     pub validator_vote: UncheckedAccount<'info>,
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            State::RESERVE_SEED],
-            bump = state.reserve_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            State::RESERVE_SEED
+        ],
+        bump = state.reserve_bump_seed
+    )]
     pub reserve_pda: SystemAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>, // must be uninitialized
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED],
-            bump = state.stake_system.stake_deposit_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED
+        ],
+        bump = state.stake_system.stake_deposit_bump_seed
+    )]
     pub stake_deposit_authority: UncheckedAccount<'info>,
 
     pub clock: Sysvar<'info, Clock>,
     pub epoch_schedule: Sysvar<'info, EpochSchedule>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: have no CPU budget to parse
+    #[account(address = stake_history::ID)]
     pub stake_history: UncheckedAccount<'info>,
     /// CHECK: CPI
     #[account(address = stake::config::ID)]
@@ -55,19 +79,6 @@ pub struct StakeReserve<'info> {
 }
 
 impl<'info> StakeReserve<'info> {
-    fn check_stake_history(&self) -> Result<()> {
-        if !stake_history::check_id(self.stake_history.key) {
-            msg!(
-                "Stake history sysvar must be {}. Got {}",
-                stake_history::ID,
-                self.stake_history.key
-            );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
-        Ok(())
-    }
-
-    ///
     /// called by the bot
     /// Receives self.stake_account where to stake, normally an empty account (new keypair)
     /// stakes from available delta-stake in data.validator_index
@@ -75,11 +86,6 @@ impl<'info> StakeReserve<'info> {
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         sol_log_compute_units();
         msg!("Stake reserve");
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-        self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.check_stake_history()?;
         match StakeAccount::deref(&self.stake_account) {
             StakeState::Uninitialized => (),
             _ => {
