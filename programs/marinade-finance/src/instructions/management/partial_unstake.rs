@@ -1,6 +1,7 @@
 use crate::{
     checks::{check_owner_program, check_stake_amount_and_validator},
-    state::stake_system::StakeSystem,
+    error::MarinadeError,
+    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State,
 };
 use std::convert::TryFrom;
@@ -21,22 +22,42 @@ pub struct PartialUnstake<'info> {
     #[account(address = state.validator_system.manager_authority)]
     pub validator_manager_authority: Signer<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.stake_system.stake_list.account,
+        constraint = stake_list.data.borrow().as_ref().get(0..8)
+            == Some(StakeSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidStakeListDiscriminator,
+    )]
     pub stake_list: UncheckedAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED],
-            bump = state.stake_system.stake_deposit_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED
+        ],
+        bump = state.stake_system.stake_deposit_bump_seed
+    )]
     pub stake_deposit_authority: UncheckedAccount<'info>,
     // Readonly. For stake delta calculation
-    #[account(seeds = [&state.key().to_bytes(),
-            State::RESERVE_SEED],
-            bump = state.reserve_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            State::RESERVE_SEED
+        ],
+        bump = state.reserve_bump_seed
+    )]
     pub reserve_pda: SystemAccount<'info>,
     #[account(mut)]
     pub split_stake_account: Signer<'info>,
@@ -64,10 +85,6 @@ impl<'info> PartialUnstake<'info> {
             desired_unstake_amount >= self.state.stake_system.min_stake,
             "desired_unstake_amount too low"
         );
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-        self.state.stake_system.check_stake_list(&self.stake_list)?;
 
         let mut validator = self
             .state

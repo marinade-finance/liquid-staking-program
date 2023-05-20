@@ -1,37 +1,60 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::stake_history;
 use anchor_lang::solana_program::{
     program::invoke_signed,
     stake::{self, state::StakeState},
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 
-use crate::error::MarinadeError;
-use crate::state::stake_system::StakeSystem;
-use crate::State;
+use crate::{
+    error::MarinadeError,
+    State,
+    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+};
 
 #[derive(Accounts)]
 pub struct MergeStakes<'info> {
     #[account(mut, has_one = operational_sol_account)]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.stake_system.stake_list.account,
+        constraint = stake_list.data.borrow().as_ref().get(0..8)
+            == Some(StakeSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidStakeListDiscriminator,
+    )]
     pub stake_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
     #[account(mut)]
     pub destination_stake: Box<Account<'info, StakeAccount>>,
     #[account(mut)]
     pub source_stake: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED],
-            bump = state.stake_system.stake_deposit_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED
+        ],
+        bump = state.stake_system.stake_deposit_bump_seed
+    )]
     pub stake_deposit_authority: UncheckedAccount<'info>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            StakeSystem::STAKE_WITHDRAW_SEED],
-            bump = state.stake_system.stake_withdraw_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_WITHDRAW_SEED
+        ],
+        bump = state.stake_system.stake_withdraw_bump_seed
+    )]
     pub stake_withdraw_authority: UncheckedAccount<'info>,
     /// CHECK: not important
     #[account(mut)]
@@ -39,6 +62,7 @@ pub struct MergeStakes<'info> {
 
     pub clock: Sysvar<'info, Clock>,
     /// CHECK: have no CPU budget to parse
+    #[account(address = stake_history::ID)]
     pub stake_history: UncheckedAccount<'info>,
 
     pub stake_program: Program<'info, Stake>,
@@ -51,11 +75,6 @@ impl<'info> MergeStakes<'info> {
         source_stake_index: u32,
         validator_index: u32,
     ) -> Result<()> {
-        self.state.stake_system.check_stake_list(&self.stake_list)?;
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-
         let mut validator = self
             .state
             .validator_system

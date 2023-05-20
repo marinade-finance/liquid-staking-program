@@ -1,4 +1,4 @@
-use crate::{checks::check_address, ID};
+use crate::ID;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::Epoch;
 
@@ -13,8 +13,6 @@ pub struct StakeRecord {
 }
 
 impl StakeRecord {
-    pub const DISCRIMINATOR: &'static [u8; 8] = b"staker__";
-
     pub fn new(
         stake_account: &Pubkey,
         delegated_lamports: u64,
@@ -54,6 +52,7 @@ pub struct StakeSystem {
 impl StakeSystem {
     pub const STAKE_WITHDRAW_SEED: &'static [u8] = b"withdraw";
     pub const STAKE_DEPOSIT_SEED: &'static [u8] = b"deposit";
+    pub const DISCRIMINATOR: &'static [u8; 8] = b"staker__";
 
     pub fn bytes_for_list(count: u32, additional_record_space: u32) -> u32 {
         List::bytes_for(
@@ -61,14 +60,6 @@ impl StakeSystem {
             count,
         )
     }
-
-    /*
-    pub fn list_capacity(account_len: usize) -> u32 {
-        List::<StakeDiscriminator, StakeRecord, u32>::capacity_of(
-            StakeRecord::default().try_to_vec().unwrap().len() as u32,
-            account_len,
-        )
-    }*/
 
     pub fn find_stake_withdraw_authority(state: &Pubkey) -> (Pubkey, u8) {
         Pubkey::find_program_address(&[&state.to_bytes()[..32], Self::STAKE_WITHDRAW_SEED], &ID)
@@ -88,7 +79,7 @@ impl StakeSystem {
         additional_record_space: u32,
     ) -> Result<Self> {
         let stake_list = List::new(
-            StakeRecord::DISCRIMINATOR,
+            Self::DISCRIMINATOR,
             StakeRecord::default().try_to_vec().unwrap().len() as u32 + additional_record_space,
             stake_list_account,
             stake_list_data,
@@ -175,14 +166,5 @@ impl StakeSystem {
     }
     pub fn remove(&mut self, stake_list_data: &mut [u8], index: u32) -> Result<()> {
         self.stake_list.remove(stake_list_data, index, "stake_list")
-    }
-
-    pub fn check_stake_list<'info>(&self, stake_list: &AccountInfo<'info>) -> Result<()> {
-        check_address(stake_list.key, self.stake_list_address(), "stake_list")?;
-        if &stake_list.data.borrow().as_ref()[0..8] != StakeRecord::DISCRIMINATOR {
-            msg!("Wrong stake list account discriminator");
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
-        Ok(())
     }
 }

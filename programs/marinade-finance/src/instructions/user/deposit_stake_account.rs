@@ -9,11 +9,12 @@ use anchor_lang::solana_program::{
 use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
-use crate::checks::check_owner_program;
-use crate::error::MarinadeError;
-use crate::state::stake_system::StakeSystem;
-use crate::State;
-use crate::ID;
+use crate::{
+    checks::check_owner_program,
+    error::MarinadeError,
+    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    State, ID,
+};
 
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
@@ -21,10 +22,22 @@ pub struct DepositStakeAccount<'info> {
     pub state: Box<Account<'info, State>>,
 
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.stake_system.stake_list.account,
+        constraint = stake_list.data.borrow().as_ref().get(0..8)
+            == Some(StakeSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidStakeListDiscriminator,
+    )]
     pub stake_list: UncheckedAccount<'info>,
 
     #[account(mut)]
@@ -44,9 +57,13 @@ pub struct DepositStakeAccount<'info> {
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            State::MSOL_MINT_AUTHORITY_SEED],
-            bump = state.msol_mint_authority_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            State::MSOL_MINT_AUTHORITY_SEED
+        ],
+        bump = state.msol_mint_authority_bump_seed
+    )]
     pub msol_mint_authority: UncheckedAccount<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -61,11 +78,6 @@ impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 2;
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-        self.state.stake_system.check_stake_list(&self.stake_list)?;
-
         // impossible to happen check (msol mint auth is a PDA)
         if self.msol_mint.supply > self.state.msol_supply {
             msg!(

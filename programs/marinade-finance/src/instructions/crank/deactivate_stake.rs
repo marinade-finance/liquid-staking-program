@@ -1,10 +1,12 @@
-use crate::checks::check_owner_program;
-use crate::error::MarinadeError;
-use crate::state::stake_system::StakeSystem;
-use crate::State;
+use crate::{
+    checks::check_owner_program,
+    error::MarinadeError,
+    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    State,
+};
 use std::convert::TryFrom;
 
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar::stake_history};
 use anchor_lang::solana_program::{
     program::{invoke, invoke_signed},
     stake::program as stake_program,
@@ -20,22 +22,42 @@ pub struct DeactivateStake<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
     // Readonly. For stake delta calculation
-    #[account(seeds = [&state.key().to_bytes(), 
-            State::RESERVE_SEED], 
-            bump = state.reserve_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            State::RESERVE_SEED
+        ],
+        bump = state.reserve_bump_seed
+    )]
     pub reserve_pda: SystemAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.stake_system.stake_list.account,
+        constraint = stake_list.data.borrow().as_ref().get(0..8)
+            == Some(StakeSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidStakeListDiscriminator,
+    )]
     pub stake_list: UncheckedAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-                StakeSystem::STAKE_DEPOSIT_SEED], 
-                bump = state.stake_system.stake_deposit_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED
+        ],
+        bump = state.stake_system.stake_deposit_bump_seed
+    )]
     pub stake_deposit_authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub split_stake_account: Signer<'info>,
@@ -46,6 +68,7 @@ pub struct DeactivateStake<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub epoch_schedule: Sysvar<'info, EpochSchedule>,
     /// CHECK: have no CPU budget to parse
+    #[account(address = stake_history::ID)]
     pub stake_history: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
@@ -57,11 +80,6 @@ impl<'info> DeactivateStake<'info> {
     // fn deactivate_stake()
     //
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-        self.state.stake_system.check_stake_list(&self.stake_list)?;
-
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             stake_index,
@@ -152,7 +170,7 @@ impl<'info> DeactivateStake<'info> {
             msg!("Deactivate whole stake {}", stake.stake_account);
             // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
             // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
-            
+
             invoke_signed(
                 &stake::instruction::deactivate_stake(
                     self.stake_account.to_account_info().key,

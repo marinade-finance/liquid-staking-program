@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::MarinadeError, State};
+use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
 
 #[derive(Accounts)]
 pub struct SetValidatorScore<'info> {
@@ -9,16 +9,18 @@ pub struct SetValidatorScore<'info> {
     #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
 }
 
 impl<'info> SetValidatorScore<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey, score: u32) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
-
         let mut validator = self
             .state
             .validator_system

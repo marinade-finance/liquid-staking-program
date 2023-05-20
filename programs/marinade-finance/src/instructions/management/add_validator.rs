@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
 
-use crate::State;
 use crate::ID;
+use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
 
 #[derive(Accounts)]
 pub struct AddValidator<'info> {
@@ -11,7 +11,13 @@ pub struct AddValidator<'info> {
     #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+        constraint = validator_list.data.borrow().as_ref().get(0..8)
+            == Some(ValidatorSystem::DISCRIMINATOR)
+            @ MarinadeError::InvalidValidatorListDiscriminator,
+    )]
     pub validator_list: UncheckedAccount<'info>,
 
     /// CHECK: todo
@@ -19,8 +25,7 @@ pub struct AddValidator<'info> {
 
     #[account(mut)]
     pub duplication_flag: SystemAccount<'info>,
-    #[account(mut)]
-    #[account(owner = system_program::ID)]
+    #[account(mut, owner = system_program::ID)]
     pub rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -31,9 +36,6 @@ pub struct AddValidator<'info> {
 
 impl<'info> AddValidator<'info> {
     pub fn process(&mut self, score: u32) -> Result<()> {
-        self.state
-            .validator_system
-            .check_validator_list(&self.validator_list)?;
         if !self.rent.is_exempt(self.rent_payer.lamports(), 0) {
             msg!(
                 "Rent payer must have at least {} lamports",
