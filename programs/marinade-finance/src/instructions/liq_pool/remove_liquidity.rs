@@ -1,7 +1,9 @@
 use crate::{calc::proportional, checks::check_min_amount, state::liq_pool::LiqPool, State};
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
-use anchor_spl::token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer};
+use anchor_lang::system_program::{transfer, Transfer};
+use anchor_spl::token::{
+    burn, transfer as transfer_token, Burn, Mint, Token, TokenAccount, Transfer as TransferToken,
+};
 
 #[derive(Accounts)]
 pub struct RemoveLiquidity<'info> {
@@ -123,31 +125,29 @@ impl<'info> RemoveLiquidity<'info> {
 
         if sol_out_amount > 0 {
             msg!("transfer SOL");
-            invoke_signed(
-                &system_instruction::transfer(
-                    self.liq_pool_sol_leg_pda.key,
-                    self.transfer_sol_to.key,
-                    sol_out_amount,
-                ),
-                &[
-                    self.liq_pool_sol_leg_pda.to_account_info(),
-                    self.transfer_sol_to.to_account_info(),
+            transfer(
+                CpiContext::new_with_signer(
                     self.system_program.to_account_info(),
-                ],
-                &[&[
-                    &self.state.key().to_bytes(),
-                    LiqPool::SOL_LEG_SEED,
-                    &[self.state.liq_pool.sol_leg_bump_seed],
-                ]],
+                    Transfer {
+                        from: self.liq_pool_sol_leg_pda.to_account_info(),
+                        to: self.transfer_sol_to.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        LiqPool::SOL_LEG_SEED,
+                        &[self.state.liq_pool.sol_leg_bump_seed],
+                    ]],
+                ),
+                sol_out_amount,
             )?;
         }
 
         if msol_out_amount > 0 {
             msg!("transfer mSOL");
-            transfer(
+            transfer_token(
                 CpiContext::new_with_signer(
                     self.token_program.to_account_info(),
-                    Transfer {
+                    TransferToken {
                         from: self.liq_pool_msol_leg.to_account_info(),
                         to: self.transfer_msol_to.to_account_info(),
                         authority: self.liq_pool_msol_leg_authority.to_account_info(),

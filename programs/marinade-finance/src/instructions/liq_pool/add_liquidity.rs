@@ -2,7 +2,8 @@ use crate::state::liq_pool::LiqPool;
 use crate::State;
 use crate::{calc::shares_from_value, checks::*};
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
+use anchor_lang::solana_program::system_program;
+use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 #[derive(Accounts)]
@@ -102,17 +103,15 @@ impl<'info> AddLiquidity<'info> {
 
         //we start with a transfer instruction so the user can verify the SOL amount they're staking while approving the transaction
         //transfer sol into liq-pool sol leg
-        invoke(
-            &system_instruction::transfer(
-                self.transfer_from.key,
-                self.liq_pool_sol_leg_pda.key,
-                lamports,
-            ),
-            &[
-                self.transfer_from.to_account_info(),
-                self.liq_pool_sol_leg_pda.to_account_info(),
+        transfer(
+            CpiContext::new(
                 self.system_program.to_account_info(),
-            ],
+                Transfer {
+                    from: self.transfer_from.to_account_info(),
+                    to: self.liq_pool_sol_leg_pda.to_account_info(),
+                },
+            ),
+            lamports,
         )?;
 
         //mint liq-pool shares (mSOL-SOL-LP tokens) for the user

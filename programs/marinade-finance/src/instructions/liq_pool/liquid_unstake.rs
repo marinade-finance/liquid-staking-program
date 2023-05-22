@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
-use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
+use anchor_lang::system_program::{transfer, Transfer};
+use anchor_spl::token::{
+    transfer as transfer_token, Mint, Token, TokenAccount, Transfer as TransferToken,
+};
 
 use crate::checks::check_min_amount;
 use crate::state::liq_pool::LiqPool;
@@ -123,22 +125,20 @@ impl<'info> LiquidUnstake<'info> {
 
         //transfer SOL from the liq-pool to the user
         if working_lamports_value > 0 {
-            invoke_signed(
-                &system_instruction::transfer(
-                    self.liq_pool_sol_leg_pda.key,
-                    self.transfer_sol_to.key,
-                    working_lamports_value,
-                ),
-                &[
-                    self.liq_pool_sol_leg_pda.to_account_info(),
-                    self.transfer_sol_to.to_account_info(),
+            transfer(
+                CpiContext::new_with_signer(
                     self.system_program.to_account_info(),
-                ],
-                &[&[
-                    &self.state.key().to_bytes(),
-                    LiqPool::SOL_LEG_SEED,
-                    &[self.state.liq_pool.sol_leg_bump_seed],
-                ]],
+                    Transfer {
+                        from: self.liq_pool_sol_leg_pda.to_account_info(),
+                        to: self.transfer_sol_to.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        LiqPool::SOL_LEG_SEED,
+                        &[self.state.liq_pool.sol_leg_bump_seed],
+                    ]],
+                ),
+                working_lamports_value,
             )?;
         }
 
@@ -151,10 +151,10 @@ impl<'info> LiquidUnstake<'info> {
         msg!("treasury_msol_cut {}", treasury_msol_cut);
 
         //transfer mSOL to the liq-pool
-        transfer(
+        transfer_token(
             CpiContext::new(
                 self.token_program.to_account_info(),
-                Transfer {
+                TransferToken {
                     from: self.get_msol_from.to_account_info(),
                     to: self.liq_pool_msol_leg.to_account_info(),
                     authority: self.get_msol_from_authority.to_account_info(),
@@ -165,10 +165,10 @@ impl<'info> LiquidUnstake<'info> {
 
         //transfer treasury cut to treasury_msol_account
         if treasury_msol_cut > 0 {
-            transfer(
+            transfer_token(
                 CpiContext::new(
                     self.token_program.to_account_info(),
-                    Transfer {
+                    TransferToken {
                         from: self.get_msol_from.to_account_info(),
                         to: self.treasury_msol_account.to_account_info(),
                         authority: self.get_msol_from_authority.to_account_info(),
