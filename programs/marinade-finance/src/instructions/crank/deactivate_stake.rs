@@ -62,6 +62,7 @@ pub struct DeactivateStake<'info> {
         init,
         payer = split_stake_rent_payer,
         space = std::mem::size_of::<StakeState>(),
+        owner = stake::program::ID,
     )]
     pub split_stake_account: Account<'info, StakeAccount>,
     #[account(mut, owner = system_program::ID)]
