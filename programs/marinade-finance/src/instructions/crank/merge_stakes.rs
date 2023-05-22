@@ -1,15 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar::stake_history;
-use anchor_lang::solana_program::{
-    program::invoke_signed,
-    stake::{self, state::StakeState},
-};
-use anchor_spl::stake::{Stake, StakeAccount};
+use anchor_lang::solana_program::{program::invoke_signed, stake, stake::state::StakeState};
+use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
 use crate::{
     error::MarinadeError,
-    State,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    State,
 };
 
 #[derive(Accounts)]
@@ -228,27 +225,24 @@ impl<'info> MergeStakes<'info> {
         )?;
         if returned_stake_rent > 0 {
             // withdraw the rent-exempt lamports part of merged stake to operational_sol_account for the future recreation of this slot's account
-            invoke_signed(
-                &stake::instruction::withdraw(
-                    self.destination_stake.to_account_info().key,
-                    self.stake_withdraw_authority.key,
-                    self.operational_sol_account.key,
-                    returned_stake_rent,
-                    None,
-                ),
-                &[
+            withdraw(
+                CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
-                    self.destination_stake.to_account_info(),
-                    self.operational_sol_account.to_account_info(),
-                    self.clock.to_account_info(),
-                    self.stake_history.to_account_info(),
-                    self.stake_withdraw_authority.to_account_info(),
-                ],
-                &[&[
-                    &self.state.key().to_bytes(),
-                    StakeSystem::STAKE_WITHDRAW_SEED,
-                    &[self.state.stake_system.stake_withdraw_bump_seed],
-                ]],
+                    Withdraw {
+                        stake: self.destination_stake.to_account_info(),
+                        withdrawer: self.stake_withdraw_authority.to_account_info(),
+                        to: self.operational_sol_account.to_account_info(),
+                        clock: self.clock.to_account_info(),
+                        stake_history: self.stake_history.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        StakeSystem::STAKE_WITHDRAW_SEED,
+                        &[self.state.stake_system.stake_withdraw_bump_seed],
+                    ]],
+                ),
+                returned_stake_rent,
+                None,
             )?;
         }
         if extra_delegated > 0 {

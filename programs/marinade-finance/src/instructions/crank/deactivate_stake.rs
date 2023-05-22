@@ -174,23 +174,19 @@ impl<'info> DeactivateStake<'info> {
             // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
             // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
 
-            invoke_signed(
-                &stake::instruction::deactivate_stake(
-                    self.stake_account.to_account_info().key,
-                    self.stake_deposit_authority.key,
-                ),
-                &[
-                    self.stake_program.to_account_info(),
-                    self.stake_account.to_account_info(),
-                    self.clock.to_account_info(),
-                    self.stake_deposit_authority.to_account_info(),
-                ],
+            solana_deactivate_stake(CpiContext::new_with_signer(
+                self.stake_program.to_account_info(),
+                SolanaDeactivateStake {
+                    stake: self.stake_account.to_account_info(),
+                    staker: self.stake_deposit_authority.to_account_info(),
+                    clock: self.clock.to_account_info(),
+                },
                 &[&[
                     &self.state.key().to_bytes(),
                     StakeSystem::STAKE_DEPOSIT_SEED,
                     &[self.state.stake_system.stake_deposit_bump_seed],
                 ]],
-            )?;
+            ))?;
 
             // Return back the rent reserve of unused split stake account
             withdraw(
