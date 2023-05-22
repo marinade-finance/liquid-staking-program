@@ -22,7 +22,8 @@ pub struct Initialize<'info> {
     #[account(
         seeds = [
             &state.key().to_bytes(),
-            State::RESERVE_SEED],
+            State::RESERVE_SEED
+        ],
         bump,
     )]
     pub reserve_pda: SystemAccount<'info>,
