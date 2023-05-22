@@ -1,5 +1,5 @@
 use crate::{
-    checks::{check_owner_program, check_stake_amount_and_validator},
+    checks::check_stake_amount_and_validator,
     error::MarinadeError,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State,
@@ -8,12 +8,11 @@ use std::convert::TryFrom;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
-    program::{invoke, invoke_signed},
-    stake::program as stake_program,
-    stake::{self, state::StakeState},
-    system_instruction, system_program,
+    program::invoke_signed, stake, stake::state::StakeState, system_program,
 };
-use anchor_spl::stake::{Stake, StakeAccount};
+use anchor_spl::stake::{
+    deactivate_stake, withdraw, DeactivateStake, Stake, StakeAccount, Withdraw,
+};
 
 #[derive(Accounts)]
 pub struct PartialUnstake<'info> {
@@ -59,10 +58,13 @@ pub struct PartialUnstake<'info> {
         bump = state.reserve_bump_seed
     )]
     pub reserve_pda: SystemAccount<'info>,
-    #[account(mut)]
-    pub split_stake_account: Signer<'info>,
-    #[account(mut)]
-    #[account(owner = system_program::ID)]
+    #[account(
+        init,
+        payer = split_stake_rent_payer,
+        space = std::mem::size_of::<StakeState>(),
+    )]
+    pub split_stake_account: Account<'info, StakeAccount>,
+    #[account(mut, owner = system_program::ID)]
     pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -155,59 +157,38 @@ impl<'info> PartialUnstake<'info> {
 
             // deactivate stake account
 
-            invoke_signed(
-                &stake::instruction::deactivate_stake(
-                    self.stake_account.to_account_info().key,
-                    self.stake_deposit_authority.key,
-                ),
-                &[
-                    self.stake_program.to_account_info(),
-                    self.stake_account.to_account_info(),
-                    self.clock.to_account_info(),
-                    self.stake_deposit_authority.to_account_info(),
-                ],
+            deactivate_stake(CpiContext::new_with_signer(
+                self.stake_program.to_account_info(),
+                DeactivateStake {
+                    stake: self.stake_account.to_account_info(),
+                    staker: self.stake_deposit_authority.to_account_info(),
+                    clock: self.clock.to_account_info(),
+                },
                 &[&[
                     &self.state.key().to_bytes(),
                     StakeSystem::STAKE_DEPOSIT_SEED,
                     &[self.state.stake_system.stake_deposit_bump_seed],
                 ]],
-            )?;
+            ))?;
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
             stake.is_emergency_unstaking = 1;
 
-            // Return rent reserve of unused split stake account if it is not empty
-            if self.split_stake_account.owner == &stake::program::ID {
-                let correct =
-                    match bincode::deserialize(&self.split_stake_account.data.as_ref().borrow()) {
-                        Ok(StakeState::Uninitialized) => true,
-                        _ => {
-                            msg!(
-                                "Split stake {} rent return problem",
-                                self.split_stake_account.key
-                            );
-                            false
-                        }
-                    };
-                if correct {
-                    invoke(
-                        &stake::instruction::withdraw(
-                            self.split_stake_account.key,
-                            self.split_stake_account.key,
-                            self.split_stake_rent_payer.key,
-                            self.split_stake_account.lamports(),
-                            None,
-                        ),
-                        &[
-                            self.stake_program.to_account_info(),
-                            self.split_stake_account.to_account_info(),
-                            self.split_stake_rent_payer.to_account_info(),
-                            self.clock.to_account_info(),
-                            self.stake_history.to_account_info(),
-                        ],
-                    )?;
-                }
-            }
+            // Return back the rent reserve of unused split stake account
+            withdraw(
+                CpiContext::new(
+                    self.stake_program.to_account_info(),
+                    Withdraw {
+                        stake: self.split_stake_account.to_account_info(),
+                        withdrawer: self.split_stake_account.to_account_info(),
+                        to: self.split_stake_rent_payer.to_account_info(),
+                        clock: self.clock.to_account_info(),
+                        stake_history: self.stake_history.to_account_info(),
+                    },
+                ),
+                self.split_stake_account.to_account_info().lamports(),
+                None,
+            )?;
 
             // effective unstaked_from_account
             stake.last_update_delegated_lamports
@@ -216,7 +197,7 @@ impl<'info> PartialUnstake<'info> {
 
             msg!(
                 "Deactivate split {} ({} lamports) from stake {}",
-                self.split_stake_account.key,
+                self.split_stake_account.key(),
                 unstake_amount,
                 stake.stake_account
             );
@@ -224,79 +205,18 @@ impl<'info> PartialUnstake<'info> {
             // add new account to Marinade stake-accounts list
             self.state.stake_system.add(
                 &mut self.stake_list.data.as_ref().borrow_mut(),
-                self.split_stake_account.key,
+                &self.split_stake_account.key(),
                 unstake_amount,
                 &self.clock,
                 1, // is_emergency_unstaking
             )?;
-
-            let stake_account_len = std::mem::size_of::<StakeState>();
-            if self.split_stake_account.owner == &system_program::ID {
-                // empty account
-                invoke(
-                    &system_instruction::create_account(
-                        self.split_stake_rent_payer.key,
-                        self.split_stake_account.key,
-                        self.rent.minimum_balance(stake_account_len),
-                        stake_account_len as u64,
-                        &stake_program::ID,
-                    ),
-                    &[
-                        self.system_program.to_account_info(),
-                        self.split_stake_rent_payer.to_account_info(),
-                        self.split_stake_account.to_account_info(),
-                    ],
-                )?;
-            } else {
-                // ready uninitialized stake (needed for testing because solana_program_test does not support system_instruction::create_account)
-                check_owner_program(
-                    &self.split_stake_account,
-                    &stake::program::ID,
-                    "split_stake_account",
-                )?;
-                if self.split_stake_account.data_len() < stake_account_len {
-                    msg!(
-                        "Split stake account {} must have at least {} bytes (got {})",
-                        self.split_stake_account.key,
-                        stake_account_len,
-                        self.split_stake_account.data_len()
-                    );
-                    return Err(
-                        Error::from(ProgramError::InvalidAccountData).with_source(source!())
-                    );
-                }
-                if !self.rent.is_exempt(
-                    self.split_stake_account.lamports(),
-                    self.split_stake_account.data_len(),
-                ) {
-                    msg!(
-                        "Split stake account {} must be rent-exempt",
-                        self.split_stake_account.key
-                    );
-                    return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-                }
-                match bincode::deserialize(&self.split_stake_account.data.as_ref().borrow())
-                    .map_err(|err| ProgramError::BorshIoError(err.to_string()))?
-                {
-                    StakeState::Uninitialized => (),
-                    _ => {
-                        msg!(
-                            "Split stake {} must be uninitialized",
-                            self.split_stake_account.key
-                        );
-                        return Err(
-                            Error::from(ProgramError::InvalidAccountData).with_source(source!())
-                        );
-                    }
-                }
-            }
 
             // split & deactivate stake account
             let split_instruction = stake::instruction::split(
                 self.stake_account.to_account_info().key,
                 self.stake_deposit_authority.key,
                 unstake_amount,
-                self.split_stake_account.key,
+                &self.split_stake_account.key(),
             )
             .last()
             .unwrap()
@@ -316,23 +236,19 @@ impl<'info> PartialUnstake<'info> {
                 ]],
             )?;
 
-            invoke_signed(
-                &stake::instruction::deactivate_stake(
-                    self.split_stake_account.to_account_info().key,
-                    self.stake_deposit_authority.key,
-                ),
-                &[
-                    self.stake_program.to_account_info(),
-                    self.split_stake_account.to_account_info(),
-                    self.clock.to_account_info(),
-                    self.stake_deposit_authority.to_account_info(),
-                ],
+            deactivate_stake(CpiContext::new_with_signer(
+                self.stake_program.to_account_info(),
+                DeactivateStake {
+                    stake: self.split_stake_account.to_account_info(),
+                    staker: self.stake_deposit_authority.to_account_info(),
+                    clock: self.clock.to_account_info(),
+                },
                 &[&[
                     &self.state.key().to_bytes(),
                     StakeSystem::STAKE_DEPOSIT_SEED,
                     &[self.state.stake_system.stake_deposit_bump_seed],
                 ]],
-            )?;
+            ))?;
 
             // update amount accounted for this account
             stake.last_update_delegated_lamports -= unstake_amount;

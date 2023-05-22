@@ -6,8 +6,7 @@ use crate::{
 };
 
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, stake};
-use anchor_spl::stake::{Stake, StakeAccount};
+use anchor_spl::stake::{deactivate_stake, DeactivateStake, Stake, StakeAccount};
 
 #[derive(Accounts)]
 pub struct EmergencyUnstake<'info> {
@@ -78,23 +77,19 @@ impl<'info> EmergencyUnstake<'info> {
 
         let unstake_amount = stake.last_update_delegated_lamports;
         msg!("Deactivate whole stake {}", stake.stake_account);
-        invoke_signed(
-            &stake::instruction::deactivate_stake(
-                self.stake_account.to_account_info().key,
-                self.stake_deposit_authority.key,
-            ),
-            &[
-                self.stake_program.to_account_info(),
-                self.stake_account.to_account_info(),
-                self.clock.to_account_info(),
-                self.stake_deposit_authority.to_account_info(),
-            ],
+        deactivate_stake(CpiContext::new_with_signer(
+            self.stake_program.to_account_info(),
+            DeactivateStake {
+                stake: self.stake_account.to_account_info(),
+                staker: self.stake_deposit_authority.to_account_info(),
+                clock: self.clock.to_account_info(),
+            },
             &[&[
                 &self.state.key().to_bytes(),
                 StakeSystem::STAKE_DEPOSIT_SEED,
                 &[self.state.stake_system.stake_deposit_bump_seed],
             ]],
-        )?;
+        ))?;
 
         // check the account is not already in emergency_unstake
         if stake.is_emergency_unstaking != 0 {
