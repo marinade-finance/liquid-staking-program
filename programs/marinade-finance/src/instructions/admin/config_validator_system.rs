@@ -1,12 +1,15 @@
 use anchor_lang::prelude::*;
 
-use crate::State;
+use crate::{State, MarinadeError};
 
 #[derive(Accounts)]
 pub struct ConfigValidatorSystem<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
-    #[account(address = state.validator_system.manager_authority)]
+    #[account(
+        address = state.validator_system.manager_authority
+            @ MarinadeError::InvalidValidatorManager
+    )]
     pub manager_authority: Signer<'info>,
 }
 

@@ -18,7 +18,10 @@ use anchor_spl::stake::{
 pub struct PartialUnstake<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
-    #[account(address = state.validator_system.manager_authority)]
+    #[account(
+        address = state.validator_system.manager_authority
+            @ MarinadeError::InvalidValidatorManager
+    )]
     pub validator_manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(

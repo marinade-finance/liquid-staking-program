@@ -6,7 +6,10 @@ use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, Stat
 pub struct RemoveValidator<'info> {
     #[account(mut, has_one = operational_sol_account)]
     pub state: Account<'info, State>,
-    #[account(address = state.validator_system.manager_authority)]
+    #[account(
+        address = state.validator_system.manager_authority
+            @ MarinadeError::InvalidValidatorManager
+    )]
     pub manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(
