@@ -1,10 +1,14 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
-use anchor_spl::token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer};
+use anchor_lang::solana_program::system_program;
+use anchor_lang::system_program::{transfer, Transfer};
+use anchor_spl::token::{
+    mint_to, transfer as transfer_tokens, Mint, MintTo, Token, TokenAccount,
+    Transfer as TransferTokens,
+};
 
+use crate::checks::check_min_amount;
 use crate::state::liq_pool::LiqPool;
 use crate::State;
-use crate::{checks::check_min_amount};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -100,10 +104,10 @@ impl<'info> Deposit<'info> {
 
             //transfer mSOL to the user
 
-            transfer(
+            transfer_tokens(
                 CpiContext::new_with_signer(
                     self.token_program.to_account_info(),
-                    Transfer {
+                    TransferTokens {
                         from: self.liq_pool_msol_leg.to_account_info(),
                         to: self.mint_to.to_account_info(),
                         authority: self.liq_pool_msol_leg_authority.to_account_info(),
@@ -118,17 +122,15 @@ impl<'info> Deposit<'info> {
             )?;
 
             //transfer lamports to the LiqPool
-            invoke(
-                &system_instruction::transfer(
-                    self.transfer_from.key,
-                    self.liq_pool_sol_leg_pda.key,
-                    lamports_for_the_liq_pool,
-                ),
-                &[
-                    self.transfer_from.to_account_info(),
-                    self.liq_pool_sol_leg_pda.to_account_info(),
+            transfer(
+                CpiContext::new(
                     self.system_program.to_account_info(),
-                ],
+                    Transfer {
+                        from: self.transfer_from.to_account_info(),
+                        to: self.liq_pool_sol_leg_pda.to_account_info(),
+                    },
+                ),
+                lamports_for_the_liq_pool,
             )?;
 
             //we took "lamports_for_the_liq_pool" from the "user_lamports"
@@ -150,17 +152,15 @@ impl<'info> Deposit<'info> {
             msg!("--- msol_to_mint {}", msol_to_mint);
 
             //transfer user_lamports to reserve
-            invoke(
-                &system_instruction::transfer(
-                    self.transfer_from.key,
-                    self.reserve_pda.key,
-                    user_lamports,
-                ),
-                &[
-                    self.transfer_from.to_account_info(),
-                    self.reserve_pda.to_account_info(),
+            transfer(
+                CpiContext::new(
                     self.system_program.to_account_info(),
-                ],
+                    Transfer {
+                        from: self.transfer_from.to_account_info(),
+                        to: self.reserve_pda.to_account_info(),
+                    },
+                ),
+                user_lamports,
             )?;
             self.state.on_transfer_to_reserve(user_lamports);
             if msol_to_mint > 0 {

@@ -3,9 +3,8 @@
 use std::ops::{Deref, DerefMut};
 
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{
-    program::invoke_signed, system_instruction, sysvar::stake_history,
-};
+use anchor_lang::solana_program::sysvar::stake_history;
+use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
@@ -420,22 +419,20 @@ impl<'info> UpdateDeactivated<'info> {
         self.common
             .withdraw_to_reserve(self.stake_account.to_account_info().lamports())?;
         // but send the rent-exempt lamports part to operational_sol_account for the future recreation of this slot's account
-        invoke_signed(
-            &system_instruction::transfer(
-                self.reserve_pda.key,
-                self.operational_sol_account.key,
-                rent,
-            ),
-            &[
+        transfer(
+            CpiContext::new_with_signer(
                 self.system_program.to_account_info(),
-                self.reserve_pda.to_account_info(),
-                self.operational_sol_account.to_account_info(),
-            ],
-            &[&[
-                &self.state.key().to_bytes(),
-                State::RESERVE_SEED,
-                &[self.state.reserve_bump_seed],
-            ]],
+                Transfer {
+                    from: self.reserve_pda.to_account_info(),
+                    to: self.operational_sol_account.to_account_info(),
+                },
+                &[&[
+                    &self.state.key().to_bytes(),
+                    State::RESERVE_SEED,
+                    &[self.state.reserve_bump_seed],
+                ]],
+            ),
+            rent,
         )?;
         self.state.on_transfer_from_reserve(rent)?;
 

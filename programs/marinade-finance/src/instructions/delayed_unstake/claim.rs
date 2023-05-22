@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+use anchor_lang::system_program::{transfer, Transfer};
 
 use crate::state::delayed_unstake_ticket::TicketAccountData;
 use crate::MarinadeError;
@@ -112,18 +112,20 @@ impl<'info> Claim<'info> {
         self.ticket_account.lamports_amount = 0;
 
         //transfer sol from reserve_pda to user
-        invoke_signed(
-            &system_instruction::transfer(self.reserve_pda.key, self.transfer_sol_to.key, lamports),
-            &[
+        transfer(
+            CpiContext::new_with_signer(
                 self.system_program.to_account_info(),
-                self.reserve_pda.to_account_info(),
-                self.transfer_sol_to.to_account_info(),
-            ],
-            &[&[
-                &self.state.key().to_bytes(),
-                State::RESERVE_SEED,
-                &[self.state.reserve_bump_seed],
-            ]],
+                Transfer {
+                    from: self.reserve_pda.to_account_info(),
+                    to: self.transfer_sol_to.to_account_info(),
+                },
+                &[&[
+                    &self.state.key().to_bytes(),
+                    State::RESERVE_SEED,
+                    &[self.state.reserve_bump_seed],
+                ]],
+            ),
+            lamports,
         )?;
         self.state.on_transfer_from_reserve(lamports)?;
 

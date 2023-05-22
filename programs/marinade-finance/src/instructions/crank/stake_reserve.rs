@@ -1,9 +1,9 @@
 use crate::{
+    checks::check_address,
     error::MarinadeError,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
-    State, ID, checks::check_address,
+    State, ID,
 };
-use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
     log::sol_log_compute_units,
     program::{invoke, invoke_signed},
@@ -11,8 +11,11 @@ use anchor_lang::solana_program::{
         self,
         state::{Authorized, Lockup, StakeState},
     },
-    system_instruction,
     sysvar::stake_history,
+};
+use anchor_lang::{
+    prelude::*,
+    system_program::{transfer, Transfer},
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 use std::convert::TryFrom;
@@ -216,22 +219,20 @@ impl<'info> StakeReserve<'info> {
         // transfer SOL from reserve_pda to the stake-account
         sol_log_compute_units();
         msg!("Transfer to stake account");
-        invoke_signed(
-            &system_instruction::transfer(
-                self.reserve_pda.key,
-                &self.stake_account.key(),
-                stake_target,
-            ),
-            &[
+        transfer(
+            CpiContext::new_with_signer(
                 self.system_program.to_account_info(),
-                self.reserve_pda.to_account_info(),
-                self.stake_account.to_account_info(),
-            ],
-            &[&[
-                &self.state.key().to_bytes(),
-                State::RESERVE_SEED,
-                &[self.state.reserve_bump_seed],
-            ]],
+                Transfer {
+                    from: self.reserve_pda.to_account_info(),
+                    to: self.stake_account.to_account_info(),
+                },
+                &[&[
+                    &self.state.key().to_bytes(),
+                    State::RESERVE_SEED,
+                    &[self.state.reserve_bump_seed],
+                ]],
+            ),
+            stake_target,
         )?;
         self.state.on_transfer_from_reserve(stake_target)?;
 
