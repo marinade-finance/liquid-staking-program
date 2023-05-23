@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
+use crate::{error::MarinadeError, state::validator_system::{ValidatorSystem, ValidatorRecord}, State, ID};
 
 #[derive(Accounts)]
+#[instruction(index: u32, validator_vote: Pubkey)]
 pub struct RemoveValidator<'info> {
     #[account(mut, has_one = operational_sol_account)]
     pub state: Account<'info, State>,
@@ -21,7 +22,17 @@ pub struct RemoveValidator<'info> {
     )]
     pub validator_list: UncheckedAccount<'info>,
     /// CHECK: manual account processing
-    #[account(mut)]
+    #[account(
+        mut,
+        owner = ID,
+        rent_exempt = enforce,
+        seeds = [
+            &state.key().to_bytes(),
+            ValidatorRecord::DUPLICATE_FLAG_SEED,
+            &validator_vote.to_bytes(),
+        ],
+        bump,
+    )]
     pub duplication_flag: UncheckedAccount<'info>,
     /// CHECK: not important
     #[account(mut)]
