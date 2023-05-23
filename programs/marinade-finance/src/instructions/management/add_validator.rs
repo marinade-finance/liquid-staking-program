@@ -24,8 +24,9 @@ pub struct AddValidator<'info> {
     pub validator_vote: UncheckedAccount<'info>,
 
     /// CHECK: no discriminator used
+    /// by initializing this account we mark the validator as added
     #[account(
-        init, // will enshure it is system account
+        init, // will ensure it is system account
         payer = rent_payer,
         space = 0,
         seeds = [
