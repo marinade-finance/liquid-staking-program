@@ -37,7 +37,10 @@ pub struct AddValidator<'info> {
         bump,
     )]
     pub duplication_flag: UncheckedAccount<'info>,
-    #[account(mut, owner = system_program::ID)]
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
     pub rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
