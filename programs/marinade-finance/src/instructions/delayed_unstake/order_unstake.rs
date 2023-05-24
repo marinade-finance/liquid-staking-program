@@ -9,18 +9,27 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
-    #[account(mut, has_one = msol_mint)]
+    #[account(
+        mut,
+        has_one = msol_mint
+    )]
     pub state: Box<Account<'info, State>>,
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
     // Note: Ticket beneficiary is burn_msol_from.owner
-    #[account(mut, token::mint = state.msol_mint)]
+    #[account(
+        mut,
+        token::mint = state.msol_mint
+    )]
     pub burn_msol_from: Box<Account<'info, TokenAccount>>,
 
     pub burn_msol_authority: Signer<'info>, // burn_msol_from acc must be pre-delegated with enough amount to this key or input owner signature here
 
-    #[account(zero, rent_exempt = enforce)]
+    #[account(
+        zero,
+        rent_exempt = enforce
+    )]
     pub new_ticket_account: Box<Account<'info, TicketAccountData>>,
 
     pub clock: Sysvar<'info, Clock>,

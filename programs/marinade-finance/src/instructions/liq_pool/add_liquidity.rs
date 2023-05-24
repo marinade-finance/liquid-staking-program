@@ -11,29 +11,47 @@ pub struct AddLiquidity<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
 
-    #[account(mut, address = state.liq_pool.lp_mint)]
+    #[account(
+        mut,
+        address = state.liq_pool.lp_mint
+    )]
     pub lp_mint: Box<Account<'info, Mint>>,
 
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            LiqPool::LP_MINT_AUTHORITY_SEED],
-            bump = state.liq_pool.lp_mint_authority_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::LP_MINT_AUTHORITY_SEED
+        ],
+        bump = state.liq_pool.lp_mint_authority_bump_seed
+    )]
     pub lp_mint_authority: UncheckedAccount<'info>,
 
     // liq_pool_msol_leg to be able to compute current msol value in liq_pool
     #[account(address = state.liq_pool.msol_leg)]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            LiqPool::SOL_LEG_SEED],
-            bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED
+        ],
+        bump = state.liq_pool.sol_leg_bump_seed
+    )]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    #[account(mut, owner = system_program::ID)]
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
     pub transfer_from: Signer<'info>,
 
     // user SPL-Token account to send the newly minted LP tokens
-    #[account(mut, token::mint = state.liq_pool.lp_mint)]
+    #[account(
+        mut,
+        token::mint = state.liq_pool.lp_mint
+    )]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,

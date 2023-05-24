@@ -11,24 +11,39 @@ use crate::State;
 
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
-    #[account(mut, has_one = treasury_msol_account, has_one = msol_mint)]
+    #[account(
+        mut,
+        has_one = treasury_msol_account,
+        has_one = msol_mint
+    )]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            LiqPool::SOL_LEG_SEED],
-            bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED
+        ],
+        bump = state.liq_pool.sol_leg_bump_seed
+    )]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    #[account(mut, address = state.liq_pool.msol_leg)]
+    #[account(
+        mut,
+        address = state.liq_pool.msol_leg
+    )]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
     /// CHECK: in code
     #[account(mut)]
     pub treasury_msol_account: UncheckedAccount<'info>,
 
-    #[account(mut, token::mint = state.msol_mint)]
+    #[account(
+        mut,
+        token::mint = state.msol_mint
+    )]
     pub get_msol_from: Box<Account<'info, TokenAccount>>,
     pub get_msol_from_authority: Signer<'info>, //burn_msol_from owner or delegate_authority
 

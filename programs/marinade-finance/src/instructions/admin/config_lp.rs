@@ -12,7 +12,10 @@ pub struct ConfigLpParams {
 
 #[derive(Accounts)]
 pub struct ConfigLp<'info> {
-    #[account(mut, has_one = admin_authority @ MarinadeError::InvalidAdminAuthority)]
+    #[account(
+        mut,
+        has_one = admin_authority @ MarinadeError::InvalidAdminAuthority
+    )]
     pub state: Account<'info, State>,
     pub admin_authority: Signer<'info>,
 }

@@ -65,7 +65,10 @@ pub struct DeactivateStake<'info> {
         owner = stake::program::ID,
     )]
     pub split_stake_account: Account<'info, StakeAccount>,
-    #[account(mut, owner = system_program::ID)]
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
     pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,

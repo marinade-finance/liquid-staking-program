@@ -18,7 +18,10 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
-    #[account(mut, has_one = msol_mint)]
+    #[account(
+        mut,
+        has_one = msol_mint
+    )]
     pub state: Box<Account<'info, State>>,
 
     /// CHECK: manual account processing
@@ -53,7 +56,10 @@ pub struct DepositStakeAccount<'info> {
     #[account(mut)]
     pub msol_mint: Account<'info, Mint>,
     /// user mSOL Token account to send the mSOL
-    #[account(mut, token::mint = state.msol_mint)]
+    #[account(
+        mut,
+        token::mint = state.msol_mint
+    )]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
