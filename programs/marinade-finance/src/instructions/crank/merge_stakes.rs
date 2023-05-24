@@ -11,7 +11,10 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct MergeStakes<'info> {
-    #[account(mut, has_one = operational_sol_account)]
+    #[account(
+        mut,
+        has_one = operational_sol_account
+    )]
     pub state: Box<Account<'info, State>>,
     /// CHECK: manual account processing
     #[account(

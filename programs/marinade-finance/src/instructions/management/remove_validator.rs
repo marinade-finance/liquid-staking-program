@@ -5,7 +5,10 @@ use crate::{error::MarinadeError, state::validator_system::{ValidatorSystem, Val
 #[derive(Accounts)]
 #[instruction(index: u32, validator_vote: Pubkey)]
 pub struct RemoveValidator<'info> {
-    #[account(mut, has_one = operational_sol_account)]
+    #[account(
+        mut,
+        has_one = operational_sol_account
+    )]
     pub state: Account<'info, State>,
     #[account(
         address = state.validator_system.manager_authority

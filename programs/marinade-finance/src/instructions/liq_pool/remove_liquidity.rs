@@ -10,30 +10,51 @@ pub struct RemoveLiquidity<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
 
-    #[account(mut, address = state.liq_pool.lp_mint)]
+    #[account(
+        mut,
+        address = state.liq_pool.lp_mint
+    )]
     pub lp_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, token::mint = state.liq_pool.lp_mint)]
+    #[account(
+        mut,
+        token::mint = state.liq_pool.lp_mint
+    )]
     pub burn_from: Box<Account<'info, TokenAccount>>,
     pub burn_from_authority: Signer<'info>,
 
     #[account(mut)]
     pub transfer_sol_to: SystemAccount<'info>,
 
-    #[account(mut, token::mint = state.msol_mint)]
+    #[account(
+        mut,
+        token::mint = state.msol_mint
+    )]
     pub transfer_msol_to: Box<Account<'info, TokenAccount>>,
 
     // legs
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            LiqPool::SOL_LEG_SEED],
-            bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED
+        ],
+        bump = state.liq_pool.sol_leg_bump_seed
+    )]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
-    #[account(mut, address = state.liq_pool.msol_leg)]
+    #[account(
+        mut,
+        address = state.liq_pool.msol_leg
+    )]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            LiqPool::MSOL_LEG_AUTHORITY_SEED],
-            bump = state.liq_pool.msol_leg_authority_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::MSOL_LEG_AUTHORITY_SEED
+        ],
+        bump = state.liq_pool.msol_leg_authority_bump_seed
+    )]
     pub liq_pool_msol_leg_authority: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,

@@ -112,7 +112,10 @@ pub struct UpdateDeactivated<'info> {
     pub common: UpdateCommon<'info>,
 
     /// CHECK: not important
-    #[account(mut, address = common.state.operational_sol_account)]
+    #[account(
+        mut,
+        address = common.state.operational_sol_account
+    )]
     pub operational_sol_account: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,

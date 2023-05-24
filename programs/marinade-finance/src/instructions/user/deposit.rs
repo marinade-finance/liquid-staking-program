@@ -12,42 +12,71 @@ use crate::State;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
-    #[account(mut, has_one = msol_mint)]
+    #[account(
+        mut,
+        has_one = msol_mint
+    )]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
     pub msol_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            LiqPool::SOL_LEG_SEED],
-            bump = state.liq_pool.sol_leg_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::SOL_LEG_SEED
+        ],
+        bump = state.liq_pool.sol_leg_bump_seed
+    )]
     pub liq_pool_sol_leg_pda: SystemAccount<'info>,
 
-    #[account(mut, address = state.liq_pool.msol_leg)]
+    #[account(
+        mut,
+        address = state.liq_pool.msol_leg
+    )]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            LiqPool::MSOL_LEG_AUTHORITY_SEED],
-            bump = state.liq_pool.msol_leg_authority_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            LiqPool::MSOL_LEG_AUTHORITY_SEED
+        ],
+        bump = state.liq_pool.msol_leg_authority_bump_seed
+    )]
     pub liq_pool_msol_leg_authority: UncheckedAccount<'info>,
 
-    #[account(mut, seeds = [&state.key().to_bytes(),
-            State::RESERVE_SEED],
-            bump = state.reserve_bump_seed)]
+    #[account(
+        mut,
+        seeds = [
+            &state.key().to_bytes(),
+            State::RESERVE_SEED
+        ],
+        bump = state.reserve_bump_seed
+    )]
     pub reserve_pda: SystemAccount<'info>,
 
-    #[account(mut)]
-    #[account(owner = system_program::ID)]
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
     pub transfer_from: Signer<'info>,
 
     /// user mSOL Token account to send the mSOL
-    #[account(mut, token::mint = state.msol_mint)]
+    #[account(
+        mut,
+        token::mint = state.msol_mint
+    )]
     pub mint_to: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: PDA
-    #[account(seeds = [&state.key().to_bytes(),
-            State::MSOL_MINT_AUTHORITY_SEED],
-            bump = state.msol_mint_authority_bump_seed)]
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            State::MSOL_MINT_AUTHORITY_SEED
+        ],
+        bump = state.msol_mint_authority_bump_seed
+    )]
     pub msol_mint_authority: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
