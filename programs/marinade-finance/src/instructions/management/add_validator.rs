@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction, system_program};
+use anchor_lang::solana_program::system_program;
 
-use crate::ID;
+use crate::state::validator_system::ValidatorRecord;
 use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
 
 #[derive(Accounts)]
@@ -23,8 +23,20 @@ pub struct AddValidator<'info> {
     /// CHECK: todo
     pub validator_vote: UncheckedAccount<'info>,
 
-    #[account(mut)]
-    pub duplication_flag: SystemAccount<'info>,
+    /// CHECK: no discriminator used
+    /// by initializing this account we mark the validator as added
+    #[account(
+        init, // will ensure it is system account
+        payer = rent_payer,
+        space = 0,
+        seeds = [
+            &state.key().to_bytes(),
+            ValidatorRecord::DUPLICATE_FLAG_SEED,
+            &validator_vote.key().to_bytes(),
+        ],
+        bump,
+    )]
+    pub duplication_flag: UncheckedAccount<'info>,
     #[account(mut, owner = system_program::ID)]
     pub rent_payer: Signer<'info>,
 
@@ -46,39 +58,13 @@ impl<'info> AddValidator<'info> {
 
         msg!("Add validator {}", self.validator_vote.key);
 
-        let state_address = *self.state.to_account_info().key;
+        let state_address = self.state.key();
         self.state.validator_system.add(
             &mut self.validator_list.data.borrow_mut(),
             *self.validator_vote.key,
             score,
             &state_address,
             self.duplication_flag.key,
-        )?;
-
-        // Mark validator as added
-        let validator_record = self.state.validator_system.get(
-            &self.validator_list.data.borrow(),
-            self.state.validator_system.validator_count() - 1,
-        )?;
-        validator_record.with_duplication_flag_seeds(
-            self.state.to_account_info().key,
-            |seeds| {
-                invoke_signed(
-                    &system_instruction::create_account(
-                        self.rent_payer.key,
-                        self.duplication_flag.key,
-                        self.rent.minimum_balance(0),
-                        0,
-                        &ID,
-                    ),
-                    &[
-                        self.system_program.to_account_info(),
-                        self.rent_payer.to_account_info(),
-                        self.duplication_flag.to_account_info(),
-                    ],
-                    &[seeds],
-                )
-            },
         )?;
 
         Ok(())
