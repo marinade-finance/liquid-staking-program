@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 use crate::error::MarinadeError;
 
+#[cfg(feature = "no-entrypoint")]
+use std::str::FromStr;
 //-----------------------------------------------------
 #[derive(
     Clone, Copy, Debug, Default, AnchorSerialize, AnchorDeserialize, PartialEq, Eq, PartialOrd, Ord,
@@ -39,7 +41,7 @@ impl Fee {
     }
 }
 
-#[cfg(not(feature = "no-entrypoint"))]
+#[cfg(feature = "no-entrypoint")]
 impl TryFrom<f64> for Fee {
     type Error = Error;
 
@@ -53,7 +55,7 @@ impl TryFrom<f64> for Fee {
     }
 }
 
-#[cfg(not(feature = "no-entrypoint"))]
+#[cfg(feature = "no-entrypoint")]
 impl FromStr for Fee {
     type Err = Error; // TODO: better error
 
