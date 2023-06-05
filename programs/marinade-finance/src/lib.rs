@@ -13,8 +13,21 @@ pub mod state;
 use instructions::*;
 
 pub use state::State;
+use solana_security_txt::security_txt;
 
 declare_id!("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD");
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "Marinade Liquid Staking",
+    project_url: "https://marinade.finance",
+    contacts: "link:https://docs.marinade.finance/marinade-dao,link:https://discord.com/invite/6EtUf4Euu6",
+    policy: "https://docs.marinade.finance/marinade-protocol/security",
+    preferred_languages: "en",
+    source_code: "https://github.com/marinade-finance/liquid-staking-program",
+    source_release: "v2.0",
+    auditors: "https://docs.marinade.finance/marinade-protocol/security/audits"
+}
 
 pub const MAX_REWARD_FEE: u32 = 1_000; //basis points, 10% max reward fee
 
