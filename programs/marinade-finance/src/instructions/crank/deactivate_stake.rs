@@ -103,26 +103,18 @@ impl<'info> DeactivateStake<'info> {
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
         // check that we're in the last slots of the epoch (stake-delta window)
-        if self.clock.slot
-            < self
-                .epoch_schedule
+        require_gte!(
+            self.clock.slot,
+            self.epoch_schedule
                 .get_last_slot_in_epoch(self.clock.epoch)
-                .saturating_sub(self.state.stake_system.slots_for_stake_delta)
-        {
-            msg!(
-                "Stake delta is available only last {} slots of epoch",
-                self.state.stake_system.slots_for_stake_delta
-            );
-            return Err(Error::from(ProgramError::Custom(332)).with_source(source!()));
-        }
+                .saturating_sub(self.state.stake_system.slots_for_stake_delta),
+            MarinadeError::TooEarlyForStakeDelta
+        );
 
         // compute total required stake delta (i128, must be negative)
         let total_stake_delta_i128 = self.state.stake_delta(self.reserve_pda.lamports());
         msg!("total_stake_delta_i128 {}", total_stake_delta_i128);
-        if total_stake_delta_i128 >= 0 {
-            msg!("Must stake {} instead of unstaking", total_stake_delta_i128);
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_gt!(0, total_stake_delta_i128, MarinadeError::UnstakingOnPositiveDelta);
         // convert to u64
         let total_unstake_delta =
             u64::try_from(-total_stake_delta_i128).expect("Unstake delta overflow");

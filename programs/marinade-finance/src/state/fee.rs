@@ -18,29 +18,28 @@ impl Display for Fee {
 }
 
 impl Fee {
+    pub const MAX_BASIS_POINTS: u32 = 10_000;
+
     pub const fn from_basis_points(basis_points: u32) -> Self {
         Self { basis_points }
     }
 
-    /// generic check, capped Fee
-    pub fn check_max(&self, max_basis_points: u32) -> Result<()> {
-        if self.basis_points > max_basis_points {
-            err!(MarinadeError::FeeTooHigh)
-        } else {
-            Ok(())
+    pub fn check(&self, source: Source) -> Result<()> {
+        if self.basis_points > Self::MAX_BASIS_POINTS {
+            return Err(Error::from(MarinadeError::BasisPointsOverflow)
+                .with_source(source)
+                .with_values((Self::MAX_BASIS_POINTS, self.basis_points)));
         }
-    }
-    /// base check, Fee <= 100%
-    pub fn check(&self) -> Result<()> {
-        self.check_max(10_000)
+        Ok(())
     }
 
     pub fn apply(&self, lamports: u64) -> u64 {
         // LMT no error possible
-        (lamports as u128 * self.basis_points as u128 / 10_000_u128) as u64
+        (lamports as u128 * self.basis_points as u128 / Self::MAX_BASIS_POINTS as u128) as u64
     }
 }
 
+#[cfg(not(feature = "no-entrypoint"))]
 impl TryFrom<f64> for Fee {
     type Error = Error;
 
@@ -49,11 +48,12 @@ impl TryFrom<f64> for Fee {
         let basis_points =
             u32::try_from(basis_points_i).map_err(|_| MarinadeError::CalculationFailure)?;
         let fee = Fee::from_basis_points(basis_points);
-        fee.check()?;
+        fee.check(source!())?;
         Ok(fee)
     }
 }
 
+#[cfg(not(feature = "no-entrypoint"))]
 impl FromStr for Fee {
     type Err = Error; // TODO: better error
 

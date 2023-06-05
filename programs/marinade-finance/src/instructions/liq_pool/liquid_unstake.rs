@@ -4,7 +4,6 @@ use anchor_spl::token::{
     transfer as transfer_token, Mint, Token, TokenAccount, Transfer as TransferToken,
 };
 
-use crate::checks::check_min_amount;
 use crate::state::liq_pool::LiqPool;
 use crate::MarinadeError;
 use crate::State;
@@ -56,45 +55,34 @@ pub struct LiquidUnstake<'info> {
 
 impl<'info> LiquidUnstake<'info> {
     fn check_get_msol_from(&self, msol_amount: u64) -> Result<()> {
-        // if delegated, check delegated amount
-        if *self.get_msol_from_authority.key == self.get_msol_from.owner {
-            if self.get_msol_from.amount < msol_amount {
-                msg!(
-                    "Requested to unstake {} mSOL lamports but have only {}",
-                    msol_amount,
-                    self.get_msol_from.amount
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-            }
-        } else if self
+        if self
             .get_msol_from
             .delegate
             .contains(self.get_msol_from_authority.key)
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            if self.get_msol_from.delegated_amount < msol_amount {
-                msg!(
-                    "Delegated {} mSOL lamports. Requested {}",
-                    self.get_msol_from.delegated_amount,
-                    msol_amount
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-            }
-        } else {
-            msg!(
-                "Token must be delegated to {}",
-                self.get_msol_from_authority.key
+            require_gte!(
+                self.get_msol_from.delegated_amount,
+                msol_amount,
+                MarinadeError::NotEnoughUserFunds
             );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        } else if *self.get_msol_from_authority.key == self.get_msol_from.owner {
+            require_gte!(
+                self.get_msol_from.amount,
+                msol_amount,
+                MarinadeError::NotEnoughUserFunds
+            );
+        } else {
+            return Err(error!(MarinadeError::WrongTokenOwnerOrDelegate)
+                .with_account_name("get_msol_from")
+                .with_pubkeys((self.get_msol_from.owner, self.get_msol_from_authority.key())));
         }
         Ok(())
     }
 
     // fn liquid_unstake()
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
-        msg!("enter LiquidUnstake");
-
         self.check_get_msol_from(msol_amount)?;
         let is_treasury_msol_ready_for_transfer = self
             .state
@@ -132,11 +120,11 @@ impl<'info> LiquidUnstake<'info> {
             return Err(MarinadeError::InsufficientLiquidity.into());
         }
 
-        check_min_amount(
+        require_gte!(
             working_lamports_value,
             self.state.min_withdraw,
-            "withdraw SOL",
-        )?;
+            MarinadeError::WithdrawAmountIsTooLow
+        );
 
         //transfer SOL from the liq-pool to the user
         if working_lamports_value > 0 {

@@ -3,41 +3,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::stake::state::StakeState;
 use anchor_spl::token::{Mint, TokenAccount};
 
-pub fn check_min_amount(amount: u64, min_amount: u64, action_name: &str) -> Result<()> {
-    if amount >= min_amount {
-        Ok(())
-    } else {
-        msg!(
-            "{}: Number too low {} (min is {})",
-            action_name,
-            amount,
-            min_amount,
-        );
-        Err(MarinadeError::NumberTooLow.into())
-    }
-}
-
-pub fn check_address(
-    actual_address: &Pubkey,
-    reference_address: &Pubkey,
-    field_name: &str,
-) -> Result<()> {
-    if actual_address == reference_address {
-        Ok(())
-    } else {
-        msg!(
-            "Invalid {} address: expected {} got {}",
-            field_name,
-            reference_address,
-            actual_address
-        );
-        Err(Error::from(ProgramError::InvalidArgument)
-            .with_account_name(field_name)
-            .with_pubkeys((*actual_address, *reference_address))
-            .with_source(source!()))
-    }
-}
-
 pub fn check_owner_program<'info, A: ToAccountInfo<'info>>(
     account: &A,
     owner: &Pubkey,

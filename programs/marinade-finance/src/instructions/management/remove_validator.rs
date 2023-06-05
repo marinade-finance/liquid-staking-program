@@ -1,6 +1,10 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::MarinadeError, state::validator_system::{ValidatorSystem, ValidatorRecord}, State, ID};
+use crate::{
+    error::MarinadeError,
+    state::validator_system::{ValidatorRecord, ValidatorSystem},
+    State, ID,
+};
 
 #[derive(Accounts)]
 #[instruction(index: u32, validator_vote: Pubkey)]
@@ -48,20 +52,17 @@ impl<'info> RemoveValidator<'info> {
             .state
             .validator_system
             .get(&self.validator_list.data.borrow(), index)?;
-        if validator.validator_account != validator_vote {
-            msg!("Removing validator index is wrong");
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
-        if self.duplication_flag.key
-            != &validator.duplication_flag_address(self.state.to_account_info().key)
-        {
-            msg!(
-                "Invalid duplication flag {}. Expected {}",
-                self.duplication_flag.key,
-                validator.duplication_flag_address(self.state.to_account_info().key)
-            );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
+        require_keys_eq!(
+            validator.validator_account,
+            validator_vote,
+            MarinadeError::WrongValidator
+        );
+
+        require_keys_eq!(
+            self.duplication_flag.key(),
+            validator.duplication_flag_address(self.state.to_account_info().key),
+            MarinadeError::WrongValidatorDuplicationFlag
+        );
 
         self.state.validator_system.remove(
             &mut self.validator_list.data.as_ref().borrow_mut(),

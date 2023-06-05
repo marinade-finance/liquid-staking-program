@@ -1,5 +1,4 @@
 use crate::{
-    checks::check_address,
     error::MarinadeError,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State, ID,
@@ -55,7 +54,11 @@ pub struct StakeReserve<'info> {
         bump = state.reserve_bump_seed
     )]
     pub reserve_pda: SystemAccount<'info>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = StakeAccount::deref(&stake_account) == &StakeState::Uninitialized
+            @ MarinadeError::StakeMustBeUnitialized,
+    )]
     pub stake_account: Box<Account<'info, StakeAccount>>, // must be uninitialized
     /// CHECK: PDA
     #[account(
@@ -88,25 +91,11 @@ impl<'info> StakeReserve<'info> {
     /// pub fn stake_reserve()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         sol_log_compute_units();
-        msg!("Stake reserve");
-        match StakeAccount::deref(&self.stake_account) {
-            StakeState::Uninitialized => (),
-            _ => {
-                msg!("Stake {} must be uninitialized", self.stake_account.key());
-                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-            }
-        }
-        if self.stake_account.to_account_info().lamports()
-            != self.rent.minimum_balance(std::mem::size_of::<StakeState>())
-        {
-            msg!(
-                "Stake {} must have balance {} but has {} lamports",
-                self.stake_account.key(),
-                self.rent.minimum_balance(std::mem::size_of::<StakeState>()),
-                self.stake_account.to_account_info().lamports()
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_eq!(
+            self.stake_account.to_account_info().lamports(),
+            self.rent.minimum_balance(std::mem::size_of::<StakeState>()),
+            MarinadeError::InvalidEmptyStakeBalance
+        );
 
         let staker = Pubkey::create_program_address(
             &[
@@ -152,11 +141,11 @@ impl<'info> StakeReserve<'info> {
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
-        check_address(
-            &self.validator_vote.key,
-            &validator.validator_account,
-            "validator_vote",
-        )?;
+        require_keys_eq!(
+            self.validator_vote.key(),
+            validator.validator_account,
+            MarinadeError::WrongValidator
+        );
 
         if validator.last_stake_delta_epoch == self.clock.epoch {
             // check if we have some extra stake runs allowed
@@ -178,14 +167,11 @@ impl<'info> StakeReserve<'info> {
 
         let last_slot = self.epoch_schedule.get_last_slot_in_epoch(self.clock.epoch);
 
-        if self.clock.slot < last_slot.saturating_sub(self.state.stake_system.slots_for_stake_delta)
-        {
-            msg!(
-                "Stake delta is available only last {} slots of epoch",
-                self.state.stake_system.slots_for_stake_delta
-            );
-            return Err(Error::from(ProgramError::Custom(332)).with_source(source!()));
-        }
+        require_gte!(
+            self.clock.slot,
+            last_slot.saturating_sub(self.state.stake_system.slots_for_stake_delta),
+            MarinadeError::TooEarlyForStakeDelta
+        );
 
         let validator_stake_target = self
             .state

@@ -6,7 +6,7 @@ use anchor_spl::token::{
     Transfer as TransferTokens,
 };
 
-use crate::checks::check_min_amount;
+use crate::error::MarinadeError;
 use crate::state::liq_pool::LiqPool;
 use crate::State;
 
@@ -84,26 +84,13 @@ pub struct Deposit<'info> {
 }
 
 impl<'info> Deposit<'info> {
-    fn check_transfer_from(&self, lamports: u64) -> Result<()> {
-        if self.transfer_from.lamports() < lamports {
-            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-        }
-        Ok(())
-    }
-
     // fn deposit_sol()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
-        check_min_amount(lamports, self.state.min_deposit, "deposit SOL")?;
-        self.check_transfer_from(lamports)?;
+        require_gte!(lamports, self.state.min_deposit, MarinadeError::DepositAmountIsTooLow);
+        require_gte!(self.transfer_from.lamports(), lamports, MarinadeError::NotEnoughUserFunds);
 
         // impossible to happen check outside bug (msol mint auth is a PDA)
-        if self.msol_mint.supply > self.state.msol_supply {
-            msg!(
-                "Warning: mSOL minted {} lamports outside of marinade",
-                self.msol_mint.supply - self.state.msol_supply
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_gte!(self.state.msol_supply, self.msol_mint.supply);
 
         let user_lamports = lamports;
 

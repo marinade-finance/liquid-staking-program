@@ -1,13 +1,15 @@
 use crate::{
     calc::{shares_from_value, value_from_shares},
-    error::MarinadeError, ID
+    error::MarinadeError,
+    ID,
 };
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program_pack::Pack;
+use anchor_lang::{
+    prelude::*, solana_program::native_token::LAMPORTS_PER_SOL, solana_program::program_pack::Pack,
+};
 use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
-use self::{stake_system::StakeSystem, validator_system::ValidatorSystem, liq_pool::LiqPool};
+use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem};
 
 pub mod delayed_unstake_ticket;
 pub mod fee;
@@ -76,6 +78,9 @@ impl State {
     pub const STAKE_LIST_SEED: &'static str = "stake_list";
     pub const VALIDATOR_LIST_SEED: &'static str = "validator_list";
 
+    pub const MAX_REWARD_FEE: Fee = Fee::from_basis_points(1_000); // 10% max reward fee
+    pub const MAX_WITHDRAW_ATOM: u64 = LAMPORTS_PER_SOL / 10;
+
     pub fn serialized_len() -> usize {
         unsafe { MaybeUninit::<Self>::zeroed().assume_init() }
             .try_to_vec()
@@ -107,7 +112,6 @@ impl State {
         &self,
         treasury_msol_account: &AccountInfo<'info>,
     ) -> Result<bool> {
-
         if treasury_msol_account.owner != &spl_token::ID {
             msg!(
                 "treasury_msol_account {} is not a token account",
@@ -162,18 +166,12 @@ impl State {
         let result_amount = self
             .total_lamports_under_control()
             .checked_add(transfering_lamports)
-            .ok_or_else(|| {
-                msg!("SOL overflow");
-                ProgramError::InvalidArgument
-            })?;
-        if result_amount > self.staking_sol_cap {
-            msg!(
-                "Staking cap reached {}/{}",
-                result_amount,
-                self.staking_sol_cap
-            );
-            return Err(Error::from(ProgramError::Custom(3782)).with_source(source!()));
-        }
+            .ok_or(error!(MarinadeError::CalculationFailure))?;
+        require_gte!(
+            self.staking_sol_cap,
+            result_amount,
+            MarinadeError::StakingIsCapped
+        );
         Ok(())
     }
 

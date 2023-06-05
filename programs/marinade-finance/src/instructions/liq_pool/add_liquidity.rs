@@ -1,6 +1,7 @@
+use crate::calc::shares_from_value;
+use crate::error::MarinadeError;
 use crate::state::liq_pool::LiqPool;
 use crate::State;
-use crate::{calc::shares_from_value, checks::*};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 use anchor_lang::system_program::{transfer, Transfer};
@@ -59,34 +60,25 @@ pub struct AddLiquidity<'info> {
 }
 
 impl<'info> AddLiquidity<'info> {
-    fn check_transfer_from(&self, lamports: u64) -> Result<()> {
-        if self.transfer_from.lamports() < lamports {
-            msg!(
-                "{} balance is {} but expected {}",
-                self.transfer_from.key,
-                self.transfer_from.lamports(),
-                lamports
-            );
-            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-        }
-        Ok(())
-    }
-
     // fn add_liquidity()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
-        msg!("add-liq pre check");
-        check_min_amount(lamports, self.state.min_deposit, "add_liquidity")?;
-        self.check_transfer_from(lamports)?;
+        require_gte!(
+            lamports,
+            self.state.min_deposit,
+            MarinadeError::DepositAmountIsTooLow
+        );
+        require_gte!(
+            self.transfer_from.lamports(),
+            lamports,
+            MarinadeError::NotEnoughUserFunds
+        );
         self.state
             .liq_pool
             .check_liquidity_cap(lamports, self.liq_pool_sol_leg_pda.lamports())?;
 
-        msg!("add-liq after check");
         // Update virtual lp_supply by real one
-        if self.lp_mint.supply > self.state.liq_pool.lp_supply {
-            msg!("Someone minted lp tokens without our permission or bug found");
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+
+        require_gte!(self.state.liq_pool.lp_supply, self.lp_mint.supply);
         self.state.liq_pool.lp_supply = self.lp_mint.supply;
         // we need to compute how many LP-shares to mint for this deposit in the liq-pool
         // in order to do that, we need total liq-pool value, to compute LP-share price

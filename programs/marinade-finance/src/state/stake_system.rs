@@ -1,3 +1,4 @@
+use crate::error::MarinadeError;
 use crate::ID;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::Epoch;
@@ -53,6 +54,7 @@ impl StakeSystem {
     pub const STAKE_WITHDRAW_SEED: &'static [u8] = b"withdraw";
     pub const STAKE_DEPOSIT_SEED: &'static [u8] = b"deposit";
     pub const DISCRIMINATOR: &'static [u8; 8] = b"staker__";
+    pub const MIN_UPDATE_WINDOW: u64 = 3_000; //min value is 3_000 => half an hour
 
     pub fn bytes_for_list(count: u32, additional_record_space: u32) -> u32 {
         List::bytes_for(
@@ -147,17 +149,12 @@ impl StakeSystem {
         received_pubkey: &Pubkey,
     ) -> Result<StakeRecord> {
         let stake_record = self.get(stake_list_data, index)?;
-        if stake_record.stake_account != *received_pubkey {
-            msg!(
-                "Stake account {} must match stake_list[{}] = {}. Maybe list layout was changed",
-                received_pubkey,
-                index,
-                stake_record.stake_account,
-            );
-            Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()))
-        } else {
-            Ok(stake_record)
-        }
+        require_keys_eq!(
+            stake_record.stake_account,
+            *received_pubkey,
+            MarinadeError::WrongStake
+        );
+        Ok(stake_record)
     }
 
     pub fn set(&self, stake_list_data: &mut [u8], index: u32, stake: StakeRecord) -> Result<()> {

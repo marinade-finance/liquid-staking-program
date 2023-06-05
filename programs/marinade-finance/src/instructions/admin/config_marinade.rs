@@ -1,7 +1,7 @@
+use crate::state::stake_system::StakeSystem;
 use crate::state::Fee;
-use crate::{MarinadeError, State, MAX_REWARD_FEE};
+use crate::{MarinadeError, State};
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub struct ConfigMarinadeParams {
@@ -26,7 +26,6 @@ pub struct ConfigMarinade<'info> {
 }
 
 impl<'info> ConfigMarinade<'info> {
-    const MIN_WITHDRAW_CAP: u64 = LAMPORTS_PER_SOL / 10;
     // fn config_marinade()
     pub fn process(
         &mut self,
@@ -42,21 +41,27 @@ impl<'info> ConfigMarinade<'info> {
         }: ConfigMarinadeParams,
     ) -> Result<()> {
         if let Some(rewards_fee) = rewards_fee {
-            rewards_fee.check_max(MAX_REWARD_FEE)?;
+            require_gte!(
+                State::MAX_REWARD_FEE,
+                rewards_fee,
+                MarinadeError::RewardsFeeIsTooHigh
+            );
             self.state.reward_fee = rewards_fee;
         }
         if let Some(slots_for_stake_delta) = slots_for_stake_delta {
-            const MIN_UPDATE_WINDOW: u64 = 3_000; //min value is 3_000 => half an hour
-            if slots_for_stake_delta < MIN_UPDATE_WINDOW {
-                return Err(MarinadeError::NumberTooLow.into());
-            };
+            require_gte!(
+                slots_for_stake_delta,
+                StakeSystem::MIN_UPDATE_WINDOW,
+                MarinadeError::UpdateWindowIsTooLow
+            );
             self.state.stake_system.slots_for_stake_delta = slots_for_stake_delta;
         }
         if let Some(min_stake) = min_stake {
-            let min_accepted = 5 * self.state.rent_exempt_for_token_acc;
-            if min_stake < min_accepted {
-                return Err(MarinadeError::NumberTooLow.into());
-            };
+            require_gte!(
+                min_stake,
+                5 * self.state.rent_exempt_for_token_acc,
+                MarinadeError::MinStakeIsTooLow
+            );
             self.state.stake_system.min_stake = min_stake;
         }
         if let Some(min_deposit) = min_deposit {
@@ -66,9 +71,11 @@ impl<'info> ConfigMarinade<'info> {
             self.state.min_deposit = min_deposit;
         }
         if let Some(min_withdraw) = min_withdraw {
-            if min_withdraw > Self::MIN_WITHDRAW_CAP {
-                return Err(MarinadeError::NumberTooHigh.into());
-            }
+            require_gte!(
+                State::MAX_WITHDRAW_ATOM,
+                min_withdraw,
+                MarinadeError::MinWithdrawIsTooHigh
+            );
             self.state.min_withdraw = min_withdraw;
         }
         if let Some(staking_sol_cap) = staking_sol_cap {

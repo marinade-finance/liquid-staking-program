@@ -24,10 +24,16 @@ pub struct Claim<'info> {
     )]
     pub reserve_pda: SystemAccount<'info>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        close = transfer_sol_to,
+    )]
     pub ticket_account: Account<'info, TicketAccountData>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        address = ticket_account.beneficiary @ MarinadeError::WrongBeneficiary
+    )]
     pub transfer_sol_to: SystemAccount<'info>,
 
     pub clock: Sysvar<'info, Clock>,
@@ -42,44 +48,37 @@ pub struct Claim<'info> {
 impl<'info> Claim<'info> {
     //
     fn check_ticket_account(&self) -> Result<()> {
-        if &self.ticket_account.state_address != self.state.to_account_info().key {
-            msg!(
-                "Ticket has wrong marinade instance {}",
-                self.ticket_account.state_address
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_keys_eq!(
+            self.ticket_account.state_address,
+            self.state.key(),
+            MarinadeError::InvalidDelayedUnstakeTicket
+        );
 
         // should be initialized - checked by anchor
         // "initialized" means the first 8 bytes are the Anchor's struct hash magic number
 
         // not used
-        if self.ticket_account.lamports_amount == 0 {
-            msg!("Used ticket");
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        };
+        require_neq!(
+            self.ticket_account.lamports_amount,
+            0,
+            MarinadeError::ReusingDelayedUnstakeTicket
+        );
 
         //check if ticket is due
-        if self.clock.epoch < self.ticket_account.created_epoch + WAIT_EPOCHS {
-            msg!("Ticket not due yet");
-            return err!(MarinadeError::TicketNotDue);
-        }
-        // Wait X MORE HOURS FROM THE beginning of the EPOCH to give the bot time to withdraw inactive-stake-accounts
-        if self.ticket_account.created_epoch + WAIT_EPOCHS == self.clock.epoch
-            && self.clock.unix_timestamp - self.clock.epoch_start_timestamp < EXTRA_WAIT_SECONDS
-        {
-            msg!(
-                "Ticket not ready {} {}",
-                self.clock.epoch_start_timestamp,
-                self.clock.unix_timestamp
-            );
-            return err!(MarinadeError::TicketNotReady);
-        }
+        require_gte!(
+            self.clock.epoch,
+            self.ticket_account.created_epoch + WAIT_EPOCHS,
+            MarinadeError::TicketNotDue
+        );
 
-        if self.ticket_account.beneficiary != *self.transfer_sol_to.key {
-            msg!("wrong beneficiary");
-            return err!(MarinadeError::WrongBeneficiary);
-        };
+        // Wait X MORE HOURS FROM THE beginning of the EPOCH to give the bot time to withdraw inactive-stake-accounts
+        if self.ticket_account.created_epoch + WAIT_EPOCHS == self.clock.epoch {
+            require_gte!(
+                self.clock.unix_timestamp - self.clock.epoch_start_timestamp,
+                EXTRA_WAIT_SECONDS,
+                MarinadeError::TicketNotReady
+            );
+        }
 
         Ok(())
     }
@@ -89,14 +88,6 @@ impl<'info> Claim<'info> {
         self.check_ticket_account()?;
 
         let lamports = self.ticket_account.lamports_amount;
-        if lamports > self.state.circulating_ticket_balance {
-            msg!(
-                "Requested to withdraw {} when only {} is total circulating_ticket_balance",
-                lamports,
-                self.state.circulating_ticket_balance
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
 
         // Real balance not virtual field
         let available_for_claim =
@@ -111,8 +102,13 @@ impl<'info> Claim<'info> {
             return Err(MarinadeError::TicketNotReady.into());
         }
 
-        self.state.circulating_ticket_balance -= lamports;
-        self.state.circulating_ticket_count -= 1;
+        // If circulating_ticket_balance = sum(ticket.balance) is violated we can have a problem
+        self.state.circulating_ticket_balance = self
+            .state
+            .circulating_ticket_balance
+            .checked_sub(lamports)
+            .ok_or(error!(MarinadeError::CalculationFailure))?;
+        self.state.circulating_ticket_count = self.state.circulating_ticket_count.saturating_sub(1);
         //disable ticket-account
         self.ticket_account.lamports_amount = 0;
 
@@ -133,16 +129,6 @@ impl<'info> Claim<'info> {
             lamports,
         )?;
         self.state.on_transfer_from_reserve(lamports)?;
-
-        // move all rent-exempt ticket-account lamports to the user,
-        // the ticket-account will be deleted eventually because is no longer rent-exempt
-        let source_account_info = self.ticket_account.to_account_info();
-        let dest_account_info = self.transfer_sol_to.to_account_info();
-        let dest_starting_lamports = dest_account_info.lamports();
-        **dest_account_info.lamports.borrow_mut() = dest_starting_lamports
-            .checked_add(source_account_info.lamports())
-            .ok_or(ProgramError::InvalidAccountData)?;
-        **source_account_info.lamports.borrow_mut() = 0;
 
         Ok(())
     }
