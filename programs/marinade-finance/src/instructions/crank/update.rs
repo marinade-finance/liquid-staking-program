@@ -282,6 +282,7 @@ impl<'info> UpdateActive<'info> {
             );
             return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
         }
+
         // current lamports amount, to compare with previous
         let delegated_lamports = delegation.stake;
 
@@ -374,34 +375,38 @@ impl<'info> UpdateDeactivated<'info> {
             is_treasury_msol_ready_for_transfer,
         } = self.begin(stake_index)?;
 
-        let delegation = self
-            .stake_account
-            .delegation()
-            .expect("Undelegated stake under control");
-        if delegation.deactivation_epoch == std::u64::MAX {
-            msg!(
-                "Stake {} is active",
-                self.stake_account.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
+        {
+            let delegation = self
+                .stake_account
+                .delegation()
+                .expect("Undelegated stake under control");
+            if delegation.deactivation_epoch == std::u64::MAX {
+                msg!(
+                    "Stake {} is active",
+                    self.stake_account.to_account_info().key
+                );
+                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
+            }
         }
+        // Jun-2023 In order to support Solana new redelegate instruction, we need to ignore stake_account.delegation().stake
+        // this is because in the case of a redelegated-Deactivating account, the field stake_account.delegation().stake
+        // *still contains the original stake amount*, even if the lamports() were sent to the redelegated-Activating account.
+        //
+        // So for deactivating accounts, in order to determine rewards received, we consider from now on:
+        // (lamports - rent) versus last_update_delegated_lamports.
+        //
+        // For the case of redelegated-Deactivating, when we redelegate we set  last_update_delegated_lamports=0 for the account
+        // that go into deactivation, so later, when we reach here last_update_delegated_lamports=0 and in (lamports - rent)
+        // we will have rewards. Side note: In the rare event of somebody sending lamports to a deactivating account, we will simply
+        // consider those lamports part of the rewards.
+
         // current lamports amount, to compare with previous
-        let delegated_lamports = delegation.stake;
         let rent = self.stake_account.meta().unwrap().rent_exempt_reserve;
         let stake_balance_without_rent = self.stake_account.to_account_info().lamports() - rent;
 
-        // move all sent by hacker extra SOLs to reserve
-        // and mint 100% mSOL to treasury to make admins decide what to do with this (maybe return to sender)
-        let extra_lamports = stake_balance_without_rent.saturating_sub(delegated_lamports);
-        msg!("Extra lamports in stake balance: {}", extra_lamports);
-        if is_treasury_msol_ready_for_transfer {
-            let msol_amount = self.state.calc_msol_from_lamports(extra_lamports)?;
-            self.mint_to_treasury(msol_amount)?;
-        }
-
-        if delegated_lamports >= stake.last_update_delegated_lamports {
+        if stake_balance_without_rent >= stake.last_update_delegated_lamports {
             // if there were rewards, mint treasury fee
-            let rewards = delegated_lamports - stake.last_update_delegated_lamports;
+            let rewards = stake_balance_without_rent - stake.last_update_delegated_lamports;
             msg!("Staking rewards: {}", rewards);
 
             if is_treasury_msol_ready_for_transfer {
@@ -414,7 +419,8 @@ impl<'info> UpdateDeactivated<'info> {
                 self.mint_to_treasury(fee_as_msol_amount)?;
             }
         } else {
-            let slashed = stake.last_update_delegated_lamports - delegated_lamports;
+            // less than observed last time
+            let slashed = stake.last_update_delegated_lamports - stake_balance_without_rent;
             msg!("Slashed {}", slashed);
         }
 
@@ -439,21 +445,15 @@ impl<'info> UpdateDeactivated<'info> {
         )?;
         self.state.on_transfer_from_reserve(rent)?;
 
-        if stake.is_emergency_unstaking == 0 {
-            // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)
-            self.state.stake_system.delayed_unstake_cooling_down = self
-                .state
-                .stake_system
-                .delayed_unstake_cooling_down
-                .checked_sub(stake.last_update_delegated_lamports)
-                .ok_or(MarinadeError::CalculationFailure)?;
-        } else {
-            // remove from emergency_cooling_down (amount is now in the reserve, is no longer cooling-down)
-            self.state.emergency_cooling_down = self
-                .state
-                .emergency_cooling_down
-                .checked_sub(stake.last_update_delegated_lamports)
-                .ok_or(MarinadeError::CalculationFailure)?;
+        if stake.last_update_delegated_lamports != 0 {
+            if stake.is_emergency_unstaking == 0 {
+                // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)
+                self.state.stake_system.delayed_unstake_cooling_down -=
+                    stake.last_update_delegated_lamports;
+            } else {
+                // remove from emergency_cooling_down (amount is now in the reserve, is no longer cooling-down)
+                self.state.emergency_cooling_down -= stake.last_update_delegated_lamports;
+            }
         }
 
         // We update mSOL price in case we receive "extra deactivating rewards" after the start of Delayed-unstake.

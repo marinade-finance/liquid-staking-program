@@ -27,7 +27,9 @@ pub enum MarinadeError {
     #[msg("Invalid owner fee state")]
     InvalidOwnerFeeState, // 6010
 
-    #[msg("Invalid program id. For using program from another account please update id in the code")]
+    #[msg(
+        "Invalid program id. For using program from another account please update id in the code"
+    )]
     InvalidProgramId, // 6011
 
     #[msg("Unexpected account")]
@@ -88,4 +90,10 @@ pub enum MarinadeError {
 
     #[msg("Invalid validator list account discriminator")]
     InvalidValidatorListDiscriminator, // 6031
+
+    #[msg("Redelegate will put validator over stake target")]
+    RedelegateOverTarget, // 6032
+
+    #[msg("Incorrect Dest Validator Account or index for Redelegate")]
+    IncorrectDestValidatorAccountOrIndex, // 6033
 }
