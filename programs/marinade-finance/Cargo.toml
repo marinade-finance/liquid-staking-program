@@ -21,3 +21,4 @@ overflow-checks = true
 [dependencies]
 anchor-lang = "0.27.0"
 anchor-spl = { version = "0.27.0", default-features = false, features = ["stake", "mint", "spl-token", "token"] }
+solana-security-txt = "1.1.1"
