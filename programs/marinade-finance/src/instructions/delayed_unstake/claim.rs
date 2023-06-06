@@ -26,7 +26,8 @@ pub struct Claim<'info> {
 
     #[account(
         mut,
-        close = transfer_sol_to,
+        close = transfer_sol_to, 
+        // at the end of this instruction, all lamports from ticket_account go to transfer_sol_to
     )]
     pub ticket_account: Account<'info, TicketAccountData>,
 
@@ -103,12 +104,8 @@ impl<'info> Claim<'info> {
         }
 
         // If circulating_ticket_balance = sum(ticket.balance) is violated we can have a problem
-        self.state.circulating_ticket_balance = self
-            .state
-            .circulating_ticket_balance
-            .checked_sub(lamports)
-            .ok_or(error!(MarinadeError::CalculationFailure))?;
-        self.state.circulating_ticket_count = self.state.circulating_ticket_count.saturating_sub(1);
+        self.state.circulating_ticket_balance -= lamports;
+        self.state.circulating_ticket_count -= 1;
         //disable ticket-account
         self.ticket_account.lamports_amount = 0;
 

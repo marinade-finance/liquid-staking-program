@@ -56,10 +56,11 @@ pub struct StakeReserve<'info> {
     pub reserve_pda: SystemAccount<'info>,
     #[account(
         mut,
+        // stake account must be uninitialized
         constraint = StakeAccount::deref(&stake_account) == &StakeState::Uninitialized
-            @ MarinadeError::StakeMustBeUnitialized,
+            @ MarinadeError::StakeMustBeUninitialized,
     )]
-    pub stake_account: Box<Account<'info, StakeAccount>>, // must be uninitialized
+    pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
     #[account(
         seeds = [
