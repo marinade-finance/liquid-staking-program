@@ -161,7 +161,7 @@ pub enum MarinadeError {
     UnstakingOnPositiveDelta, // 6051
 
     #[msg("Delta stake is negative so we must unstake instead of stake")]
-    StakingOnNegativeDelate, // 6052
+    StakingOnNegativeDelta, // 6052
 
     #[msg("Invalid empty stake balance")]
     InvalidEmptyStakeBalance, // 6053
