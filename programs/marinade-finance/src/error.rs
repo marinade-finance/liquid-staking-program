@@ -94,6 +94,12 @@ pub enum MarinadeError {
     #[msg("Redelegate will put validator over stake target")]
     RedelegateOverTarget, // 6032
 
-    #[msg("Incorrect Dest Validator Account or index for Redelegate")]
-    IncorrectDestValidatorAccountOrIndex, // 6033
+    #[msg("Incorrect Validator Index or Account")]
+    IncorrectValidatorIndexOrAccount, // 6033
+
+    #[msg("Incorrect Stake Index or Account")]
+    IncorrectStakeIndexOrAccountOrIndex, // 6033
+
+    #[msg("Source and Dest Validators are the same")]
+    SourceAndDestValidatorsAreTheSame, // 6034
 }

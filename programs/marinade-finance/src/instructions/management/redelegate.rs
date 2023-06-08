@@ -1,10 +1,13 @@
 use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    state::{
+        stake_system::{StakeRecord, StakeSystem},
+        validator_system::ValidatorSystem,
+    },
     State,
 };
-use std::convert::TryFrom;
+use std::{cmp::min, convert::TryFrom};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
@@ -18,11 +21,6 @@ use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 pub struct ReDelegate<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
-    #[account(
-        address = state.validator_system.manager_authority
-            @ MarinadeError::InvalidValidatorManager
-    )]
-    pub validator_manager_authority: Signer<'info>,
     /// CHECK: manual account processing
     #[account(
         mut,
@@ -111,23 +109,14 @@ impl<'info> ReDelegate<'info> {
     pub fn process(
         &mut self,
         stake_index: u32,
-        validator_index: u32,
+        source_validator_index: u32,
         dest_validator_index: u32,
-        desired_redelegate_amount: u64,
     ) -> Result<()> {
-        assert!(
-            desired_redelegate_amount >= self.state.stake_system.min_stake,
-            "desired_redelegate_amount too low"
+        require_neq!(
+            source_validator_index,
+            dest_validator_index,
+            MarinadeError::SourceAndDestValidatorsAreTheSame
         );
-        assert!(
-            validator_index != dest_validator_index,
-            "validator indexes are the same"
-        );
-
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
@@ -136,16 +125,23 @@ impl<'info> ReDelegate<'info> {
         )?;
 
         // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return Err(crate::MarinadeError::StakeAccountIsEmergencyUnstaking.into());
-        }
+        require_eq!(
+            stake.is_emergency_unstaking,
+            0,
+            MarinadeError::StakeAccountIsEmergencyUnstaking
+        );
 
-        // check amount currently_staked in this account
+        let mut source_validator = self.state.validator_system.get(
+            &self.validator_list.data.as_ref().borrow(),
+            source_validator_index,
+        )?;
+
+        // check amount currently_staked matched observation (stake is updated)
         // and that the account is delegated to the validator_index sent
         check_stake_amount_and_validator(
             &self.stake_account,
             stake.last_update_delegated_lamports,
-            &validator.validator_account,
+            &source_validator.validator_account,
         )?;
 
         // compute total required stake delta (i128, must be negative)
@@ -156,151 +152,108 @@ impl<'info> ReDelegate<'info> {
         // convert to u64
         let total_stake_target =
             u64::try_from(total_stake_target_i128).expect("total_stake_target+stake_delta");
+
         // compute target for this particular validator (total_stake_target * score/total_score)
-        let validator_stake_target = self
+        let source_validator_stake_target = self
             .state
             .validator_system
-            .validator_stake_target(&validator, total_stake_target)?;
+            .validator_stake_target(&source_validator, total_stake_target)?;
         // if validator is already on-target (or the split will be lower than min_stake), exit now
-        if validator.active_balance <= validator_stake_target + self.state.stake_system.min_stake {
+        if source_validator.active_balance
+            <= source_validator_stake_target + self.state.stake_system.min_stake
+        {
             msg!(
-                "Current validator {} stake {} is <= target {} +min_stake",
-                validator.validator_account,
-                validator.active_balance,
-                validator_stake_target
+                "Source validator {} stake {} is <= target {} +min_stake",
+                source_validator.validator_account,
+                source_validator.active_balance,
+                source_validator_stake_target
             );
+            // return rent for unused accounts
+            self.return_rent_unused_stake_account(self.split_stake_account.to_account_info())?;
+            self.return_rent_unused_stake_account(self.redelegate_stake_account.to_account_info())?;
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
 
-        // compute how much we can unstake from this validator, and cap unstake amount to it
-        let max_redelegate_from_validator = validator.active_balance - validator_stake_target;
-        let re_delegate_amount = if desired_redelegate_amount > max_redelegate_from_validator {
-            max_redelegate_from_validator
-        } else {
-            desired_redelegate_amount
-        };
-        // compute how much this particular account will have after split
-        let stake_account_after = stake
-            .last_update_delegated_lamports
-            .saturating_sub(re_delegate_amount);
+        // compute how much we can unstake from this validator, and cap redelegate amount to it
+        // can't remove more than needed to reach target, and can't remove more than what's in the account
+        let max_redelegate_from_source_account = min(
+            source_validator.active_balance - source_validator_stake_target,
+            stake.last_update_delegated_lamports,
+        );
 
         // get dest validator from index
-        let mut dest_validator = self.state.validator_system.get(
+        let mut dest_validator = self.state.validator_system.get_checked(
             &self.validator_list.data.as_ref().borrow(),
             dest_validator_index,
+            &self.dest_validator_account.key(),
         )?;
-        // verify dest_validator_account matches
-        if self.dest_validator_account.key() != dest_validator.validator_account {
-            return err!(MarinadeError::IncorrectDestValidatorAccountOrIndex);
-        }
 
         // compute dest validator target
         let dest_validator_stake_target = self
             .state
             .validator_system
             .validator_stake_target(&dest_validator, total_stake_target)?;
-        // if added stake will put the validator over target, reject
-        if dest_validator.active_balance + re_delegate_amount > dest_validator_stake_target {
+        // verify: dest validator must be under target
+        if dest_validator.active_balance + self.state.stake_system.min_stake
+            >= dest_validator_stake_target
+        {
             msg!(
-                "Dest validator {} stake {} + amount {} is > target {}",
+                "Dest validator {} stake+min_stake {} is > target {}",
                 dest_validator.validator_account,
                 dest_validator.active_balance,
-                re_delegate_amount,
                 dest_validator_stake_target
             );
-            return err!(MarinadeError::RedelegateOverTarget);
+            // return rent for unused accounts
+            self.return_rent_unused_stake_account(self.split_stake_account.to_account_info())?;
+            self.return_rent_unused_stake_account(self.redelegate_stake_account.to_account_info())?;
+            return Ok(()); // Not an error. Don't fail other instructions in tx
         }
 
+        // compute how much we can stake in dest-validator, and cap redelegate amount to it
+        // can't send more than needed to reach target
+        let max_space_dest_validator = dest_validator_stake_target - dest_validator.active_balance;
+        let redelegate_amount_theoretical =
+            min(max_space_dest_validator, max_redelegate_from_source_account);
+
+        // compute how much this particular account will have after split
+        // do not use saturating_sub because an underflow here means bug and should panic
+        let stake_account_after =
+            stake.last_update_delegated_lamports - redelegate_amount_theoretical;
         // select if we redelegate all or if we split first
         // (do not leave less than min_stake in the account)
-        let (source_account, redelegate_amount_from_source_account) =
+        let (source_account, redelegate_amount_effective) =
             if stake_account_after < self.state.stake_system.min_stake {
                 // redelegate all if what will remain in the account is < min_stake
                 msg!("ReDelegate whole stake {}", stake.stake_account);
 
                 // Return back the rent reserve of unused split stake account
-                withdraw(
-                    CpiContext::new(
-                        self.stake_program.to_account_info(),
-                        Withdraw {
-                            stake: self.split_stake_account.to_account_info(),
-                            withdrawer: self.split_stake_account.to_account_info(),
-                            to: self.split_stake_rent_payer.to_account_info(),
-                            clock: self.clock.to_account_info(),
-                            stake_history: self.stake_history.to_account_info(),
-                        },
-                    ),
-                    self.split_stake_account.to_account_info().lamports(),
-                    None,
-                )?;
+                self.return_rent_unused_stake_account(self.split_stake_account.to_account_info())?;
 
                 // mark as emergency_unstaking, the account will be cooling down
                 stake.is_emergency_unstaking = 1;
                 // all lamports will be moved to the re-delegated account
-                let amount_to_redelegate = stake.last_update_delegated_lamports;
+                let amount_to_redelegate_whole_account = stake.last_update_delegated_lamports;
                 // this account will enter redelegate-deactivating mode, all lamports will be sent to the other account
                 // so we set last_update_delegated_lamports = 0 because all lamports are gone
                 // after completing deactivation, whatever is there minus rent is considered last rewards for the account
-                stake.last_update_delegated_lamports = 0; // TODO: is is 0 lamports or rent-exempt?
+                stake.last_update_delegated_lamports = 0;
 
                 // account to redelegate is the whole source account
-                (self.stake_account.to_account_info(), amount_to_redelegate)
+                (
+                    self.stake_account.to_account_info(),
+                    amount_to_redelegate_whole_account,
+                )
                 //
                 //
             } else {
                 // not whole account,
                 // we need to split first
-                msg!(
-                    "Split {} lamports from stake {} to {}",
-                    re_delegate_amount,
-                    stake.stake_account,
-                    self.split_stake_account.key(),
-                );
 
-                // add the split account as new account to Marinade stake-accounts list
-                self.state.stake_system.add(
-                    &mut self.stake_list.data.as_ref().borrow_mut(),
-                    &self.split_stake_account.key(),
-                    0, // this account will be deactivating,
-                    // all lamports will be moved to the re-delegated account,
-                    // but even with no lamports, we expect the redelegate-deactivating account to provide rewards at the end of the epoch.
-                    // After completing deactivation, whatever is there minus rent is considered last rewards for the account
-                    &self.clock,
-                    1, // is_emergency_unstaking
-                )?;
-
-                // split stake account
-                let split_instruction = stake::instruction::split(
-                    self.stake_account.to_account_info().key,
-                    &self.stake_deposit_authority.key(),
-                    re_delegate_amount,
-                    &self.split_stake_account.key(),
-                )
-                .last()
-                .unwrap()
-                .clone();
-                invoke_signed(
-                    &split_instruction,
-                    &[
-                        self.stake_program.to_account_info(),
-                        self.stake_account.to_account_info(),
-                        self.split_stake_account.to_account_info(),
-                        self.stake_deposit_authority.to_account_info(),
-                    ],
-                    &[&[
-                        &self.state.key().to_bytes(),
-                        StakeSystem::STAKE_DEPOSIT_SEED,
-                        &[self.state.stake_system.stake_deposit_bump_seed],
-                    ]],
-                )?;
-
-                // update amount accounted for source stake account
-                stake.last_update_delegated_lamports -= re_delegate_amount;
-
+                self.split_stake_for_redelegation(stake, redelegate_amount_theoretical)?;
                 // account to redelegate is the splitted account
                 (
                     self.split_stake_account.to_account_info(),
-                    re_delegate_amount,
+                    redelegate_amount_theoretical,
                 )
             };
 
@@ -336,15 +289,15 @@ impl<'info> ReDelegate<'info> {
         self.state.stake_system.add(
             &mut self.stake_list.data.as_ref().borrow_mut(),
             &self.redelegate_stake_account.key(),
-            redelegate_amount_from_source_account,
+            redelegate_amount_effective,
             &self.clock,
             0, // is_emergency_unstaking
         )?;
 
         // we now consider amount no longer "active" for this specific validator
-        validator.active_balance -= redelegate_amount_from_source_account;
+        source_validator.active_balance -= redelegate_amount_effective;
         // it moved to dest-validator
-        dest_validator.active_balance += redelegate_amount_from_source_account;
+        dest_validator.active_balance += redelegate_amount_effective;
 
         // update stake-list & validator-list
         self.state.stake_system.set(
@@ -354,14 +307,87 @@ impl<'info> ReDelegate<'info> {
         )?;
         self.state.validator_system.set(
             &mut self.validator_list.data.as_ref().borrow_mut(),
-            validator_index,
-            validator,
+            source_validator_index,
+            source_validator,
         )?;
         self.state.validator_system.set(
             &mut self.validator_list.data.as_ref().borrow_mut(),
             dest_validator_index,
             dest_validator,
         )?;
+
+        Ok(())
+    }
+
+    pub fn return_rent_unused_stake_account(
+        &self,
+        unused_stake_account: AccountInfo<'info>,
+    ) -> Result<()> {
+        // Return back the rent reserve of unused stake account (split or redelegate reserve)
+        withdraw(
+            CpiContext::new(
+                self.stake_program.to_account_info(),
+                Withdraw {
+                    stake: unused_stake_account.clone(),
+                    withdrawer: unused_stake_account.clone(),
+                    to: self.split_stake_rent_payer.to_account_info(),
+                    clock: self.clock.to_account_info(),
+                    stake_history: self.stake_history.to_account_info(),
+                },
+            ),
+            unused_stake_account.lamports(),
+            None,
+        )
+    }
+
+    #[inline] // separated for readability
+    pub fn split_stake_for_redelegation(&mut self, mut stake: StakeRecord, amount: u64) -> Result<()> {
+        msg!(
+            "Split {} lamports from stake {} to {}",
+            amount,
+            stake.stake_account,
+            self.split_stake_account.key(),
+        );
+
+        // add the split account as new account to Marinade stake-accounts list
+        self.state.stake_system.add(
+            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &self.split_stake_account.key(),
+            0, // this account will be deactivating,
+            // all lamports will be moved to the re-delegated account,
+            // but even with no lamports, we expect the redelegate-deactivating account to provide rewards at the end of the epoch.
+            // After completing deactivation, whatever is there minus rent is considered last rewards for the account
+            &self.clock,
+            1, // is_emergency_unstaking
+        )?;
+
+        // split stake account
+        let split_instruction = stake::instruction::split(
+            self.stake_account.to_account_info().key,
+            &self.stake_deposit_authority.key(),
+            amount,
+            &self.split_stake_account.key(),
+        )
+        .last()
+        .unwrap()
+        .clone();
+        invoke_signed(
+            &split_instruction,
+            &[
+                self.stake_program.to_account_info(),
+                self.stake_account.to_account_info(),
+                self.split_stake_account.to_account_info(),
+                self.stake_deposit_authority.to_account_info(),
+            ],
+            &[&[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_DEPOSIT_SEED,
+                &[self.state.stake_system.stake_deposit_bump_seed],
+            ]],
+        )?;
+
+        // update amount accounted for source stake account
+        stake.last_update_delegated_lamports -= amount;
 
         Ok(())
     }

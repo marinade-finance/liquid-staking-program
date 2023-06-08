@@ -199,6 +199,22 @@ impl ValidatorSystem {
             .get(validator_list_data, index, "validator_list")
     }
 
+    /// get the record from an index, and check that the value is the same passed as parameter to the instruction
+    pub fn get_checked(
+        &self,
+        validator_list_data: &[u8],
+        index: u32,
+        received_pubkey: &Pubkey,
+    ) -> Result<ValidatorRecord> {
+        let validator_record = self.get(validator_list_data, index)?;
+        require_keys_eq!(
+            validator_record.validator_account,
+            *received_pubkey,
+            MarinadeError::IncorrectValidatorIndexOrAccount
+        );
+        Ok(validator_record)
+    }
+
     // Do not forget to update totals
     pub fn set(
         &self,

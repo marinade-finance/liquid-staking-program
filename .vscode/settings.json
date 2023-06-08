@@ -51,6 +51,7 @@
         "unstake",
         "unstaked",
         "unstaking",
-        "unsync"
+        "unsync",
+        "validatr"
     ]
 }
