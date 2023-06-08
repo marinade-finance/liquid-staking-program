@@ -136,8 +136,8 @@ pub enum MarinadeError {
     #[msg("Required delegated stake")]
     RequiredDelegatedStake, // 6043
 
-    #[msg("Required not deactivated stake")]
-    RequiredNotDeactivatingStake, // 6044
+    #[msg("Required active stake")]
+    RequiredActiveStake, // 6044
 
     #[msg("Required deactivating stake")]
     RequiredDeactivatingStake, // 6045
@@ -166,8 +166,8 @@ pub enum MarinadeError {
     #[msg("Invalid empty stake balance")]
     InvalidEmptyStakeBalance, // 6053
 
-    #[msg("Stake must be unitialized")]
-    StakeMustBeUnitialized, // 6054
+    #[msg("Stake must be uninitialized")]
+    StakeMustBeUninitialized, // 6054
 
     // merge stakes
     #[msg("Destination stake must be delegated")]

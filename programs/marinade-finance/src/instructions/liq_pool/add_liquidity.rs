@@ -78,7 +78,9 @@ impl<'info> AddLiquidity<'info> {
 
         // Update virtual lp_supply by real one
 
+        // if self.state.liq_pool.lp_supply < self.lp_mint.supply, Someone minted lp tokens without our permission or bug found
         require_gte!(self.state.liq_pool.lp_supply, self.lp_mint.supply);
+
         self.state.liq_pool.lp_supply = self.lp_mint.supply;
         // we need to compute how many LP-shares to mint for this deposit in the liq-pool
         // in order to do that, we need total liq-pool value, to compute LP-share price

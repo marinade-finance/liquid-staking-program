@@ -93,10 +93,11 @@ impl<'info> DepositStakeAccount<'info> {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
 
+        // require stake is active (deactivation_epoch == u64::MAX)
         require_eq!(
             delegation.deactivation_epoch,
             std::u64::MAX,
-            MarinadeError::RequiredNotDeactivatingStake
+            MarinadeError::RequiredActiveStake
         );
 
         require_gte!(
@@ -114,6 +115,9 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::TooLowDelegationInDepositingStake
         );
 
+        // Check that stake account has the right amount of lamports.
+        // if there's extra the user should withdraw the extra and try again
+        // (some times users send lamports to active stake accounts believing that will top up the account)
         require_eq!(
             self.stake_account.to_account_info().lamports(),
             delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve,
@@ -217,6 +221,7 @@ impl<'info> DepositStakeAccount<'info> {
             )
             .unwrap();
             let old_staker = self.stake_account.meta().unwrap().authorized.staker;
+            // Can not deposit stake already under marinade stake auth. old staker must be different than ours
             require_keys_neq!(old_staker, new_staker, MarinadeError::RedepositingMarinadeStake);
     
             // Clean old lockup
@@ -267,6 +272,7 @@ impl<'info> DepositStakeAccount<'info> {
             )
             .unwrap();
             let old_withdrawer = self.stake_account.meta().unwrap().authorized.withdrawer;
+            // Can not deposit stake already under marinade stake auth. old_withdrawer must be different than ours
             require_keys_neq!(old_withdrawer, new_withdrawer, MarinadeError::RedepositingMarinadeStake);
 
             invoke(

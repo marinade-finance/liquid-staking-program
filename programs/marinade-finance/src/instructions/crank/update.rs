@@ -272,10 +272,11 @@ impl<'info> UpdateActive<'info> {
             MarinadeError::WrongValidator
         );
 
+        // require stake is active (deactivation_epoch == u64::MAX)
         require_eq!(
             delegation.deactivation_epoch,
             std::u64::MAX,
-            MarinadeError::RequiredNotDeactivatingStake
+            MarinadeError::RequiredActiveStake
         );
 
         // current lamports amount, to compare with previous
@@ -373,6 +374,7 @@ impl<'info> UpdateDeactivated<'info> {
         let delegation = self.stake_account.delegation().ok_or_else(|| {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
+        // require deactivated or deactivating (deactivation_epoch != u64::MAX)
         require_neq!(
             delegation.deactivation_epoch,
             std::u64::MAX,
