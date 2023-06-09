@@ -51,14 +51,6 @@ pub struct AddValidator<'info> {
 
 impl<'info> AddValidator<'info> {
     pub fn process(&mut self, score: u32) -> Result<()> {
-        if !self.rent.is_exempt(self.rent_payer.lamports(), 0) {
-            msg!(
-                "Rent payer must have at least {} lamports",
-                self.rent.minimum_balance(0)
-            );
-            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-        }
-
         msg!("Add validator {}", self.validator_vote.key);
 
         let state_address = self.state.key();

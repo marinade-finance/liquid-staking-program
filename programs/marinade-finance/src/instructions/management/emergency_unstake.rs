@@ -66,10 +66,11 @@ impl<'info> EmergencyUnstake<'info> {
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
         // One more level of protection: need to run setScore(0) before this. I don't know is it really a good idea
-        if validator.score != 0 {
-            msg!("Emergency unstake validator must have 0 score");
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_eq!(
+            validator.score,
+            0,
+            MarinadeError::EmergencyUnstakingFromNonZeroScoredValidator
+        );
 
         // check that the account is delegated to the right validator
         check_stake_amount_and_validator(

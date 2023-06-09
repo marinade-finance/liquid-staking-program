@@ -98,38 +98,24 @@ impl LiqPool {
     ) -> Result<()> {
         let result_amount = sol_leg_balance
             .checked_add(transfering_lamports)
-            .ok_or_else(|| {
-                msg!("SOL overflow");
-                ProgramError::InvalidArgument
-            })?;
-        if result_amount > self.liquidity_sol_cap {
-            msg!(
-                "Liquidity cap reached {}/{}",
-                result_amount,
-                self.liquidity_sol_cap
-            );
-            return Err(Error::from(ProgramError::Custom(3782)).with_source(source!()));
-        }
+            .ok_or(error!(MarinadeError::CalculationFailure))?;
+        require_gte!(
+            self.liquidity_sol_cap,
+            result_amount,
+            MarinadeError::LiquidityIsCapped
+        );
         Ok(())
     }
 
-    pub fn check_fees(&self) -> Result<()> {
-        self.lp_min_fee.check()?;
-        self.lp_max_fee.check()?;
-        self.treasury_cut.check()?;
+    pub fn validate(&self) -> Result<()> {
+        self.lp_min_fee.check(source!())?;
+        self.lp_max_fee.check(source!())?;
+        self.treasury_cut.check(source!())?;
         // hard-limit, max liquid unstake-fee of 10%
-        if self.lp_max_fee > Self::MAX_FEE {
-            return Err(MarinadeError::FeeTooHigh.into());
-        }
-        if self.lp_min_fee > self.lp_max_fee {
-            return Err(MarinadeError::FeesWrongWayRound.into());
-        }
-        if self.lp_liquidity_target < Self::MIN_LIQUIDITY_TARGET {
-            return Err(MarinadeError::LiquidityTargetTooLow.into());
-        }
-        if self.treasury_cut > Self::MAX_TREASURY_CUT {
-            return Err(MarinadeError::NumberTooHigh.into());
-        }
+        require_gte!(Self::MAX_FEE, self.lp_max_fee, MarinadeError::LpMaxFeeIsTooHigh);
+        require_gte!(self.lp_max_fee, self.lp_min_fee, MarinadeError::LpFeesAreWrongWayRound);
+        require_gte!(self.lp_liquidity_target, Self::MIN_LIQUIDITY_TARGET, MarinadeError::LiquidityTargetTooLow);
+        require_gte!(Self::MAX_TREASURY_CUT, self.treasury_cut, MarinadeError::TreasuryCutIsTooHigh);
 
         Ok(())
     }

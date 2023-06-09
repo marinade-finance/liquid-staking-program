@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar::stake_history;
-use anchor_lang::solana_program::{program::invoke_signed, stake, stake::state::StakeState};
+use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
 use crate::{
@@ -88,33 +88,26 @@ impl<'info> MergeStakes<'info> {
         let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
         } else {
-            msg!(
-                "Destination stake {} must be delegated",
-                self.destination_stake.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+            return Err(error!(MarinadeError::DestinationStakeMustBeDelegated)
+                .with_account_name("destination_stake"));
         };
-        if destination_delegation.deactivation_epoch != std::u64::MAX {
-            msg!(
-                "Destination stake {} must not be deactivating",
-                self.destination_stake.to_account_info().key
-            );
-        }
-        if destination_stake_info.last_update_delegated_lamports != destination_delegation.stake {
-            msg!(
-                "Destination stake {} is not updated",
-                self.destination_stake.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
-        if destination_delegation.voter_pubkey != validator.validator_account {
-            msg!(
-                "Destination validator {} doesn't match {}",
-                destination_delegation.voter_pubkey,
-                validator.validator_account
-            );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
+        require_eq!(
+            destination_delegation.deactivation_epoch,
+            std::u64::MAX,
+            MarinadeError::DestinationStakeMustNotBeDeactivating
+        );
+        require_eq!(
+            destination_stake_info.last_update_delegated_lamports,
+            destination_delegation.stake,
+            MarinadeError::DestinationStakeMustBeUpdated
+        );
+
+        require_keys_eq!(
+            destination_delegation.voter_pubkey,
+            validator.validator_account,
+            MarinadeError::InvalidDestinationStakeDelegation
+        );
+
         // Source stake
         let source_stake_info = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
@@ -124,39 +117,35 @@ impl<'info> MergeStakes<'info> {
         let source_delegation = if let Some(delegation) = self.source_stake.delegation() {
             delegation
         } else {
-            msg!(
-                "Source stake {} must be delegated",
-                self.source_stake.to_account_info().key
+            return Err(
+                error!(MarinadeError::SourceStakeMustBeDelegated).with_account_name("source_stake")
             );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         };
-        if source_delegation.deactivation_epoch != std::u64::MAX {
-            msg!(
-                "Source stake {} must not be deactivating",
-                self.source_stake.to_account_info().key
-            );
-        }
-        if source_stake_info.last_update_delegated_lamports != source_delegation.stake
-            || self.source_stake.to_account_info().lamports()
-                != source_delegation
-                    .stake
-                    .checked_add(self.source_stake.meta().unwrap().rent_exempt_reserve)
-                    .ok_or(MarinadeError::CalculationFailure)?
-        {
-            msg!(
-                "Source stake {} is not updated",
-                self.source_stake.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
-        if source_delegation.voter_pubkey != validator.validator_account {
-            msg!(
-                "Source validator {} doesn't match {}",
-                source_delegation.voter_pubkey,
-                validator.validator_account
-            );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
+        require_eq!(
+            source_delegation.deactivation_epoch,
+            std::u64::MAX,
+            MarinadeError::SourceStakeMustNotBeDeactivating
+        );
+        require_eq!(
+            source_stake_info.last_update_delegated_lamports,
+            source_delegation.stake,
+            MarinadeError::SourceStakeMustBeUpdated
+        );
+
+        require_eq!(
+            self.source_stake.to_account_info().lamports(),
+            source_delegation
+                .stake
+                .checked_add(self.source_stake.meta().unwrap().rent_exempt_reserve)
+                .ok_or(MarinadeError::CalculationFailure)?,
+            MarinadeError::SourceStakeMustBeUpdated
+        );
+
+        require_keys_eq!(
+            source_delegation.voter_pubkey,
+            validator.validator_account,
+            MarinadeError::InvalidSourceStakeDelegation
+        );
         invoke_signed(
             &stake::instruction::merge(
                 self.destination_stake.to_account_info().key,
@@ -178,12 +167,9 @@ impl<'info> MergeStakes<'info> {
             ]],
         )?;
         // reread stake after merging
-        let result_stake: StakeState = self
+        self.destination_stake.reload()?;
+        let extra_delegated = self
             .destination_stake
-            .to_account_info()
-            .deserialize_data()
-            .map_err(|err| ProgramError::BorshIoError(err.to_string()))?;
-        let extra_delegated = result_stake
             .delegation()
             .unwrap()
             .stake
@@ -215,7 +201,7 @@ impl<'info> MergeStakes<'info> {
             .ok_or(MarinadeError::CalculationFailure)?;
 
         destination_stake_info.last_update_delegated_lamports =
-            result_stake.delegation().unwrap().stake;
+            self.destination_stake.delegation().unwrap().stake;
         self.state.stake_system.set(
             &mut self.stake_list.data.as_ref().borrow_mut(),
             destination_stake_index,
