@@ -1,11 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
-use crate::{
-    checks::check_min_amount,
-    state::delayed_unstake_ticket::TicketAccountData,
-    State,
-};
+use crate::{error::MarinadeError, state::delayed_unstake_ticket::TicketAccountData, State};
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
@@ -39,41 +35,28 @@ pub struct OrderUnstake<'info> {
 
 impl<'info> OrderUnstake<'info> {
     fn check_burn_msol_from(&self, msol_amount: u64) -> Result<()> {
-        if msol_amount == 0 {
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
-
-        // if delegated, check delegated amount
-        if *self.burn_msol_authority.key == self.burn_msol_from.owner {
-            if self.burn_msol_from.amount < msol_amount {
-                msg!(
-                    "Requested to unstake {} mSOL lamports but have only {}",
-                    msol_amount,
-                    self.burn_msol_from.amount
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-            }
-        } else if self
+        if self
             .burn_msol_from
             .delegate
             .contains(self.burn_msol_authority.key)
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            if self.burn_msol_from.delegated_amount < msol_amount {
-                msg!(
-                    "Delegated {} mSOL lamports. Requested {}",
-                    self.burn_msol_from.delegated_amount,
-                    msol_amount
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-            }
-        } else {
-            msg!(
-                "Token must be delegated to {}",
-                self.burn_msol_authority.key
+            require_gte!(
+                self.burn_msol_from.delegated_amount,
+                msol_amount,
+                MarinadeError::NotEnoughUserFunds
             );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        } else if self.burn_msol_authority.key() == self.burn_msol_from.owner {
+            require_gte!(
+                self.burn_msol_from.amount,
+                msol_amount,
+                MarinadeError::NotEnoughUserFunds
+            );
+        } else {
+            return Err(error!(MarinadeError::WrongTokenOwnerOrDelegate)
+                .with_account_name("burn_msol_from")
+                .with_pubkeys((self.burn_msol_from.owner, self.burn_msol_authority.key())));
         }
         Ok(())
     }
@@ -86,7 +69,11 @@ impl<'info> OrderUnstake<'info> {
 
         let lamports_amount = self.state.calc_lamports_from_msol_amount(msol_amount)?;
 
-        check_min_amount(lamports_amount, self.state.min_withdraw, "withdraw SOL")?;
+        require_gte!(
+            lamports_amount,
+            self.state.min_withdraw,
+            MarinadeError::WithdrawAmountIsTooLow
+        );
 
         // circulating_ticket_balance +
         self.state.circulating_ticket_balance = self

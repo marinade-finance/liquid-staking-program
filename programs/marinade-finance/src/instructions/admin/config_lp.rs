@@ -43,7 +43,7 @@ impl<'info> ConfigLp<'info> {
             self.state.liq_pool.treasury_cut = treasury_cut;
         }
 
-        self.state.liq_pool.check_fees()?;
+        self.state.liq_pool.validate()?;
         Ok(())
     }
 }

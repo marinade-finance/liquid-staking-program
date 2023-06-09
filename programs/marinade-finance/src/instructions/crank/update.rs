@@ -263,25 +263,22 @@ impl<'info> UpdateActive<'info> {
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
 
         let delegation = self.stake_account.delegation().ok_or_else(|| {
-            msg!("Undelegated stake under marinade control!");
-            ProgramError::InvalidAccountData
+            error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
 
-        if delegation.voter_pubkey != validator.validator_account {
-            msg!(
-                "Invalid stake validator index. Need to point into validator {}",
-                validator.validator_account
-            );
-            return Err(Error::from(ProgramError::InvalidInstructionData).with_source(source!()));
-        }
-        if delegation.deactivation_epoch != std::u64::MAX {
-            // is deactivated or deactivating
-            msg!(
-                "Cooling down stake {}. Please use UpdateCoolingDown",
-                self.stake_account.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_keys_eq!(
+            delegation.voter_pubkey,
+            validator.validator_account,
+            MarinadeError::WrongValidator
+        );
+
+        // require stake is active (deactivation_epoch == u64::MAX)
+        require_eq!(
+            delegation.deactivation_epoch,
+            std::u64::MAX,
+            MarinadeError::RequiredActiveStake
+        );
+
         // current lamports amount, to compare with previous
         let delegated_lamports = delegation.stake;
 
@@ -374,17 +371,15 @@ impl<'info> UpdateDeactivated<'info> {
             is_treasury_msol_ready_for_transfer,
         } = self.begin(stake_index)?;
 
-        let delegation = self
-            .stake_account
-            .delegation()
-            .expect("Undelegated stake under control");
-        if delegation.deactivation_epoch == std::u64::MAX {
-            msg!(
-                "Stake {} is active",
-                self.stake_account.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        let delegation = self.stake_account.delegation().ok_or_else(|| {
+            error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
+        })?;
+        // require deactivated or deactivating (deactivation_epoch != u64::MAX)
+        require_neq!(
+            delegation.deactivation_epoch,
+            std::u64::MAX,
+            MarinadeError::RequiredDeactivatingStake
+        );
         // current lamports amount, to compare with previous
         let delegated_lamports = delegation.stake;
         let rent = self.stake_account.meta().unwrap().rent_exempt_reserve;

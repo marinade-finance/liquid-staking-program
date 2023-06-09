@@ -49,8 +49,10 @@ pub struct DepositStakeAccount<'info> {
     /// CHECK: manual account processing, only required if adding validator (if allowed)
     #[account(mut)]
     pub duplication_flag: UncheckedAccount<'info>,
-    #[account(mut)]
-    #[account(owner = system_program::ID)]
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
     pub rent_payer: Signer<'info>,
 
     #[account(mut)]
@@ -84,68 +86,43 @@ impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 2;
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
-        // impossible to happen check (msol mint auth is a PDA)
-        if self.msol_mint.supply > self.state.msol_supply {
-            msg!(
-                "Warning: mSOL minted {} lamports outside of marinade",
-                self.msol_mint.supply - self.state.msol_supply
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        // impossible to happen check outside bug (msol mint auth is a PDA)
+        require_gte!(self.state.msol_supply, self.msol_mint.supply);
 
         let delegation = self.stake_account.delegation().ok_or_else(|| {
-            msg!(
-                "Deposited stake {} must be delegated",
-                self.stake_account.to_account_info().key
-            );
-            ProgramError::InvalidAccountData
+            error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
 
-        if delegation.deactivation_epoch != std::u64::MAX {
-            msg!(
-                "Deposited stake {} must not be cooling down",
-                self.stake_account.to_account_info().key
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        // require stake is active (deactivation_epoch == u64::MAX)
+        require_eq!(
+            delegation.deactivation_epoch,
+            std::u64::MAX,
+            MarinadeError::RequiredActiveStake
+        );
 
-        if self.clock.epoch
-            < delegation
+        require_gte!(
+            self.clock.epoch,
+            delegation
                 .activation_epoch
                 .checked_add(Self::WAIT_EPOCHS)
-                .unwrap()
-        {
-            msg!(
-                "Deposited stake {} is not activated yet. Wait for #{} epoch",
-                self.stake_account.to_account_info().key,
-                delegation
-                    .activation_epoch
-                    .checked_add(Self::WAIT_EPOCHS)
-                    .unwrap()
-            );
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+                .unwrap(),
+            MarinadeError::DepositingNotActivatedStake
+        );
 
-        if delegation.stake < self.state.stake_system.min_stake {
-            msg!(
-                "Deposited stake {} has low amount of lamports {}. Need at least {}",
-                self.stake_account.to_account_info().key,
-                delegation.stake,
-                self.state.stake_system.min_stake
-            );
-            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-        }
+        require_gte!(
+            delegation.stake,
+            self.state.stake_system.min_stake,
+            MarinadeError::TooLowDelegationInDepositingStake
+        );
 
-        if self.stake_account.to_account_info().lamports()
-            > delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve
-        {
-            msg!(
-                "Stake account has {} extra lamports. Please withdraw it and try again",
-                self.stake_account.to_account_info().lamports()
-                    - (delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve)
-            );
-            return Err(Error::from(ProgramError::Custom(6212)).with_source(source!()));
-        }
+        // Check that stake account has the right amount of lamports.
+        // if there's extra the user should withdraw the extra and try again
+        // (some times users send lamports to active stake accounts believing that will top up the account)
+        require_eq!(
+            self.stake_account.to_account_info().lamports(),
+            delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve,
+            MarinadeError::WrongStakeBalance,
+        );
 
         self.state.check_staking_cap(delegation.stake)?;
 
@@ -244,15 +221,9 @@ impl<'info> DepositStakeAccount<'info> {
             )
             .unwrap();
             let old_staker = self.stake_account.meta().unwrap().authorized.staker;
-            if old_staker == new_staker {
-                msg!(
-                    "Can not deposit stake {} already under marinade stake auth. Expected staker differs from {}",
-                    self.stake_account.to_account_info().key,
-                    new_staker
-                );
-                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-            }
-
+            // Can not deposit stake already under marinade stake auth. old staker must be different than ours
+            require_keys_neq!(old_staker, new_staker, MarinadeError::RedepositingMarinadeStake);
+    
             // Clean old lockup
             if lockup.custodian != Pubkey::default() {
                 invoke(
@@ -301,14 +272,8 @@ impl<'info> DepositStakeAccount<'info> {
             )
             .unwrap();
             let old_withdrawer = self.stake_account.meta().unwrap().authorized.withdrawer;
-            if old_withdrawer == new_withdrawer {
-                msg!(
-                    "Can not deposit stake {} already under marinade withdraw auth. Expected withdrawer differs from {}",
-                    self.stake_account.to_account_info().key,
-                    new_withdrawer
-                );
-                return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-            }
+            // Can not deposit stake already under marinade stake auth. old_withdrawer must be different than ours
+            require_keys_neq!(old_withdrawer, new_withdrawer, MarinadeError::RedepositingMarinadeStake);
 
             invoke(
                 &stake::instruction::authorize(

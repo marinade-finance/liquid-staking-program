@@ -1,10 +1,11 @@
 use crate::{
     checks::{
-        check_address, check_freeze_authority, check_mint_authority, check_mint_empty,
-        check_token_mint, check_token_owner,
+        check_freeze_authority, check_mint_authority, check_mint_empty, check_token_mint,
+        check_token_owner,
     },
+    error::MarinadeError,
     state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee},
-    State, ID, MAX_REWARD_FEE,
+    State, ID,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
@@ -60,7 +61,7 @@ pub struct InitializeData {
     pub admin_authority: Pubkey,
     pub validator_manager_authority: Pubkey,
     pub min_stake: u64,
-    pub reward_fee: Fee,
+    pub rewards_fee: Fee,
 
     pub liq_pool: LiqPoolInitializeData,
     pub additional_stake_record_space: u32,
@@ -98,15 +99,7 @@ impl<'info> Initialize<'info> {
     }
 
     fn check_reserve_pda(&mut self, required_lamports: u64) -> Result<()> {
-        let lamports = self.reserve_pda.lamports();
-        if lamports != required_lamports {
-            msg!(
-                "Invalid initial reserve lamports {} expected {}",
-                lamports,
-                required_lamports
-            );
-            return Err(Error::from(ProgramError::InvalidArgument));
-        }
+        require_eq!(self.reserve_pda.lamports(), required_lamports);
         Ok(())
     }
 
@@ -126,7 +119,7 @@ impl<'info> Initialize<'info> {
             admin_authority,
             validator_manager_authority,
             min_stake,
-            reward_fee,
+            rewards_fee,
             liq_pool,
             additional_stake_record_space,
             additional_validator_record_space,
@@ -134,7 +127,11 @@ impl<'info> Initialize<'info> {
         }: InitializeData,
         reserve_pda_bump: u8,
     ) -> Result<()> {
-        reward_fee.check_max(MAX_REWARD_FEE)?;
+        require_gte!(
+            State::MAX_REWARD_FEE,
+            rewards_fee,
+            MarinadeError::RewardsFeeIsTooHigh
+        );
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);
         self.check_reserve_pda(rent_exempt_for_token_acc)?;
         let msol_mint_authority_bump_seed = self.check_msol_mint()?;
@@ -146,7 +143,7 @@ impl<'info> Initialize<'info> {
             reserve_bump_seed: reserve_pda_bump,
             msol_mint_authority_bump_seed,
             rent_exempt_for_token_acc,
-            reward_fee,
+            reward_fee: rewards_fee,
             stake_system: StakeSystem::new(
                 self.state_address(),
                 *self.stake_list.key,
@@ -181,10 +178,10 @@ impl<'info> Initialize<'info> {
 
 impl<'info> LiqPoolInitialize<'info> {
     pub fn check_lp_mint(parent: &Initialize) -> Result<u8> {
-        if parent.liq_pool.lp_mint.to_account_info().key == parent.msol_mint.to_account_info().key {
-            msg!("Use different mints for stake and liquidity pool");
-            return Err(Error::from(ProgramError::InvalidAccountData).with_source(source!()));
-        }
+        require_keys_neq!(
+            parent.liq_pool.lp_mint.key(),
+            parent.msol_mint.key(),
+        );
         let (authority_address, authority_bump_seed) =
             LiqPool::find_lp_mint_authority(parent.state_address());
 
@@ -197,22 +194,8 @@ impl<'info> LiqPoolInitialize<'info> {
 
     pub fn check_sol_leg(parent: &Initialize, required_lamports: u64) -> Result<u8> {
         let (address, bump) = LiqPool::find_sol_leg_address(parent.state_address());
-        check_address(
-            parent.liq_pool.sol_leg_pda.key,
-            &address,
-            "liq_sol_account_pda",
-        )?;
-        {
-            let lamports = parent.liq_pool.sol_leg_pda.lamports();
-            if lamports != required_lamports {
-                msg!(
-                    "Invalid initial liq_sol_account_pda lamports {} expected {}",
-                    lamports,
-                    required_lamports
-                );
-                return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-            }
-        }
+        require_keys_eq!(parent.liq_pool.sol_leg_pda.key(), address);
+        require_eq!(parent.liq_pool.sol_leg_pda.lamports(), required_lamports);
         Ok(bump)
     }
 
@@ -256,7 +239,7 @@ impl<'info> LiqPoolInitialize<'info> {
             liquidity_sol_cap: std::u64::MAX,
         };
 
-        liq_pool.check_fees()?;
+        liq_pool.validate()?;
 
         Ok(liq_pool)
     }

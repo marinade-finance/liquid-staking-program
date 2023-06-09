@@ -29,8 +29,6 @@ security_txt! {
     auditors: "https://docs.marinade.finance/marinade-protocol/security/audits"
 }
 
-pub const MAX_REWARD_FEE: u32 = 1_000; //basis points, 10% max reward fee
-
 fn check_context<T>(ctx: &Context<T>) -> Result<()> {
     if !check_id(ctx.program_id) {
         return Err(MarinadeError::InvalidProgramId.into());

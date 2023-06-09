@@ -1,4 +1,5 @@
-use crate::{calc::proportional, checks::check_min_amount, state::liq_pool::LiqPool, State};
+use crate::error::MarinadeError;
+use crate::{calc::proportional, state::liq_pool::LiqPool, State};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::token::{
@@ -63,37 +64,28 @@ pub struct RemoveLiquidity<'info> {
 
 impl<'info> RemoveLiquidity<'info> {
     fn check_burn_from(&self, tokens: u64) -> Result<()> {
-        // if delegated, check delegated amount
-        if *self.burn_from_authority.key == self.burn_from.owner {
-            if self.burn_from.amount < tokens {
-                msg!(
-                    "Requested to remove {} liquidity but have only {}",
-                    tokens,
-                    self.burn_from.amount
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-            }
-        } else if self
+        if self
             .burn_from
             .delegate
             .contains(self.burn_from_authority.key)
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's lp account before
-            if self.burn_from.delegated_amount < tokens {
-                msg!(
-                    "Delegated {} liquidity. Requested {}",
-                    self.burn_from.delegated_amount,
-                    tokens
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-            }
-        } else {
-            msg!(
-                "Token must be delegated to {}",
-                self.burn_from_authority.key
+            require_gte!(
+                self.burn_from.delegated_amount,
+                tokens,
+                MarinadeError::NotEnoughUserFunds
             );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        } else if *self.burn_from_authority.key == self.burn_from.owner {
+            require_gte!(
+                self.burn_from.amount,
+                tokens,
+                MarinadeError::NotEnoughUserFunds
+            );
+        } else {
+            return Err(error!(MarinadeError::WrongTokenOwnerOrDelegate)
+                .with_account_name("burn_from")
+                .with_pubkeys((self.burn_from.owner, self.burn_from_authority.key())));
         }
         Ok(())
     }
@@ -105,7 +97,7 @@ impl<'info> RemoveLiquidity<'info> {
         // Update virtual lp_supply by real one
         if self.lp_mint.supply > self.state.liq_pool.lp_supply {
             msg!("Someone minted lp tokens without our permission or bug found");
-            // return Err(ProgramError::InvalidAccountData);
+            // return an error
         } else {
             // maybe burn
             self.state.liq_pool.lp_supply = self.lp_mint.supply;
@@ -127,17 +119,13 @@ impl<'info> RemoveLiquidity<'info> {
             self.state.liq_pool.lp_supply, // Use virtual amount
         )?;
 
-        check_min_amount(
+        require_gte!(
             sol_out_amount
-                .checked_add(
-                    self.state
-                        .calc_lamports_from_msol_amount(msol_out_amount)
-                        .expect("Error converting mSOLs to lamports"),
-                )
-                .expect("lamports overflow"),
+                .checked_add(self.state.calc_lamports_from_msol_amount(msol_out_amount)?,)
+                .ok_or(error!(MarinadeError::CalculationFailure))?,
             self.state.min_withdraw,
-            "removed liquidity",
-        )?;
+            MarinadeError::WithdrawAmountIsTooLow,
+        );
         msg!(
             "SOL out amount:{}, mSOL out amount:{}",
             sol_out_amount,
@@ -196,7 +184,6 @@ impl<'info> RemoveLiquidity<'info> {
         )?;
         self.state.liq_pool.on_lp_burn(tokens)?;
 
-        msg!("end instruction rem-liq");
         Ok(())
     }
 }

@@ -57,14 +57,12 @@ impl ValidatorRecord {
     ) -> Result<Self> {
         let (actual_duplication_flag, duplication_flag_bump_seed) =
             Self::find_duplication_flag(state, &validator_account);
-        if duplication_flag_address != &actual_duplication_flag {
-            msg!(
-                "Duplication flag {} does not match {}",
-                duplication_flag_address,
-                actual_duplication_flag
-            );
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
+        require_keys_eq!(
+            actual_duplication_flag,
+            *duplication_flag_address,
+            MarinadeError::WrongValidatorDuplicationFlag
+        );
+
         Ok(Self {
             validator_account,
             active_balance: 0,
@@ -175,14 +173,8 @@ impl ValidatorSystem {
         index: u32,
         record: ValidatorRecord,
     ) -> Result<()> {
-        if record.active_balance > 0 {
-            msg!(
-                "Can not remove validator {} with balance {}",
-                record.validator_account,
-                record.active_balance
-            );
-            return Err(Error::from(ProgramError::InvalidInstructionData).with_source(source!()));
-        }
+        require_eq!(record.active_balance, 0, MarinadeError::RemovingValidatorWithBalance);
+
         self.total_validator_score = self
             .total_validator_score
             .checked_sub(record.score)
