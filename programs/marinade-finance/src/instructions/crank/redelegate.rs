@@ -144,7 +144,7 @@ impl<'info> ReDelegate<'info> {
             &source_validator.validator_account,
         )?;
 
-        // compute total required stake delta (i128, must be negative)
+        // compute total required stake delta (i128, can be positive or negative)
         let total_stake_delta_i128 = self.state.stake_delta(self.reserve_pda.lamports());
         // compute total target stake (current total active stake +/- delta)
         let total_stake_target_i128 =
@@ -160,7 +160,7 @@ impl<'info> ReDelegate<'info> {
             .validator_stake_target(&source_validator, total_stake_target)?;
         // if validator is already on-target (or the split will be lower than min_stake), exit now
         if source_validator.active_balance
-            <= source_validator_stake_target + self.state.stake_system.min_stake
+            < source_validator_stake_target + self.state.stake_system.min_stake
         {
             msg!(
                 "Source validator {} stake {} is <= target {} +min_stake",
@@ -195,7 +195,7 @@ impl<'info> ReDelegate<'info> {
             .validator_stake_target(&dest_validator, total_stake_target)?;
         // verify: dest validator must be under target
         if dest_validator.active_balance + self.state.stake_system.min_stake
-            >= dest_validator_stake_target
+            > dest_validator_stake_target
         {
             msg!(
                 "Dest validator {} stake+min_stake {} is > target {}",
@@ -230,6 +230,8 @@ impl<'info> ReDelegate<'info> {
                 self.return_rent_unused_stake_account(self.split_stake_account.to_account_info())?;
 
                 // mark as emergency_unstaking, the account will be cooling down
+                // and should not be touched. When fully deactivated, last rewards will be taken
+                // and the account will be removed.
                 stake.is_emergency_unstaking = 1;
                 // all lamports will be moved to the re-delegated account
                 let amount_to_redelegate_whole_account = stake.last_update_delegated_lamports;
@@ -358,6 +360,9 @@ impl<'info> ReDelegate<'info> {
             // but even with no lamports, we expect the redelegate-deactivating account to provide rewards at the end of the epoch.
             // After completing deactivation, whatever is there minus rent is considered last rewards for the account
             &self.clock,
+            // mark as emergency_unstaking, the account will be cooling down
+            // and should not be touched. When fully deactivated, last rewards will be taken
+            // and the account will be removed.
             1, // is_emergency_unstaking
         )?;
 
