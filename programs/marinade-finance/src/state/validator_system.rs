@@ -202,7 +202,7 @@ impl ValidatorSystem {
         require_keys_eq!(
             validator_record.validator_account,
             *received_pubkey,
-            MarinadeError::IncorrectValidatorIndexOrAccount
+            MarinadeError::WrongValidatorAccountOrIndex
         );
         Ok(validator_record)
     }

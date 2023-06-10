@@ -156,8 +156,8 @@ pub enum MarinadeError {
     #[msg("Wrong validator")]
     WrongValidator, // 6049
 
-    #[msg("Wrong stake")]
-    WrongStake, // 6050
+    #[msg("Wrong stake account or index")]
+    WrongStakeAccountOrIndex, // 6050
 
     #[msg("Delta stake is positive so we must stake instead of unstake")]
     UnstakingOnPositiveDelta, // 6051
@@ -217,12 +217,9 @@ pub enum MarinadeError {
     #[msg("Redelegate will put validator over stake target")]
     RedelegateOverTarget, // 6069
 
-    #[msg("Incorrect Validator Index or Account")]
-    IncorrectValidatorIndexOrAccount, // 6070
-
-    #[msg("Incorrect Stake Index or Account")]
-    IncorrectStakeIndexOrAccountOrIndex, // 6071
+    #[msg("Wrong validator account or index")]
+    WrongValidatorAccountOrIndex, // 6070
 
     #[msg("Source and Dest Validators are the same")]
-    SourceAndDestValidatorsAreTheSame, // 6072
+    SourceAndDestValidatorsAreTheSame, // 6071
 }
