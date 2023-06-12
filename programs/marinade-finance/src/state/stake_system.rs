@@ -152,7 +152,7 @@ impl StakeSystem {
         require_keys_eq!(
             stake_record.stake_account,
             *received_pubkey,
-            MarinadeError::WrongStake
+            MarinadeError::WrongStakeAccountOrIndex
         );
         Ok(stake_record)
     }

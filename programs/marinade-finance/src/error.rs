@@ -37,7 +37,9 @@ pub enum MarinadeError {
     #[msg("Invalid owner fee state")]
     InvalidOwnerFeeState, // 6010
 
-    #[msg("Invalid program id. For using program from another account please update id in the code")]
+    #[msg(
+        "Invalid program id. For using program from another account please update id in the code"
+    )]
     InvalidProgramId, // 6011
 
     #[msg("Unexpected account")]
@@ -154,8 +156,8 @@ pub enum MarinadeError {
     #[msg("Wrong validator")]
     WrongValidator, // 6049
 
-    #[msg("Wrong stake")]
-    WrongStake, // 6050
+    #[msg("Wrong stake account or index")]
+    WrongStakeAccountOrIndex, // 6050
 
     #[msg("Delta stake is positive so we must stake instead of unstake")]
     UnstakingOnPositiveDelta, // 6051
@@ -212,9 +214,18 @@ pub enum MarinadeError {
     #[msg("Removing validator with balance")]
     RemovingValidatorWithBalance, // 6068
 
+    #[msg("Redelegate will put validator over stake target")]
+    RedelegateOverTarget, // 6069
+
+    #[msg("Wrong validator account or index")]
+    WrongValidatorAccountOrIndex, // 6070
+
+    #[msg("Source and Dest Validators are the same")]
+    SourceAndDestValidatorsAreTheSame, // 6071
+
     #[msg("Some mSOL tokens was minted outside of marinade contract")]
-    UnregisteredMsolMinted,
+    UnregisteredMsolMinted, // 6072
 
     #[msg("Some LP tokens was minted outside of marinade contract")]
-    UnregisteredLPMinted,
+    UnregisteredLPMinted, // 6072
 }

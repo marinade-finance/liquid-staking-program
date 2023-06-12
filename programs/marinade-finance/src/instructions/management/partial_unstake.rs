@@ -61,6 +61,7 @@ pub struct PartialUnstake<'info> {
         bump = state.reserve_bump_seed
     )]
     pub reserve_pda: SystemAccount<'info>,
+
     #[account(
         init,
         payer = split_stake_rent_payer,
