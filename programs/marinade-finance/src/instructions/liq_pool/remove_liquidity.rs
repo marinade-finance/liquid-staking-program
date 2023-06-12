@@ -83,9 +83,10 @@ impl<'info> RemoveLiquidity<'info> {
                 MarinadeError::NotEnoughUserFunds
             );
         } else {
-            return Err(error!(MarinadeError::WrongTokenOwnerOrDelegate)
-                .with_account_name("burn_from")
-                .with_pubkeys((self.burn_from.owner, self.burn_from_authority.key())));
+            return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
+                e.with_account_name("burn_from")
+                    .with_pubkeys((self.burn_from.owner, self.burn_from_authority.key()))
+            });
         }
         Ok(())
     }

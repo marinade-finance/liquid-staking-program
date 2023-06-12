@@ -257,20 +257,15 @@ impl<'info> UpdateActive<'info> {
             is_treasury_msol_ready_for_transfer,
         } = self.begin(stake_index)?;
 
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
-
         let delegation = self.stake_account.delegation().ok_or_else(|| {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
 
-        require_keys_eq!(
-            delegation.voter_pubkey,
-            validator.validator_account,
-            MarinadeError::WrongValidator
-        );
+        let mut validator = self.state.validator_system.get_checked(
+            &self.validator_list.data.as_ref().borrow(),
+            validator_index,
+            &delegation.voter_pubkey,
+        )?;
 
         // require stake is active (deactivation_epoch == u64::MAX)
         require_eq!(

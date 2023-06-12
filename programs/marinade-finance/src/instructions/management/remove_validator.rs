@@ -48,15 +48,11 @@ pub struct RemoveValidator<'info> {
 
 impl<'info> RemoveValidator<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> Result<()> {
-        let validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.borrow(), index)?;
-        require_keys_eq!(
-            validator.validator_account,
-            validator_vote,
-            MarinadeError::WrongValidator
-        );
+        let validator = self.state.validator_system.get_checked(
+            &self.validator_list.data.borrow(),
+            index,
+            &validator_vote,
+        )?;
 
         require_keys_eq!(
             self.duplication_flag.key(),

@@ -86,7 +86,9 @@ impl<'info> Claim<'info> {
 
     pub fn process(&mut self) -> Result<()> {
         // fn claim()
-        self.check_ticket_account()?;
+        self.check_ticket_account().map_err(
+            |e| e.with_account_name("ticket_account")
+        )?;
 
         let lamports = self.ticket_account.lamports_amount;
 
@@ -99,8 +101,8 @@ impl<'info> Claim<'info> {
                 lamports,
                 available_for_claim
             );
-            //Error: "Wait a few hours and retry"
-            return Err(MarinadeError::TicketNotReady.into());
+            // Error: "Wait a few hours and retry"
+            return err!(MarinadeError::TicketNotReady);
         }
 
         // If circulating_ticket_balance = sum(ticket.balance) is violated we can have a problem

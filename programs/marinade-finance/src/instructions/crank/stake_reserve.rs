@@ -140,13 +140,12 @@ impl<'info> StakeReserve<'info> {
         let mut validator = self
             .state
             .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
-
-        require_keys_eq!(
-            self.validator_vote.key(),
-            validator.validator_account,
-            MarinadeError::WrongValidator
-        );
+            .get_checked(
+                &self.validator_list.data.as_ref().borrow(),
+                validator_index,
+                self.validator_vote.key,
+            )
+            .map_err(|e| e.with_account_name("validator_vote"))?;
 
         if validator.last_stake_delta_epoch == self.clock.epoch {
             // check if we have some extra stake runs allowed

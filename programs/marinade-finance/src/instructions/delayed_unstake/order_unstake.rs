@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
-use crate::{error::MarinadeError, state::delayed_unstake_ticket::TicketAccountData, State, require_lte};
+use crate::{
+    error::MarinadeError, require_lte, state::delayed_unstake_ticket::TicketAccountData, State,
+};
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
@@ -54,9 +56,10 @@ impl<'info> OrderUnstake<'info> {
                 MarinadeError::NotEnoughUserFunds
             );
         } else {
-            return Err(error!(MarinadeError::WrongTokenOwnerOrDelegate)
-                .with_account_name("burn_msol_from")
-                .with_pubkeys((self.burn_msol_from.owner, self.burn_msol_authority.key())));
+            return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
+                e.with_account_name("burn_msol_from")
+                    .with_pubkeys((self.burn_msol_from.owner, self.burn_msol_authority.key()))
+            });
         }
         Ok(())
     }

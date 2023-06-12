@@ -88,8 +88,8 @@ impl<'info> MergeStakes<'info> {
         let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
         } else {
-            return Err(error!(MarinadeError::DestinationStakeMustBeDelegated)
-                .with_account_name("destination_stake"));
+            return err!(MarinadeError::DestinationStakeMustBeDelegated)
+                .map_err(|e| e.with_account_name("destination_stake"));
         };
         require_eq!(
             destination_delegation.deactivation_epoch,
@@ -117,9 +117,8 @@ impl<'info> MergeStakes<'info> {
         let source_delegation = if let Some(delegation) = self.source_stake.delegation() {
             delegation
         } else {
-            return Err(
-                error!(MarinadeError::SourceStakeMustBeDelegated).with_account_name("source_stake")
-            );
+            return err!(MarinadeError::SourceStakeMustBeDelegated)
+                .map_err(|e| e.with_account_name("source_stake"));
         };
         require_eq!(
             source_delegation.deactivation_epoch,

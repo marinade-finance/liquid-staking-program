@@ -135,12 +135,13 @@ impl<'info> DepositStakeAccount<'info> {
         // Check Lockup
         if lockup.is_in_force(&self.clock, None) {
             msg!("Can not deposit stake account with lockup");
-            return Err(MarinadeError::AccountWithLockup.into());
+            return err!(MarinadeError::StakeAccountWithLockup)
+                .map_err(|e| e.with_account_name("stake_account"));
         }
 
         if validator_index == self.state.validator_system.validator_count() {
             if self.state.validator_system.auto_add_validator_enabled == 0 {
-                return Err(MarinadeError::InvalidValidator.into());
+                return err!(MarinadeError::AutoAddValidatorIsNotEnabled);
             }
             check_owner_program(
                 &self.duplication_flag,
@@ -148,11 +149,10 @@ impl<'info> DepositStakeAccount<'info> {
                 "duplication_flag",
             )?;
             if !self.rent.is_exempt(self.rent_payer.lamports(), 0) {
-                msg!(
-                    "Rent payer must have at least {} lamports",
-                    self.rent.minimum_balance(0)
-                );
-                return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
+                return Err(Error::from(ProgramError::InsufficientFunds)
+                    .with_source(source!())
+                    .with_account_name("rent_payer")
+                    .with_values((self.rent_payer.lamports(), self.rent.minimum_balance(0))));
             }
             // Add extra validator with 0 score
             let state_address = *self.state.to_account_info().key;
@@ -191,18 +191,11 @@ impl<'info> DepositStakeAccount<'info> {
                 },
             )?;
         } else {
-            let mut validator = self
-                .state
-                .validator_system
-                .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
-
-            if delegation.voter_pubkey != validator.validator_account {
-                msg!(
-                "Deposited stake {} is delegated to {} but must be delegated to validator {}. Probably validator list is changed",
-                self.stake_account.to_account_info().key, delegation.voter_pubkey, validator.validator_account
-                );
-                return Err(MarinadeError::InvalidValidator.into());
-            }
+            let mut validator = self.state.validator_system.get_checked(
+                &self.validator_list.data.as_ref().borrow(),
+                validator_index,
+                &delegation.voter_pubkey,
+            )?;
 
             validator.active_balance = validator
                 .active_balance

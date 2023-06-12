@@ -1,4 +1,4 @@
-use crate::{calc::proportional, error::MarinadeError, state::Fee, ID, require_lte};
+use crate::{calc::proportional, error::MarinadeError, require_lte, state::Fee, ID};
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 use anchor_spl::token::spl_token;
 
@@ -108,14 +108,36 @@ impl LiqPool {
     }
 
     pub fn validate(&self) -> Result<()> {
-        self.lp_min_fee.check(source!())?;
-        self.lp_max_fee.check(source!())?;
-        self.treasury_cut.check(source!())?;
+        self.lp_min_fee
+            .check()
+            .map_err(|e| e.with_source(source!()))?;
+        self.lp_max_fee
+            .check()
+            .map_err(|e| e.with_source(source!()))?;
+        self.treasury_cut
+            .check()
+            .map_err(|e| e.with_source(source!()))?;
         // hard-limit, max liquid unstake-fee of 10%
-        require_lte!(self.lp_max_fee, Self::MAX_FEE, MarinadeError::LpMaxFeeIsTooHigh);
-        require_gte!(self.lp_max_fee, self.lp_min_fee, MarinadeError::LpFeesAreWrongWayRound);
-        require_gte!(self.lp_liquidity_target, Self::MIN_LIQUIDITY_TARGET, MarinadeError::LiquidityTargetTooLow);
-        require_lte!(self.treasury_cut, Self::MAX_TREASURY_CUT, MarinadeError::TreasuryCutIsTooHigh);
+        require_lte!(
+            self.lp_max_fee,
+            Self::MAX_FEE,
+            MarinadeError::LpMaxFeeIsTooHigh
+        );
+        require_gte!(
+            self.lp_max_fee,
+            self.lp_min_fee,
+            MarinadeError::LpFeesAreWrongWayRound
+        );
+        require_gte!(
+            self.lp_liquidity_target,
+            Self::MIN_LIQUIDITY_TARGET,
+            MarinadeError::LiquidityTargetTooLow
+        );
+        require_lte!(
+            self.treasury_cut,
+            Self::MAX_TREASURY_CUT,
+            MarinadeError::TreasuryCutIsTooHigh
+        );
 
         Ok(())
     }
