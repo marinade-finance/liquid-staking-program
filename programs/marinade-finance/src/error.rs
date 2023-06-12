@@ -211,4 +211,10 @@ pub enum MarinadeError {
 
     #[msg("Removing validator with balance")]
     RemovingValidatorWithBalance, // 6068
+
+    #[msg("Some mSOL tokens was minted outside of marinade contract")]
+    UnregisteredMsolMinted,
+
+    #[msg("Some LP tokens was minted outside of marinade contract")]
+    UnregisteredLPMinted,
 }

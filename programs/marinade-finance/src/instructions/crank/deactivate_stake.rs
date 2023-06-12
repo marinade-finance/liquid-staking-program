@@ -1,7 +1,7 @@
 use crate::{
     error::MarinadeError,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
-    State,
+    State, require_lt,
 };
 use std::convert::TryFrom;
 
@@ -114,7 +114,7 @@ impl<'info> DeactivateStake<'info> {
         // compute total required stake delta (i128, must be negative)
         let total_stake_delta_i128 = self.state.stake_delta(self.reserve_pda.lamports());
         msg!("total_stake_delta_i128 {}", total_stake_delta_i128);
-        require_gt!(0, total_stake_delta_i128, MarinadeError::UnstakingOnPositiveDelta);
+        require_lt!(total_stake_delta_i128, 0, MarinadeError::UnstakingOnPositiveDelta);
         // convert to u64
         let total_unstake_delta =
             u64::try_from(-total_stake_delta_i128).expect("Unstake delta overflow");

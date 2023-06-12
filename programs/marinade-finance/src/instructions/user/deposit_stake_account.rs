@@ -12,6 +12,7 @@ use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 use crate::{
     checks::check_owner_program,
     error::MarinadeError,
+    require_lte,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State, ID,
 };
@@ -87,7 +88,11 @@ impl<'info> DepositStakeAccount<'info> {
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         // impossible to happen check outside bug (msol mint auth is a PDA)
-        require_gte!(self.state.msol_supply, self.msol_mint.supply);
+        require_lte!(
+            self.msol_mint.supply,
+            self.state.msol_supply,
+            MarinadeError::UnregisteredMsolMinted
+        );
 
         let delegation = self.stake_account.delegation().ok_or_else(|| {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
@@ -222,8 +227,12 @@ impl<'info> DepositStakeAccount<'info> {
             .unwrap();
             let old_staker = self.stake_account.meta().unwrap().authorized.staker;
             // Can not deposit stake already under marinade stake auth. old staker must be different than ours
-            require_keys_neq!(old_staker, new_staker, MarinadeError::RedepositingMarinadeStake);
-    
+            require_keys_neq!(
+                old_staker,
+                new_staker,
+                MarinadeError::RedepositingMarinadeStake
+            );
+
             // Clean old lockup
             if lockup.custodian != Pubkey::default() {
                 invoke(
@@ -273,7 +282,11 @@ impl<'info> DepositStakeAccount<'info> {
             .unwrap();
             let old_withdrawer = self.stake_account.meta().unwrap().authorized.withdrawer;
             // Can not deposit stake already under marinade stake auth. old_withdrawer must be different than ours
-            require_keys_neq!(old_withdrawer, new_withdrawer, MarinadeError::RedepositingMarinadeStake);
+            require_keys_neq!(
+                old_withdrawer,
+                new_withdrawer,
+                MarinadeError::RedepositingMarinadeStake
+            );
 
             invoke(
                 &stake::instruction::authorize(

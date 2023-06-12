@@ -1,5 +1,5 @@
 use crate::error::MarinadeError;
-use crate::{calc::proportional, state::liq_pool::LiqPool, State};
+use crate::{calc::proportional, require_lte, state::liq_pool::LiqPool, State};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::token::{
@@ -71,15 +71,15 @@ impl<'info> RemoveLiquidity<'info> {
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's lp account before
-            require_gte!(
-                self.burn_from.delegated_amount,
+            require_lte!(
                 tokens,
+                self.burn_from.delegated_amount,
                 MarinadeError::NotEnoughUserFunds
             );
         } else if *self.burn_from_authority.key == self.burn_from.owner {
-            require_gte!(
-                self.burn_from.amount,
+            require_lte!(
                 tokens,
+                self.burn_from.amount,
                 MarinadeError::NotEnoughUserFunds
             );
         } else {

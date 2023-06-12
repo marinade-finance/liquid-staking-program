@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
-use crate::{error::MarinadeError, state::delayed_unstake_ticket::TicketAccountData, State};
+use crate::{error::MarinadeError, state::delayed_unstake_ticket::TicketAccountData, State, require_lte};
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
@@ -42,15 +42,15 @@ impl<'info> OrderUnstake<'info> {
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            require_gte!(
-                self.burn_msol_from.delegated_amount,
+            require_lte!(
                 msol_amount,
+                self.burn_msol_from.delegated_amount,
                 MarinadeError::NotEnoughUserFunds
             );
         } else if self.burn_msol_authority.key() == self.burn_msol_from.owner {
-            require_gte!(
-                self.burn_msol_from.amount,
+            require_lte!(
                 msol_amount,
+                self.burn_msol_from.amount,
                 MarinadeError::NotEnoughUserFunds
             );
         } else {

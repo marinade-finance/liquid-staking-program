@@ -1,6 +1,6 @@
 use crate::state::stake_system::StakeSystem;
 use crate::state::Fee;
-use crate::{MarinadeError, State};
+use crate::{MarinadeError, State, require_lte};
 use anchor_lang::prelude::*;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
@@ -41,9 +41,9 @@ impl<'info> ConfigMarinade<'info> {
         }: ConfigMarinadeParams,
     ) -> Result<()> {
         if let Some(rewards_fee) = rewards_fee {
-            require_gte!(
-                State::MAX_REWARD_FEE,
+            require_lte!(
                 rewards_fee,
+                State::MAX_REWARD_FEE,
                 MarinadeError::RewardsFeeIsTooHigh
             );
             self.state.reward_fee = rewards_fee;
@@ -71,9 +71,9 @@ impl<'info> ConfigMarinade<'info> {
             self.state.min_deposit = min_deposit;
         }
         if let Some(min_withdraw) = min_withdraw {
-            require_gte!(
-                State::MAX_WITHDRAW_ATOM,
+            require_lte!(
                 min_withdraw,
+                State::MAX_WITHDRAW_ATOM,
                 MarinadeError::MinWithdrawIsTooHigh
             );
             self.state.min_withdraw = min_withdraw;

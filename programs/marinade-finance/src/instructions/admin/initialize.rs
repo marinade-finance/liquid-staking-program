@@ -5,7 +5,7 @@ use crate::{
     },
     error::MarinadeError,
     state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee},
-    State, ID,
+    State, ID, require_lte,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
@@ -127,9 +127,9 @@ impl<'info> Initialize<'info> {
         }: InitializeData,
         reserve_pda_bump: u8,
     ) -> Result<()> {
-        require_gte!(
-            State::MAX_REWARD_FEE,
+        require_lte!(
             rewards_fee,
+            State::MAX_REWARD_FEE,
             MarinadeError::RewardsFeeIsTooHigh
         );
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);

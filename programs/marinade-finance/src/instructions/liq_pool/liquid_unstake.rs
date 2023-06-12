@@ -5,7 +5,7 @@ use anchor_spl::token::{
 };
 
 use crate::state::liq_pool::LiqPool;
-use crate::MarinadeError;
+use crate::{MarinadeError, require_lte};
 use crate::State;
 
 #[derive(Accounts)]
@@ -62,15 +62,15 @@ impl<'info> LiquidUnstake<'info> {
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            require_gte!(
-                self.get_msol_from.delegated_amount,
+            require_lte!(
                 msol_amount,
+                self.get_msol_from.delegated_amount,
                 MarinadeError::NotEnoughUserFunds
             );
         } else if *self.get_msol_from_authority.key == self.get_msol_from.owner {
-            require_gte!(
-                self.get_msol_from.amount,
+            require_lte!(
                 msol_amount,
+                self.get_msol_from.amount,
                 MarinadeError::NotEnoughUserFunds
             );
         } else {

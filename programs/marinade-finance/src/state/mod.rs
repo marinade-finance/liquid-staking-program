@@ -1,7 +1,7 @@
 use crate::{
     calc::{shares_from_value, value_from_shares},
     error::MarinadeError,
-    ID,
+    ID, require_lte,
 };
 use anchor_lang::{
     prelude::*, solana_program::native_token::LAMPORTS_PER_SOL, solana_program::program_pack::Pack,
@@ -167,9 +167,9 @@ impl State {
             .total_lamports_under_control()
             .checked_add(transfering_lamports)
             .ok_or(error!(MarinadeError::CalculationFailure))?;
-        require_gte!(
-            self.staking_sol_cap,
+        require_lte!(
             result_amount,
+            self.staking_sol_cap,
             MarinadeError::StakingIsCapped
         );
         Ok(())

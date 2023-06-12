@@ -8,7 +8,7 @@ use anchor_spl::token::{
 
 use crate::error::MarinadeError;
 use crate::state::liq_pool::LiqPool;
-use crate::State;
+use crate::{require_lte, State};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -86,11 +86,23 @@ pub struct Deposit<'info> {
 impl<'info> Deposit<'info> {
     // fn deposit_sol()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
-        require_gte!(lamports, self.state.min_deposit, MarinadeError::DepositAmountIsTooLow);
-        require_gte!(self.transfer_from.lamports(), lamports, MarinadeError::NotEnoughUserFunds);
+        require_gte!(
+            lamports,
+            self.state.min_deposit,
+            MarinadeError::DepositAmountIsTooLow
+        );
+        require_lte!(
+            lamports,
+            self.transfer_from.lamports(),
+            MarinadeError::NotEnoughUserFunds
+        );
 
         // impossible to happen check outside bug (msol mint auth is a PDA)
-        require_gte!(self.state.msol_supply, self.msol_mint.supply);
+        require_lte!(
+            self.msol_mint.supply,
+            self.state.msol_supply,
+            MarinadeError::UnregisteredMsolMinted
+        );
 
         let user_lamports = lamports;
 
