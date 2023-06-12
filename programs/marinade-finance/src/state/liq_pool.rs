@@ -1,4 +1,4 @@
-use crate::{calc::proportional, error::MarinadeError, state::Fee, ID};
+use crate::{calc::proportional, error::MarinadeError, state::Fee, ID, require_lte};
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 use anchor_spl::token::spl_token;
 
@@ -99,9 +99,9 @@ impl LiqPool {
         let result_amount = sol_leg_balance
             .checked_add(transfering_lamports)
             .ok_or(error!(MarinadeError::CalculationFailure))?;
-        require_gte!(
-            self.liquidity_sol_cap,
+        require_lte!(
             result_amount,
+            self.liquidity_sol_cap,
             MarinadeError::LiquidityIsCapped
         );
         Ok(())
@@ -112,10 +112,10 @@ impl LiqPool {
         self.lp_max_fee.check(source!())?;
         self.treasury_cut.check(source!())?;
         // hard-limit, max liquid unstake-fee of 10%
-        require_gte!(Self::MAX_FEE, self.lp_max_fee, MarinadeError::LpMaxFeeIsTooHigh);
+        require_lte!(self.lp_max_fee, Self::MAX_FEE, MarinadeError::LpMaxFeeIsTooHigh);
         require_gte!(self.lp_max_fee, self.lp_min_fee, MarinadeError::LpFeesAreWrongWayRound);
         require_gte!(self.lp_liquidity_target, Self::MIN_LIQUIDITY_TARGET, MarinadeError::LiquidityTargetTooLow);
-        require_gte!(Self::MAX_TREASURY_CUT, self.treasury_cut, MarinadeError::TreasuryCutIsTooHigh);
+        require_lte!(self.treasury_cut, Self::MAX_TREASURY_CUT, MarinadeError::TreasuryCutIsTooHigh);
 
         Ok(())
     }

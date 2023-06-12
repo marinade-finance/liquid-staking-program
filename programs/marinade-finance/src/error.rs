@@ -222,4 +222,10 @@ pub enum MarinadeError {
 
     #[msg("Source and Dest Validators are the same")]
     SourceAndDestValidatorsAreTheSame, // 6071
+
+    #[msg("Some mSOL tokens was minted outside of marinade contract")]
+    UnregisteredMsolMinted, // 6072
+
+    #[msg("Some LP tokens was minted outside of marinade contract")]
+    UnregisteredLPMinted, // 6072
 }

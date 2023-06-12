@@ -1,7 +1,7 @@
 use crate::calc::shares_from_value;
 use crate::error::MarinadeError;
 use crate::state::liq_pool::LiqPool;
-use crate::State;
+use crate::{require_lte, State};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 use anchor_lang::system_program::{transfer, Transfer};
@@ -67,9 +67,9 @@ impl<'info> AddLiquidity<'info> {
             self.state.min_deposit,
             MarinadeError::DepositAmountIsTooLow
         );
-        require_gte!(
-            self.transfer_from.lamports(),
+        require_lte!(
             lamports,
+            self.transfer_from.lamports(),
             MarinadeError::NotEnoughUserFunds
         );
         self.state
@@ -79,7 +79,11 @@ impl<'info> AddLiquidity<'info> {
         // Update virtual lp_supply by real one
 
         // if self.state.liq_pool.lp_supply < self.lp_mint.supply, Someone minted lp tokens without our permission or bug found
-        require_gte!(self.state.liq_pool.lp_supply, self.lp_mint.supply);
+        require_lte!(
+            self.lp_mint.supply,
+            self.state.liq_pool.lp_supply,
+            MarinadeError::UnregisteredLPMinted
+        );
 
         self.state.liq_pool.lp_supply = self.lp_mint.supply;
         // we need to compute how many LP-shares to mint for this deposit in the liq-pool
