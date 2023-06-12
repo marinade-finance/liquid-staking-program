@@ -118,6 +118,18 @@ impl<'info> ReDelegate<'info> {
             MarinadeError::SourceAndDestValidatorsAreTheSame
         );
 
+        // only allow redelegation in the stake/unstake window at the end of the epoch
+        {
+            let last_slot = EpochSchedule::get()
+                .unwrap()
+                .get_last_slot_in_epoch(self.clock.epoch);
+            require_gte!(
+                self.clock.slot,
+                last_slot.saturating_sub(self.state.stake_system.slots_for_stake_delta),
+                MarinadeError::TooEarlyForStakeDelta
+            );
+        }
+
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             stake_index,
@@ -229,10 +241,8 @@ impl<'info> ReDelegate<'info> {
                 // Return back the rent reserve of unused split stake account
                 self.return_rent_unused_stake_account(self.split_stake_account.to_account_info())?;
 
-                // mark as emergency_unstaking, the account will be cooling down
-                // and should not be touched. When fully deactivated, last rewards will be taken
-                // and the account will be removed.
-                stake.is_emergency_unstaking = 1;
+                // TODO: deprecate "is_emergency_unstaking"
+                stake.is_emergency_unstaking = 0;
                 // all lamports will be moved to the re-delegated account
                 let amount_to_redelegate_whole_account = stake.last_update_delegated_lamports;
                 // this account will enter redelegate-deactivating mode, all lamports will be sent to the other account
@@ -250,7 +260,6 @@ impl<'info> ReDelegate<'info> {
             } else {
                 // not whole account,
                 // we need to split first
-
                 self.split_stake_for_redelegation(stake, redelegate_amount_theoretical)?;
                 // account to redelegate is the splitted account
                 (
@@ -343,7 +352,11 @@ impl<'info> ReDelegate<'info> {
     }
 
     #[inline] // separated for readability
-    pub fn split_stake_for_redelegation(&mut self, mut stake: StakeRecord, amount: u64) -> Result<()> {
+    pub fn split_stake_for_redelegation(
+        &mut self,
+        mut stake: StakeRecord,
+        amount: u64,
+    ) -> Result<()> {
         msg!(
             "Split {} lamports from stake {} to {}",
             amount,
@@ -360,10 +373,8 @@ impl<'info> ReDelegate<'info> {
             // but even with no lamports, we expect the redelegate-deactivating account to provide rewards at the end of the epoch.
             // After completing deactivation, whatever is there minus rent is considered last rewards for the account
             &self.clock,
-            // mark as emergency_unstaking, the account will be cooling down
-            // and should not be touched. When fully deactivated, last rewards will be taken
-            // and the account will be removed.
-            1, // is_emergency_unstaking
+            // TODO: deprecate "is_emergency_unstaking"
+            0,
         )?;
 
         // split stake account
