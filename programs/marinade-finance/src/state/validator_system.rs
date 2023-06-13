@@ -107,8 +107,8 @@ impl ValidatorSystem {
                     + additional_record_space,
                 validator_list_account,
                 validator_list_data,
-                "validator_list",
-            )?,
+            )
+            .map_err(|e| e.with_account_name("validator_list"))?,
             manager_authority,
             total_validator_score: 0,
             total_active_balance: 0,
@@ -140,11 +140,12 @@ impl ValidatorSystem {
         state: &Pubkey,
         duplication_flag_address: &Pubkey,
     ) -> Result<()> {
-        self.validator_list.push(
-            validator_list_data,
-            ValidatorRecord::new(validator_account, score, state, duplication_flag_address)?,
-            "validator_list",
-        )?;
+        self.validator_list
+            .push(
+                validator_list_data,
+                ValidatorRecord::new(validator_account, score, state, duplication_flag_address)?,
+            )
+            .map_err(|e| e.with_account_name("validator_list"))?;
         self.total_validator_score += score as u32;
         Ok(())
     }
@@ -162,7 +163,8 @@ impl ValidatorSystem {
             ValidatorRecord::new(validator_account, score, state, duplication_flag_address)?;
         validator.active_balance = balance;
         self.validator_list
-            .push(validator_list_data, validator, "validator_list")?;
+            .push(validator_list_data, validator)
+            .map_err(|e| e.with_account_name("validator_list"))?;
         self.total_validator_score += score as u32;
         Ok(())
     }
@@ -173,7 +175,11 @@ impl ValidatorSystem {
         index: u32,
         record: ValidatorRecord,
     ) -> Result<()> {
-        require_eq!(record.active_balance, 0, MarinadeError::RemovingValidatorWithBalance);
+        require_eq!(
+            record.active_balance,
+            0,
+            MarinadeError::RemovingValidatorWithBalance
+        );
 
         self.total_validator_score = self
             .total_validator_score
@@ -181,14 +187,16 @@ impl ValidatorSystem {
             .ok_or(MarinadeError::CalculationFailure)?;
 
         self.validator_list
-            .remove(validator_list_data, index, "validator_list")?;
+            .remove(validator_list_data, index)
+            .map_err(|e| e.with_account_name("validator_list"))?;
 
         Ok(())
     }
 
     pub fn get(&self, validator_list_data: &[u8], index: u32) -> Result<ValidatorRecord> {
         self.validator_list
-            .get(validator_list_data, index, "validator_list")
+            .get(validator_list_data, index)
+            .map_err(|e| e.with_account_name("validator_list"))
     }
 
     /// get the record from an index, and check that the value is the same passed as parameter to the instruction
@@ -214,12 +222,9 @@ impl ValidatorSystem {
         index: u32,
         validator_record: ValidatorRecord,
     ) -> Result<()> {
-        self.validator_list.set(
-            validator_list_data,
-            index,
-            validator_record,
-            "validator_list",
-        )
+        self.validator_list
+            .set(validator_list_data, index, validator_record)
+            .map_err(|e| e.with_account_name("validator_list"))
     }
 
     pub fn validator_stake_target(

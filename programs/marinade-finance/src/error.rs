@@ -225,4 +225,10 @@ pub enum MarinadeError {
 
     #[msg("Some LP tokens was minted outside of marinade contract")]
     UnregisteredLPMinted, // 6072
+
+    #[msg("List index out of bounds")]
+    ListIndexOutOfBounds,
+
+    #[msg("List overflow")]
+    ListOverflow,
 }
