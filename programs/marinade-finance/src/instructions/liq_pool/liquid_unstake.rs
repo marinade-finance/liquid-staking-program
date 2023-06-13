@@ -5,8 +5,8 @@ use anchor_spl::token::{
 };
 
 use crate::state::liq_pool::LiqPool;
-use crate::{MarinadeError, require_lte};
 use crate::State;
+use crate::{require_lte, MarinadeError};
 
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
@@ -74,9 +74,10 @@ impl<'info> LiquidUnstake<'info> {
                 MarinadeError::NotEnoughUserFunds
             );
         } else {
-            return Err(error!(MarinadeError::WrongTokenOwnerOrDelegate)
-                .with_account_name("get_msol_from")
-                .with_pubkeys((self.get_msol_from.owner, self.get_msol_from_authority.key())));
+            return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
+                e.with_account_name("get_msol_from")
+                    .with_pubkeys((self.get_msol_from.owner, self.get_msol_from_authority.key()))
+            });
         }
         Ok(())
     }
@@ -117,7 +118,7 @@ impl<'info> LiquidUnstake<'info> {
         if working_lamports_value + self.state.rent_exempt_for_token_acc
             > self.liq_pool_sol_leg_pda.lamports()
         {
-            return Err(MarinadeError::InsufficientLiquidity.into());
+            return err!(MarinadeError::InsufficientLiquidity);
         }
 
         require_gte!(

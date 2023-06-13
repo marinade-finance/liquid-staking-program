@@ -194,11 +194,15 @@ impl<'info> ReDelegate<'info> {
         );
 
         // get dest validator from index
-        let mut dest_validator = self.state.validator_system.get_checked(
-            &self.validator_list.data.as_ref().borrow(),
-            dest_validator_index,
-            &self.dest_validator_account.key(),
-        )?;
+        let mut dest_validator = self
+            .state
+            .validator_system
+            .get_checked(
+                &self.validator_list.data.as_ref().borrow(),
+                dest_validator_index,
+                &self.dest_validator_account.key(),
+            )
+            .map_err(|e| e.with_account_name("dest_validator_account"))?;
 
         // compute dest validator target
         let dest_validator_stake_target = self

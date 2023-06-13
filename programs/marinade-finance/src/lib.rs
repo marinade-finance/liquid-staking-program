@@ -31,11 +31,11 @@ security_txt! {
 
 fn check_context<T>(ctx: &Context<T>) -> Result<()> {
     if !check_id(ctx.program_id) {
-        return Err(MarinadeError::InvalidProgramId.into());
+        return err!(MarinadeError::InvalidProgramId);
     }
-    //make sure there are no extra accounts
+    // make sure there are no extra accounts
     if !ctx.remaining_accounts.is_empty() {
-        return Err(MarinadeError::UnexpectedAccount.into());
+        return err!(MarinadeError::UnexpectedAccount);
     }
 
     Ok(())

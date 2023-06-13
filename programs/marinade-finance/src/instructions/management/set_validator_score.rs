@@ -24,15 +24,11 @@ pub struct SetValidatorScore<'info> {
 
 impl<'info> SetValidatorScore<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey, score: u32) -> Result<()> {
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.borrow(), index)?;
-        require_keys_eq!(
-            validator.validator_account,
-            validator_vote,
-            MarinadeError::WrongValidator
-        );
+        let mut validator = self.state.validator_system.get_checked(
+            &self.validator_list.data.borrow(),
+            index,
+            &validator_vote,
+        )?;
 
         self.state.validator_system.total_validator_score = self
             .state

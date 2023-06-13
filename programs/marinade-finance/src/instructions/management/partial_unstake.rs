@@ -109,7 +109,7 @@ impl<'info> PartialUnstake<'info> {
 
         // check the account is not already in emergency_unstake
         if stake.is_emergency_unstaking != 0 {
-            return Err(crate::MarinadeError::StakeAccountIsEmergencyUnstaking.into());
+            return err!(MarinadeError::StakeAccountIsEmergencyUnstaking);
         }
 
         // check amount currently_staked in this account

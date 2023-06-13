@@ -97,7 +97,7 @@ impl<'info> EmergencyUnstake<'info> {
 
         // check the account is not already in emergency_unstake
         if stake.is_emergency_unstaking != 0 {
-            return Err(crate::MarinadeError::StakeAccountIsEmergencyUnstaking.into());
+            return err!(MarinadeError::StakeAccountIsEmergencyUnstaking);
         }
         stake.is_emergency_unstaking = 1;
 

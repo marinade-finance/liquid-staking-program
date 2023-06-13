@@ -93,16 +93,14 @@ pub fn check_stake_amount_and_validator(
     validator_vote_pubkey: &Pubkey,
 ) -> Result<()> {
     let currently_staked = if let Some(delegation) = stake_state.delegation() {
-        if delegation.voter_pubkey != *validator_vote_pubkey {
-            msg!(
-                "Invalid stake validator index. Need to point into validator {}",
-                validator_vote_pubkey
-            );
-            return Err(Error::from(ProgramError::InvalidInstructionData).with_source(source!()));
-        }
+        require_keys_eq!(
+            delegation.voter_pubkey,
+            *validator_vote_pubkey,
+            MarinadeError::WrongValidatorAccountOrIndex
+        );
         delegation.stake
     } else {
-        return Err(MarinadeError::StakeNotDelegated.into());
+        return err!(MarinadeError::StakeNotDelegated);
     };
     // do not allow to operate on an account where last_update_delegated_lamports != currently_staked
     if currently_staked != expected_stake_amount {
@@ -111,7 +109,7 @@ pub fn check_stake_amount_and_validator(
             expected_stake_amount,
             currently_staked
         );
-        return Err(MarinadeError::StakeAccountNotUpdatedYet.into());
+        return err!(MarinadeError::StakeAccountNotUpdatedYet);
     }
     Ok(())
 }

@@ -49,7 +49,7 @@ pub enum MarinadeError {
     CalculationFailure, // 6013
 
     #[msg("You can't deposit a stake-account with lockup")]
-    AccountWithLockup, // 6014
+    StakeAccountWithLockup, // 6014
 
     #[msg("Min stake is too low")]
     MinStakeIsTooLow, // 6016
@@ -87,8 +87,8 @@ pub enum MarinadeError {
     #[msg("Insufficient Liquidity in the Liquidity Pool")]
     InsufficientLiquidity, // 6026
 
-    #[msg("Invalid validator")]
-    InvalidValidator, // 6027
+    #[msg("Auto adding a validator is not enabled")]
+    AutoAddValidatorIsNotEnabled, // 6027
 
     #[msg("Invalid admin authority")]
     InvalidAdminAuthority, // 6028
@@ -153,8 +153,8 @@ pub enum MarinadeError {
     #[msg("Wrong deposited stake balance")]
     WrongStakeBalance, // 6048
 
-    #[msg("Wrong validator")]
-    WrongValidator, // 6049
+    #[msg("Wrong validator account or index")]
+    WrongValidatorAccountOrIndex, // 6049
 
     #[msg("Wrong stake account or index")]
     WrongStakeAccountOrIndex, // 6050
@@ -217,14 +217,11 @@ pub enum MarinadeError {
     #[msg("Redelegate will put validator over stake target")]
     RedelegateOverTarget, // 6069
 
-    #[msg("Wrong validator account or index")]
-    WrongValidatorAccountOrIndex, // 6070
-
     #[msg("Source and Dest Validators are the same")]
-    SourceAndDestValidatorsAreTheSame, // 6071
+    SourceAndDestValidatorsAreTheSame, // 6070
 
     #[msg("Some mSOL tokens was minted outside of marinade contract")]
-    UnregisteredMsolMinted, // 6072
+    UnregisteredMsolMinted, // 6071
 
     #[msg("Some LP tokens was minted outside of marinade contract")]
     UnregisteredLPMinted, // 6072

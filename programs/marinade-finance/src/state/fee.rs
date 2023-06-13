@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use std::fmt::Display;
 
-use crate::error::MarinadeError;
+use crate::{error::MarinadeError, require_lte};
 
 #[cfg(feature = "no-entrypoint")]
 use std::str::FromStr;
@@ -26,12 +26,12 @@ impl Fee {
         Self { basis_points }
     }
 
-    pub fn check(&self, source: Source) -> Result<()> {
-        if self.basis_points > Self::MAX_BASIS_POINTS {
-            return Err(Error::from(MarinadeError::BasisPointsOverflow)
-                .with_source(source)
-                .with_values((Self::MAX_BASIS_POINTS, self.basis_points)));
-        }
+    pub fn check(&self) -> Result<()> {
+        require_lte!(
+            self.basis_points,
+            Self::MAX_BASIS_POINTS,
+            MarinadeError::BasisPointsOverflow
+        );
         Ok(())
     }
 
