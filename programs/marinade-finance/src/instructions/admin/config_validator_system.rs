@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{State, MarinadeError};
+use crate::{MarinadeError, State};
 
 #[derive(Accounts)]
 pub struct ConfigValidatorSystem<'info> {

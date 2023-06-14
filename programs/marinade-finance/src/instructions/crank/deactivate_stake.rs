@@ -1,5 +1,8 @@
 use crate::{
     error::MarinadeError,
+    events::{
+        crank::{DeactivateStakeEvent, SplitStakeAccountInfo},
+    },
     require_lt,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State,
@@ -93,6 +96,8 @@ impl<'info> DeactivateStake<'info> {
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
+        let last_update_stake_delegation = stake.last_update_delegated_lamports;
+
         // check the account is not already in emergency_unstake
         if stake.is_emergency_unstaking != 0 {
             return err!(MarinadeError::StakeAccountIsEmergencyUnstaking);
@@ -169,125 +174,126 @@ impl<'info> DeactivateStake<'info> {
             },
         );
 
-        let unstaked_amount = if stake_account_target < 2 * self.state.stake_system.min_stake {
-            // unstake all if what will remain in the account is < twice min_stake
-            msg!("Deactivate whole stake {}", stake.stake_account);
-            // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
-            // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
+        let (unstaked_amount, deactivate_whole_stake) =
+            if stake_account_target < 2 * self.state.stake_system.min_stake {
+                // unstake all if what will remain in the account is < twice min_stake
+                msg!("Deactivate whole stake {}", stake.stake_account);
+                // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
+                // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
 
-            solana_deactivate_stake(CpiContext::new_with_signer(
-                self.stake_program.to_account_info(),
-                SolanaDeactivateStake {
-                    stake: self.stake_account.to_account_info(),
-                    staker: self.stake_deposit_authority.to_account_info(),
-                    clock: self.clock.to_account_info(),
-                },
-                &[&[
-                    &self.state.key().to_bytes(),
-                    StakeSystem::STAKE_DEPOSIT_SEED,
-                    &[self.state.stake_system.stake_deposit_bump_seed],
-                ]],
-            ))?;
-
-            // Return back the rent reserve of unused split stake account
-            withdraw(
-                CpiContext::new(
+                solana_deactivate_stake(CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
-                    Withdraw {
-                        stake: self.split_stake_account.to_account_info(),
-                        withdrawer: self.split_stake_account.to_account_info(),
-                        to: self.split_stake_rent_payer.to_account_info(),
+                    SolanaDeactivateStake {
+                        stake: self.stake_account.to_account_info(),
+                        staker: self.stake_deposit_authority.to_account_info(),
                         clock: self.clock.to_account_info(),
-                        stake_history: self.stake_history.to_account_info(),
                     },
-                ),
-                self.split_stake_account.to_account_info().lamports(),
-                None,
-            )?;
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        StakeSystem::STAKE_DEPOSIT_SEED,
+                        &[self.state.stake_system.stake_deposit_bump_seed],
+                    ]],
+                ))?;
 
-            stake.last_update_delegated_lamports
-        } else {
-            // we must perform partial unstake
-            // Update validator.last_stake_delta_epoch for split-stakes only because probably we need to unstake multiple whole stakes for the same validator
-            if validator.last_stake_delta_epoch == self.clock.epoch {
-                // note: we don't consume self.state.extra_stake_delta_runs
-                // for unstake operations. Once delta stake is initiated
-                // only one unstake per validator is allowed (this maximizes mSOL price increase)
-                msg!(
-                    "Double delta stake command for validator {} in epoch {}",
-                    validator.validator_account,
-                    self.clock.epoch
+                // Return back the rent reserve of unused split stake account
+                withdraw(
+                    CpiContext::new(
+                        self.stake_program.to_account_info(),
+                        Withdraw {
+                            stake: self.split_stake_account.to_account_info(),
+                            withdrawer: self.split_stake_account.to_account_info(),
+                            to: self.split_stake_rent_payer.to_account_info(),
+                            clock: self.clock.to_account_info(),
+                            stake_history: self.stake_history.to_account_info(),
+                        },
+                    ),
+                    self.split_stake_account.to_account_info().lamports(),
+                    None,
+                )?;
+
+                (stake.last_update_delegated_lamports, true)
+            } else {
+                // we must perform partial unstake
+                // Update validator.last_stake_delta_epoch for split-stakes only because probably we need to unstake multiple whole stakes for the same validator
+                if validator.last_stake_delta_epoch == self.clock.epoch {
+                    // note: we don't consume self.state.extra_stake_delta_runs
+                    // for unstake operations. Once delta stake is initiated
+                    // only one unstake per validator is allowed (this maximizes mSOL price increase)
+                    msg!(
+                        "Double delta stake command for validator {} in epoch {}",
+                        validator.validator_account,
+                        self.clock.epoch
+                    );
+                    return Ok(()); // Not an error. Don't fail other instructions in tx
+                }
+                validator.last_stake_delta_epoch = self.clock.epoch;
+
+                // because previous if's
+                // here stake_account_target is < last_update_delegated_lamports,
+                // and stake.last_update_delegated_lamports - stake_account_target > 2*min_stake
+                // assert anyway in case some bug is introduced in the code above
+                let split_amount = stake.last_update_delegated_lamports - stake_account_target;
+                assert!(
+                    stake_account_target < stake.last_update_delegated_lamports
+                        && split_amount <= total_unstake_delta
                 );
-                return Ok(()); // Not an error. Don't fail other instructions in tx
-            }
-            validator.last_stake_delta_epoch = self.clock.epoch;
 
-            // because previous if's
-            // here stake_account_target is < last_update_delegated_lamports,
-            // and stake.last_update_delegated_lamports - stake_account_target > 2*min_stake
-            // assert anyway in case some bug is introduced in the code above
-            let split_amount = stake.last_update_delegated_lamports - stake_account_target;
-            assert!(
-                stake_account_target < stake.last_update_delegated_lamports
-                    && split_amount <= total_unstake_delta
-            );
+                msg!(
+                    "Deactivate split {} ({} lamports) from stake {}",
+                    self.split_stake_account.key(),
+                    split_amount,
+                    stake.stake_account
+                );
 
-            msg!(
-                "Deactivate split {} ({} lamports) from stake {}",
-                self.split_stake_account.key(),
-                split_amount,
-                stake.stake_account
-            );
+                self.state.stake_system.add(
+                    &mut self.stake_list.data.as_ref().borrow_mut(),
+                    &self.split_stake_account.key(),
+                    split_amount,
+                    &self.clock,
+                    0, // is_emergency_unstaking? no
+                )?;
 
-            self.state.stake_system.add(
-                &mut self.stake_list.data.as_ref().borrow_mut(),
-                &self.split_stake_account.key(),
-                split_amount,
-                &self.clock,
-                0, // is_emergency_unstaking? no
-            )?;
+                let split_instruction = stake::instruction::split(
+                    self.stake_account.to_account_info().key,
+                    self.stake_deposit_authority.key,
+                    split_amount,
+                    &self.split_stake_account.key(),
+                )
+                .last()
+                .unwrap()
+                .clone();
+                invoke_signed(
+                    &split_instruction,
+                    &[
+                        self.stake_program.to_account_info(),
+                        self.stake_account.to_account_info(),
+                        self.split_stake_account.to_account_info(),
+                        self.stake_deposit_authority.to_account_info(),
+                    ],
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        StakeSystem::STAKE_DEPOSIT_SEED,
+                        &[self.state.stake_system.stake_deposit_bump_seed],
+                    ]],
+                )?;
 
-            let split_instruction = stake::instruction::split(
-                self.stake_account.to_account_info().key,
-                self.stake_deposit_authority.key,
-                split_amount,
-                &self.split_stake_account.key(),
-            )
-            .last()
-            .unwrap()
-            .clone();
-            invoke_signed(
-                &split_instruction,
-                &[
+                solana_deactivate_stake(CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
-                    self.stake_account.to_account_info(),
-                    self.split_stake_account.to_account_info(),
-                    self.stake_deposit_authority.to_account_info(),
-                ],
-                &[&[
-                    &self.state.key().to_bytes(),
-                    StakeSystem::STAKE_DEPOSIT_SEED,
-                    &[self.state.stake_system.stake_deposit_bump_seed],
-                ]],
-            )?;
+                    SolanaDeactivateStake {
+                        stake: self.split_stake_account.to_account_info(),
+                        staker: self.stake_deposit_authority.to_account_info(),
+                        clock: self.clock.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        StakeSystem::STAKE_DEPOSIT_SEED,
+                        &[self.state.stake_system.stake_deposit_bump_seed],
+                    ]],
+                ))?;
 
-            solana_deactivate_stake(CpiContext::new_with_signer(
-                self.stake_program.to_account_info(),
-                SolanaDeactivateStake {
-                    stake: self.split_stake_account.to_account_info(),
-                    staker: self.stake_deposit_authority.to_account_info(),
-                    clock: self.clock.to_account_info(),
-                },
-                &[&[
-                    &self.state.key().to_bytes(),
-                    StakeSystem::STAKE_DEPOSIT_SEED,
-                    &[self.state.stake_system.stake_deposit_bump_seed],
-                ]],
-            ))?;
-
-            stake.last_update_delegated_lamports -= split_amount;
-            split_amount
-        };
+                stake.last_update_delegated_lamports -= split_amount;
+                (split_amount, false)
+            };
         // we now consider amount no longer "active" for this specific validator
         validator.active_balance = validator
             .active_balance
@@ -308,7 +314,7 @@ impl<'info> DeactivateStake<'info> {
             .stake_system
             .delayed_unstake_cooling_down
             .checked_add(unstaked_amount)
-            .expect("Cooling down overflow");
+            .ok_or(MarinadeError::CalculationFailure)?;
 
         // update stake-list & validator-list
         self.state.stake_system.set(
@@ -322,6 +328,31 @@ impl<'info> DeactivateStake<'info> {
             validator_index,
             validator,
         )?;
+
+        emit!(DeactivateStakeEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            stake_index,
+            stake_account: self.stake_account.key(),
+            last_update_stake_delegation,
+            split_stake_account: if deactivate_whole_stake {
+                None
+            } else {
+                Some(SplitStakeAccountInfo {
+                    account: self.split_stake_account.key(),
+                    index: self.state.stake_system.stake_count() - 1,
+                })
+            },
+            validator_index,
+            validator_vote: validator.validator_account,
+            unstaked_amount,
+            total_stake_target,
+            validator_stake_target,
+            new_total_active_balance: self.state.validator_system.total_active_balance,
+            new_delayed_unstake_cooling_down: self.state.stake_system.delayed_unstake_cooling_down,
+            new_validator_active_balance: validator.active_balance,
+            total_unstake_delta,
+        });
 
         Ok(())
     }

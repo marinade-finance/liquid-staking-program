@@ -1,5 +1,6 @@
 use crate::{
     error::MarinadeError,
+    events::crank::StakeReserveEvent,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State, ID,
 };
@@ -118,7 +119,8 @@ impl<'info> StakeReserve<'info> {
         )
         .unwrap();
 
-        let stake_delta = self.state.stake_delta(self.reserve_pda.lamports());
+        let reserve_balance = self.reserve_pda.lamports();
+        let stake_delta = self.state.stake_delta(reserve_balance);
         if stake_delta <= 0 {
             if stake_delta < 0 {
                 msg!(
@@ -130,12 +132,12 @@ impl<'info> StakeReserve<'info> {
             }
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
-        let stake_delta = u64::try_from(stake_delta).expect("Stake delta overflow");
+        let total_stake_delta = u64::try_from(stake_delta).expect("Stake delta overflow");
         let total_stake_target = self
             .state
             .validator_system
             .total_active_balance
-            .saturating_add(stake_delta);
+            .saturating_add(total_stake_delta);
 
         let mut validator = self
             .state
@@ -193,11 +195,11 @@ impl<'info> StakeReserve<'info> {
         let stake_target = validator_stake_target
             .saturating_sub(validator.active_balance)
             .max(self.state.stake_system.min_stake)
-            .min(stake_delta);
+            .min(total_stake_delta);
 
         // if what's left after this stake is < state.min_stake, take all the remainder
-        let stake_target = if stake_delta - stake_target < self.state.stake_system.min_stake {
-            stake_delta
+        let stake_target = if total_stake_delta - stake_target < self.state.stake_system.min_stake {
+            total_stake_delta
         } else {
             stake_target
         };
@@ -269,7 +271,6 @@ impl<'info> StakeReserve<'info> {
             0, // is_emergency_unstaking? no
         )?;
 
-        // self.state.epoch_stake_orders -= amount;
         validator.active_balance = validator
             .active_balance
             .checked_add(stake_target)
@@ -288,6 +289,21 @@ impl<'info> StakeReserve<'info> {
             .total_active_balance
             .checked_add(stake_target)
             .ok_or(MarinadeError::CalculationFailure)?;
+        emit!(StakeReserveEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            stake_index: self.state.stake_system.stake_count() - 1,
+            stake_account: self.stake_account.key(),
+            validator_index,
+            validator_vote: self.validator_vote.key(),
+            amount: stake_target,
+            total_stake_target,
+            validator_stake_target,
+            new_reserve_balance: self.reserve_pda.lamports(),
+            new_total_active_balance: self.state.validator_system.total_active_balance,
+            new_validator_active_balance: validator.active_balance,
+            total_stake_delta,
+        });
         Ok(())
     }
 }

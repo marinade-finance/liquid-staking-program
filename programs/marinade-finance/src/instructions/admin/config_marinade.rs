@@ -1,6 +1,8 @@
+use crate::events::admin::ConfigMarinadeEvent;
+use crate::events::{BoolValueChange, FeeValueChange, U64ValueChange};
 use crate::state::stake_system::StakeSystem;
 use crate::state::Fee;
-use crate::{MarinadeError, State, require_lte};
+use crate::{require_lte, MarinadeError, State};
 use anchor_lang::prelude::*;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
@@ -40,54 +42,131 @@ impl<'info> ConfigMarinade<'info> {
             auto_add_validator_enabled,
         }: ConfigMarinadeParams,
     ) -> Result<()> {
-        if let Some(rewards_fee) = rewards_fee {
+        let rewards_fee_change = if let Some(rewards_fee) = rewards_fee {
             require_lte!(
                 rewards_fee,
                 State::MAX_REWARD_FEE,
                 MarinadeError::RewardsFeeIsTooHigh
             );
+            let old = self.state.reward_fee;
             self.state.reward_fee = rewards_fee;
-        }
-        if let Some(slots_for_stake_delta) = slots_for_stake_delta {
-            require_gte!(
-                slots_for_stake_delta,
-                StakeSystem::MIN_UPDATE_WINDOW,
-                MarinadeError::UpdateWindowIsTooLow
-            );
-            self.state.stake_system.slots_for_stake_delta = slots_for_stake_delta;
-        }
-        if let Some(min_stake) = min_stake {
+            Some(FeeValueChange {
+                old,
+                new: rewards_fee,
+            })
+        } else {
+            None
+        };
+
+        let slots_for_stake_delta_change =
+            if let Some(slots_for_stake_delta) = slots_for_stake_delta {
+                require_gte!(
+                    slots_for_stake_delta,
+                    StakeSystem::MIN_UPDATE_WINDOW,
+                    MarinadeError::UpdateWindowIsTooLow
+                );
+                let old = self.state.stake_system.slots_for_stake_delta;
+                self.state.stake_system.slots_for_stake_delta = slots_for_stake_delta;
+                Some(U64ValueChange {
+                    old,
+                    new: slots_for_stake_delta,
+                })
+            } else {
+                None
+            };
+
+        let min_stake_change = if let Some(min_stake) = min_stake {
             require_gte!(
                 min_stake,
                 5 * self.state.rent_exempt_for_token_acc,
                 MarinadeError::MinStakeIsTooLow
             );
+            let old = self.state.stake_system.min_stake;
             self.state.stake_system.min_stake = min_stake;
-        }
-        if let Some(min_deposit) = min_deposit {
+            Some(U64ValueChange {
+                old,
+                new: min_stake,
+            })
+        } else {
+            None
+        };
+
+        let min_deposit_change = if let Some(min_deposit) = min_deposit {
             // It is not dangerous to skip value checks because it is deposit only action
             // We can use u64::MAX to stop accepting deposits
             // or 0 to accept 1 lamport
+            let old = self.state.min_deposit;
             self.state.min_deposit = min_deposit;
-        }
-        if let Some(min_withdraw) = min_withdraw {
+            Some(U64ValueChange {
+                old,
+                new: min_deposit,
+            })
+        } else {
+            None
+        };
+
+        let min_withdraw_change = if let Some(min_withdraw) = min_withdraw {
             require_lte!(
                 min_withdraw,
                 State::MAX_WITHDRAW_ATOM,
                 MarinadeError::MinWithdrawIsTooHigh
             );
+            let old = self.state.min_withdraw;
             self.state.min_withdraw = min_withdraw;
-        }
-        if let Some(staking_sol_cap) = staking_sol_cap {
+            Some(U64ValueChange {
+                old,
+                new: min_withdraw,
+            })
+        } else {
+            None
+        };
+
+        let staking_sol_cap_change = if let Some(staking_sol_cap) = staking_sol_cap {
+            let old = self.state.staking_sol_cap;
             self.state.staking_sol_cap = staking_sol_cap;
-        }
-        if let Some(liquidity_sol_cap) = liquidity_sol_cap {
+            Some(U64ValueChange {
+                old,
+                new: staking_sol_cap,
+            })
+        } else {
+            None
+        };
+
+        let liquidity_sol_cap_change = if let Some(liquidity_sol_cap) = liquidity_sol_cap {
+            let old = self.state.liq_pool.liquidity_sol_cap;
             self.state.liq_pool.liquidity_sol_cap = liquidity_sol_cap;
-        }
-        if let Some(auto_add_validator_enabled) = auto_add_validator_enabled {
-            self.state.validator_system.auto_add_validator_enabled =
-                if auto_add_validator_enabled { 1 } else { 0 };
-        }
+            Some(U64ValueChange {
+                old,
+                new: liquidity_sol_cap,
+            })
+        } else {
+            None
+        };
+
+        let auto_add_validator_enabled_change =
+            if let Some(auto_add_validator_enabled) = auto_add_validator_enabled {
+                let old = self.state.validator_system.auto_add_validator_enabled != 0;
+                self.state.validator_system.auto_add_validator_enabled =
+                    if auto_add_validator_enabled { 1 } else { 0 };
+                Some(BoolValueChange {
+                    old,
+                    new: auto_add_validator_enabled,
+                })
+            } else {
+                None
+            };
+
+        emit!(ConfigMarinadeEvent {
+            state: self.state.key(),
+            rewards_fee_change,
+            slots_for_stake_delta_change,
+            min_stake_change,
+            min_deposit_change,
+            min_withdraw_change,
+            staking_sol_cap_change,
+            liquidity_sol_cap_change,
+            auto_add_validator_enabled_change
+        });
 
         Ok(())
     }
