@@ -12,8 +12,8 @@ pub struct List {
     pub item_size: u32,
     pub count: u32,
     // Unused
-    pub new_account: Pubkey,
-    pub copied_count: u32,
+    pub _reserved1: Pubkey,
+    pub _reserved2: u32,
 }
 
 impl List {
@@ -27,8 +27,8 @@ impl List {
             account,
             item_size,
             count: 0,
-            new_account: Pubkey::default(),
-            copied_count: 0,
+            _reserved1: Pubkey::default(),
+            _reserved2: 0,
         };
         result.init_account(discriminator, data)?;
         Ok(result)
@@ -57,35 +57,6 @@ impl List {
 
         Ok(())
     }
-
-    /*
-    pub fn check_account<'info>(
-        &self,
-        account: &AccountInfo<'info>,
-        list_name: &str,
-    ) -> Result<()> {
-        check_address(account.key, &self.account, list_name)?;
-        let data = account.data.borrow();
-        if data.len() < 8 {
-            msg!(
-                "{} account must have at least 8 bytes of storage",
-                list_name
-            );
-            return Err(ProgramError::AccountDataTooSmall);
-        }
-
-        if data[0..8] != D::discriminator() {
-            msg!(
-                "{} account must have discriminator {:?}. Got {:?}",
-                list_name,
-                D::discriminator(),
-                &data[0..8]
-            );
-            return Err(ProgramError::InvalidAccountData);
-        }
-
-        Ok(())
-    }*/
 
     pub fn item_size(&self) -> u32 {
         self.item_size
