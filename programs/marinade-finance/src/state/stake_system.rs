@@ -85,8 +85,8 @@ impl StakeSystem {
             StakeRecord::default().try_to_vec().unwrap().len() as u32 + additional_record_space,
             stake_list_account,
             stake_list_data,
-            "stake_list",
-        )?;
+        )
+        .map_err(|e| e.with_account_name("stake_list"))?;
 
         Ok(Self {
             stake_list,
@@ -124,21 +124,24 @@ impl StakeSystem {
         clock: &Clock,
         is_emergency_unstaking: u8,
     ) -> Result<()> {
-        self.stake_list.push(
-            stake_list_data,
-            StakeRecord::new(
-                stake_account,
-                delegated_lamports,
-                clock,
-                is_emergency_unstaking,
-            ),
-            "stake_list",
-        )?;
+        self.stake_list
+            .push(
+                stake_list_data,
+                StakeRecord::new(
+                    stake_account,
+                    delegated_lamports,
+                    clock,
+                    is_emergency_unstaking,
+                ),
+            )
+            .map_err(|e| e.with_account_name("stake_list"))?;
         Ok(())
     }
 
     fn get(&self, stake_list_data: &[u8], index: u32) -> Result<StakeRecord> {
-        self.stake_list.get(stake_list_data, index, "stake_list")
+        self.stake_list
+            .get(stake_list_data, index)
+            .map_err(|e| e.with_account_name("stake_list"))
     }
 
     /// get the stake account record from an index, and check that the account is the same passed as parameter to the instruction
@@ -159,9 +162,12 @@ impl StakeSystem {
 
     pub fn set(&self, stake_list_data: &mut [u8], index: u32, stake: StakeRecord) -> Result<()> {
         self.stake_list
-            .set(stake_list_data, index, stake, "stake_list")
+            .set(stake_list_data, index, stake)
+            .map_err(|e| e.with_account_name("stake_list"))
     }
     pub fn remove(&mut self, stake_list_data: &mut [u8], index: u32) -> Result<()> {
-        self.stake_list.remove(stake_list_data, index, "stake_list")
+        self.stake_list
+            .remove(stake_list_data, index)
+            .map_err(|e| e.with_account_name("stake_list"))
     }
 }
