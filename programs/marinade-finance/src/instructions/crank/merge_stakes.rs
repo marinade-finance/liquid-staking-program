@@ -167,6 +167,7 @@ impl<'info> MergeStakes<'info> {
         )?;
         // reread stake after merging
         self.destination_stake.reload()?;
+        // extra_delegated = dest.delegation.stake after merge - (dest.last_update_delegated_lamports + source.last_update_delegated_lamports)
         let extra_delegated = self
             .destination_stake
             .delegation()
@@ -176,6 +177,9 @@ impl<'info> MergeStakes<'info> {
             .ok_or(MarinadeError::CalculationFailure)?
             .checked_sub(source_stake_info.last_update_delegated_lamports)
             .ok_or(MarinadeError::CalculationFailure)?;
+        // Note: since we're requiring source.delegation.stake == source.last_update_delegated_lamports
+        // and dest.delegation.stake == dest.last_update_delegated_lamports
+        // extra_delegated should be always ZERO
         let returned_stake_rent = self
             .source_stake
             .meta()

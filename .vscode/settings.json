@@ -14,6 +14,7 @@
         "FFAO",
         "keybase",
         "keypairs",
+        "lamport",
         "lamports",
         "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
         "mardmin",
@@ -51,6 +52,7 @@
         "Uninit",
         "unstake",
         "unstaked",
+        "unstakes",
         "unstaking",
         "unsync",
         "validatr"
