@@ -241,6 +241,26 @@ impl<'info> UpdateCommon<'info> {
         }
         Ok(())
     }
+
+    #[inline]
+    pub fn update_msol_price(&mut self) -> Result<()> {
+        // price is computed as:
+        // total_active_balance + total_cooling_down + reserve - circulating_ticket_balance
+        // DIVIDED by msol_supply
+        self.state.msol_price = self
+            .state
+            .calc_lamports_from_msol_amount(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
+        Ok(())
+    }
+
+    pub fn mint_protocol_fees(&mut self, lamports_incoming: u64) -> Result<()> {
+        // apply x% protocol fee on staking rewards (do this before updating validators' balance, so it's 1% at old, lower, price)
+        let protocol_rewards_fee = self.state.reward_fee.apply(lamports_incoming);
+        msg!("protocol_rewards_fee {}", protocol_rewards_fee);
+        // compute mSOL amount for protocol_rewards_fee
+        let fee_as_msol_amount = self.state.calc_msol_from_lamports(protocol_rewards_fee)?;
+        self.mint_to_treasury(fee_as_msol_amount)
+    }
 }
 
 impl<'info> UpdateActive<'info> {
@@ -281,14 +301,17 @@ impl<'info> UpdateActive<'info> {
         // the reserve lamports are paid by the marinade-program/bot and return to marinade-program/bot once the account is deleted
         let stake_balance_without_rent = self.stake_account.to_account_info().lamports()
             - self.stake_account.meta().unwrap().rent_exempt_reserve;
-        // move all sent by hacker extra SOLs to reserve
-        // and mint 100% mSOL to treasury to make admins decide what to do with this (maybe return to sender)
+        // normally extra-lamports in the native stake means MEV rewards
         let extra_lamports = stake_balance_without_rent.saturating_sub(delegated_lamports);
         msg!("Extra lamports in stake balance: {}", extra_lamports);
-        self.withdraw_to_reserve(extra_lamports)?;
-        if is_treasury_msol_ready_for_transfer {
-            let msol_amount = self.state.calc_msol_from_lamports(extra_lamports)?;
-            self.mint_to_treasury(msol_amount)?;
+        if extra_lamports > 0 {
+            // by withdrawing to reserve, we add to the SOL assets under control, 
+            // and by that we increase the mSOL price
+            self.withdraw_to_reserve(extra_lamports)?;
+            // after sending to reserve, we take protocol_fees as minted mSOL
+            if is_treasury_msol_ready_for_transfer {
+                self.mint_protocol_fees(extra_lamports)?;
+            }
         }
 
         msg!("current staked lamports {}", delegated_lamports);
@@ -298,13 +321,7 @@ impl<'info> UpdateActive<'info> {
             msg!("Staking rewards: {}", rewards);
 
             if is_treasury_msol_ready_for_transfer {
-                // apply 1% protocol fee on staking rewards (do this before updating validators' balance, so it's 1% at old, lower, price)
-                let protocol_rewards_fee = self.state.reward_fee.apply(rewards);
-                msg!("protocol_rewards_fee {}", protocol_rewards_fee);
-                // compute mSOL amount for protocol_rewards_fee
-                let fee_as_msol_amount =
-                    self.state.calc_msol_from_lamports(protocol_rewards_fee)?;
-                self.mint_to_treasury(fee_as_msol_amount)?;
+                self.mint_protocol_fees(rewards)?;
             }
 
             // validator active balance is updated with rewards
@@ -335,11 +352,9 @@ impl<'info> UpdateActive<'info> {
             validator,
         )?;
 
-        // self.state.stake_system.updated_during_last_epoch += 1;*/
         // set new mSOL price
-        self.state.msol_price = self
-            .state
-            .calc_lamports_from_msol_amount(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
+        self.update_msol_price()?;
+        // save stake record
         self.state.stake_system.set(
             &mut self.stake_list.data.as_ref().borrow_mut(),
             stake_index,
@@ -394,17 +409,11 @@ impl<'info> UpdateDeactivated<'info> {
 
         if stake_balance_without_rent >= stake.last_update_delegated_lamports {
             // if there were rewards, mint treasury fee
+            // Note: this includes any extra lamports in the stake-account (MEV rewards mostly)
             let rewards = stake_balance_without_rent - stake.last_update_delegated_lamports;
             msg!("Staking rewards: {}", rewards);
-
             if is_treasury_msol_ready_for_transfer {
-                // apply 1% protocol fee on staking rewards (do this before updating validators' balance, so it's 1% at old, lower, price)
-                let protocol_rewards_fee = self.state.reward_fee.apply(rewards);
-                msg!("protocol_rewards_fee {}", protocol_rewards_fee);
-                // compute mSOL amount for protocol_rewards_fee
-                let fee_as_msol_amount =
-                    self.state.calc_msol_from_lamports(protocol_rewards_fee)?;
-                self.mint_to_treasury(fee_as_msol_amount)?;
+                self.mint_protocol_fees(rewards)?;
             }
         } else {
             // less than observed last time
@@ -447,9 +456,7 @@ impl<'info> UpdateDeactivated<'info> {
         // We update mSOL price in case we receive "extra deactivating rewards" after the start of Delayed-unstake.
         // Those rewards went into reserve_pda, are part of mSOL price (benefit all stakers) and even might be re-staked
         // set new mSOL price
-        self.state.msol_price = self
-            .state
-            .calc_lamports_from_msol_amount(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
+        self.update_msol_price()?;
 
         //remove deleted stake-account from our list
         self.common.state.stake_system.remove(
