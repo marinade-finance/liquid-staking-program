@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 
+use crate::events::management::AddValidatorEvent;
 use crate::state::validator_system::ValidatorRecord;
 use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
 
@@ -56,11 +57,18 @@ impl<'info> AddValidator<'info> {
         let state_address = self.state.key();
         self.state.validator_system.add(
             &mut self.validator_list.data.borrow_mut(),
-            *self.validator_vote.key,
+            self.validator_vote.key(),
             score,
             &state_address,
             self.duplication_flag.key,
         )?;
+
+        emit!(AddValidatorEvent {
+            state: self.state.key(),
+            validator: self.validator_vote.key(),
+            index: self.state.validator_system.validator_count() - 1,
+            score
+        });
 
         Ok(())
     }

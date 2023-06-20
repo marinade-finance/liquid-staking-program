@@ -1,5 +1,9 @@
 use anchor_lang::prelude::*;
 
+use crate::state::Fee;
+
+use super::U64ValueChange;
+
 #[derive(Clone, AnchorDeserialize, AnchorSerialize)]
 pub struct SplitStakeAccountInfo {
     pub account: Pubkey,
@@ -61,4 +65,42 @@ pub struct StakeReserveEvent {
     pub new_total_active_balance: u64,
     pub new_validator_active_balance: u64,
     pub total_stake_delta: u64,
+}
+
+#[event]
+pub struct UpdateActiveEvent {
+    pub state: Pubkey,
+    pub epoch: u64,
+    pub stake_index: u32,
+    pub stake_account: Pubkey,
+    pub validator_index: u32,
+    pub validator_vote: Pubkey,
+    pub delegation_change: U64ValueChange,
+    pub delegation_growth_msol_fees: Option<u64>,
+    pub extra_lamports: u64,
+    pub extra_msol_fees: Option<u64>,
+    pub new_validator_active_balance: u64,
+    pub new_total_active_balance: u64,
+    pub msol_price_change: U64ValueChange,
+    pub reward_fee_used: Fee,
+    // MSOL price used
+    pub total_virtual_staked_lamports: u64,
+    pub msol_supply: u64,
+}
+
+#[event]
+pub struct UpdateDeactivatedEvent {
+    pub state: Pubkey,
+    pub epoch: u64,
+    pub stake_index: u32,
+    pub stake_account: Pubkey,
+    pub balance_without_rent_exempt: u64,
+    pub last_update_delegated_lamports: u64,
+    pub msol_fees: Option<u64>,
+    pub msol_price_change: U64ValueChange,
+    pub reward_fee_used: Fee,
+    pub new_operational_sol_balance: u64,
+    // MSOL price used
+    pub total_virtual_staked_lamports: u64,
+    pub msol_supply: u64,
 }

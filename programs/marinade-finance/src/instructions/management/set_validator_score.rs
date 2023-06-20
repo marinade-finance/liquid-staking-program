@@ -1,6 +1,11 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
+use crate::{
+    error::MarinadeError,
+    events::{management::SetValidatorScoreEvent, U32ValueChange},
+    state::validator_system::ValidatorSystem,
+    State,
+};
 
 #[derive(Accounts)]
 pub struct SetValidatorScore<'info> {
@@ -36,7 +41,11 @@ impl<'info> SetValidatorScore<'info> {
             .total_validator_score
             .checked_sub(validator.score)
             .ok_or(MarinadeError::CalculationFailure)?;
-        validator.score = score;
+        let score_change = {
+            let old = validator.score;
+            validator.score = score;
+            U32ValueChange { old, new: score }
+        };
         self.state.validator_system.total_validator_score = self
             .state
             .validator_system
@@ -48,6 +57,13 @@ impl<'info> SetValidatorScore<'info> {
             index,
             validator,
         )?;
+
+        emit!(SetValidatorScoreEvent {
+            state: self.state.key(),
+            validator: validator_vote,
+            index,
+            score_change,
+        });
 
         Ok(())
     }

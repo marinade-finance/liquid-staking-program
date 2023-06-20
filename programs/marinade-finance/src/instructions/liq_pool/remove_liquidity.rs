@@ -191,7 +191,7 @@ impl<'info> RemoveLiquidity<'info> {
         self.lp_mint.reload()?;
         emit!(RemoveLiquidityEvent {
             state: self.state.key(),
-            lp_amount: tokens,
+            lp_burned: tokens,
             sol_out_amount,
             msol_out_amount,
             new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),

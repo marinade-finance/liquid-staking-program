@@ -159,7 +159,7 @@ impl<'info> AddLiquidity<'info> {
             state: self.state.key(),
             sol_owner: self.transfer_from.key(),
             sol_amount: lamports,
-            lp_amount: shares_for_user,
+            lp_minted: shares_for_user,
             new_user_sol_balance: self.transfer_from.lamports(),
             new_user_lp_balance: self.mint_to.amount,
             new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),

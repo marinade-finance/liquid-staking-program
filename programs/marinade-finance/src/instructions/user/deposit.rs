@@ -7,6 +7,7 @@ use anchor_spl::token::{
 };
 
 use crate::error::MarinadeError;
+use crate::events::user::DepositEvent;
 use crate::state::liq_pool::LiqPool;
 use crate::{require_lte, State};
 
@@ -104,10 +105,11 @@ impl<'info> Deposit<'info> {
             MarinadeError::UnregisteredMsolMinted
         );
 
-        let user_lamports = lamports;
+        let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
+        let msol_supply = self.state.msol_supply;
 
         //compute how many mSOL to sell/mint for the user, base on how many lamports being deposited
-        let user_msol_buy_order = self.state.calc_msol_from_lamports(user_lamports)?;
+        let user_msol_buy_order = self.state.calc_msol_from_lamports(lamports)?;
         msg!("--- user_m_sol_buy_order {}", user_msol_buy_order);
 
         //First we try to "sell" mSOL to the user from the LiqPool.
@@ -115,22 +117,22 @@ impl<'info> Deposit<'info> {
         //so, if we can, the LiqPool "sells" mSOL to the user (no fee)
         //
         // At max, we can sell all the mSOL in the LiqPool.mSOL_leg
-        let swap_msol_max: u64 = user_msol_buy_order.min(self.liq_pool_msol_leg.amount);
-        msg!("--- swap_m_sol_max {}", swap_msol_max);
+        let msol_swapped: u64 = user_msol_buy_order.min(self.liq_pool_msol_leg.amount);
+        msg!("--- swap_m_sol_max {}", msol_swapped);
 
         //if we can sell from the LiqPool
-        let user_lamports = if swap_msol_max > 0 {
+        let sol_swapped = if msol_swapped > 0 {
             // how much lamports go into the LiqPool?
-            let lamports_for_the_liq_pool = if user_msol_buy_order == swap_msol_max {
+            let sol_swapped = if user_msol_buy_order == msol_swapped {
                 //we are fulfilling 100% the user order
-                user_lamports //100% of the user deposit
+                lamports //100% of the user deposit
             } else {
-                //partially filled
-                //then it's the lamport value of the tokens we're selling
-                self.state.calc_lamports_from_msol_amount(swap_msol_max)?
+                // partially filled
+                // then it's the lamport value of the tokens we're selling
+                self.state.calc_lamports_from_msol_amount(msol_swapped)?
             };
 
-            //transfer mSOL to the user
+            // transfer mSOL to the user
 
             transfer_tokens(
                 CpiContext::new_with_signer(
@@ -146,10 +148,10 @@ impl<'info> Deposit<'info> {
                         &[self.state.liq_pool.msol_leg_authority_bump_seed],
                     ]],
                 ),
-                swap_msol_max,
+                msol_swapped,
             )?;
 
-            //transfer lamports to the LiqPool
+            // transfer lamports to the LiqPool
             transfer(
                 CpiContext::new(
                     self.system_program.to_account_info(),
@@ -158,28 +160,28 @@ impl<'info> Deposit<'info> {
                         to: self.liq_pool_sol_leg_pda.to_account_info(),
                     },
                 ),
-                lamports_for_the_liq_pool,
+                sol_swapped,
             )?;
 
-            //we took "lamports_for_the_liq_pool" from the "user_lamports"
-            user_lamports.saturating_sub(lamports_for_the_liq_pool)
+            sol_swapped
             //end of sale from the LiqPool
         } else {
-            user_lamports
+            0
         };
 
+        let sol_deposited = lamports - sol_swapped;
         // check if we have more lamports from the user
-        if user_lamports > 0 {
-            self.state.check_staking_cap(user_lamports)?;
+        let msol_minted = if sol_deposited > 0 {
+            self.state.check_staking_cap(sol_deposited)?;
 
             //compute how much msol_to_mint
             //NOTE: it is IMPORTANT to use calc_msol_from_lamports() BEFORE adding the lamports
-            // because on_transfer_to_reserve(user_lamports) alters price calculation
+            // because on_transfer_to_reserve(sol_deposited) alters price calculation
             // the same goes for state.on_msol_mint()
-            let msol_to_mint = self.state.calc_msol_from_lamports(user_lamports)?;
+            let msol_to_mint = self.state.calc_msol_from_lamports(sol_deposited)?;
             msg!("--- msol_to_mint {}", msol_to_mint);
 
-            //transfer user_lamports to reserve
+            // transfer sol_deposited to reserve
             transfer(
                 CpiContext::new(
                     self.system_program.to_account_info(),
@@ -188,9 +190,9 @@ impl<'info> Deposit<'info> {
                         to: self.reserve_pda.to_account_info(),
                     },
                 ),
-                user_lamports,
+                sol_deposited,
             )?;
-            self.state.on_transfer_to_reserve(user_lamports);
+            self.state.on_transfer_to_reserve(sol_deposited);
             if msol_to_mint > 0 {
                 mint_to(
                     CpiContext::new_with_signer(
@@ -210,9 +212,28 @@ impl<'info> Deposit<'info> {
                 )?;
                 self.state.on_msol_mint(msol_to_mint);
             }
-            // self.state.stake_total += user_lamports; // auto calculated
-            // self.state.epoch_stake_orders += user_lamports;
-        }
+            msol_to_mint
+        } else {
+            0
+        };
+
+        self.mint_to.reload()?;
+        self.liq_pool_msol_leg.reload()?;
+        emit!(DepositEvent {
+            state: self.state.key(),
+            sol_owner: self.transfer_from.key(),
+            sol_swapped,
+            msol_swapped,
+            sol_deposited,
+            msol_minted,
+            new_user_sol_balance: self.transfer_from.lamports(),
+            new_user_msol_balance: self.mint_to.amount,
+            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
+            new_msol_leg_balance: self.liq_pool_msol_leg.amount,
+            new_reserve_balance: self.reserve_pda.lamports(),
+            total_virtual_staked_lamports,
+            msol_supply
+        });
 
         Ok(())
     }

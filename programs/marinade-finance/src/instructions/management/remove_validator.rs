@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::{
     error::MarinadeError,
+    events::management::RemoveValidatorEvent,
     state::validator_system::{ValidatorRecord, ValidatorSystem},
     State, ID,
 };
@@ -69,6 +70,14 @@ impl<'info> RemoveValidator<'info> {
         let rent_return = self.duplication_flag.lamports();
         **self.duplication_flag.try_borrow_mut_lamports()? = 0;
         **self.operational_sol_account.try_borrow_mut_lamports()? += rent_return;
+
+        emit!(RemoveValidatorEvent {
+            state: self.state.key(),
+            validator: validator_vote,
+            index,
+            new_operational_sol_balance: self.operational_sol_account.lamports(),
+        });
+
         Ok(())
     }
 }

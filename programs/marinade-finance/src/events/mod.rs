@@ -6,11 +6,19 @@ pub mod admin;
 pub mod crank;
 pub mod delayed_unstake;
 pub mod liq_pool;
+pub mod management;
+pub mod user;
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct U64ValueChange {
     pub old: u64,
     pub new: u64,
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct U32ValueChange {
+    pub old: u32,
+    pub new: u32,
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
