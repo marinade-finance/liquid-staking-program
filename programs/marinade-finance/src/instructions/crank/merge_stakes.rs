@@ -167,6 +167,7 @@ impl<'info> MergeStakes<'info> {
         )?;
         // reread stake after merging
         self.destination_stake.reload()?;
+        // extra_delegated = dest.delegation.stake after merge - (dest.last_update_delegated_lamports + source.last_update_delegated_lamports)
         let extra_delegated = self
             .destination_stake
             .delegation()
@@ -176,6 +177,12 @@ impl<'info> MergeStakes<'info> {
             .ok_or(MarinadeError::CalculationFailure)?
             .checked_sub(source_stake_info.last_update_delegated_lamports)
             .ok_or(MarinadeError::CalculationFailure)?;
+        // Note: if the merge is invoked with 2 activating accounts, or a new account -> activating account,
+        // the source account *rent-lamports* are added to the destination account on top of the delegation (extra-delegated).
+        // This is not normal operation for the bot, but this instruction is permissionless so anyone can call any time,
+        // and so we should consider the case.
+        // In normal cases (the bot merging to active accounts) the *rent-lamports* go to dest account *native lamports*, 
+        // so the destination account will have double the rent-exempt lamports
         let returned_stake_rent = self
             .source_stake
             .meta()
@@ -235,7 +242,7 @@ impl<'info> MergeStakes<'info> {
         }
         if extra_delegated > 0 {
             msg!(
-                "Extra delegation of {} lamports. TODO: mint some mSOLs for admin in return",
+                "Extra delegation of {} lamports. Will add to mSOL price",
                 extra_delegated
             );
         }
