@@ -264,7 +264,7 @@ impl<'info> ReDelegate<'info> {
             } else {
                 // not whole account,
                 // we need to split first
-                self.split_stake_for_redelegation(stake, redelegate_amount_theoretical)?;
+                self.split_stake_for_redelegation(&mut stake, redelegate_amount_theoretical)?;
                 // account to redelegate is the splitted account
                 (
                     self.split_stake_account.to_account_info(),
@@ -358,7 +358,7 @@ impl<'info> ReDelegate<'info> {
     #[inline] // separated for readability
     pub fn split_stake_for_redelegation(
         &mut self,
-        mut stake: StakeRecord,
+        stake: &mut StakeRecord,
         amount: u64,
     ) -> Result<()> {
         msg!(
