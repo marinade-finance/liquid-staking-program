@@ -48,7 +48,28 @@ pub struct MergeStakesEvent {
     pub new_operational_sol_balance: u64,
 }
 
-// TODO: redelegate
+#[event]
+pub struct RedelegateEvent {
+    pub state: Pubkey,
+    pub epoch: u64,
+    pub stake_index: u32,
+    pub stake_account: Pubkey,
+    pub last_update_delegation: u64,
+    pub source_validator_index: u32,
+    pub source_validator_vote: Pubkey,
+    pub source_validator_score: u32,
+    pub source_validator_balance: u64,
+    pub source_validator_stake_target: u64,
+    pub dest_validator_index: u32,
+    pub dest_validator_vote: Pubkey,
+    pub dest_validator_score: u32,
+    pub dest_validator_balance: u64,
+    pub dest_validator_stake_target: u64,
+    pub redelegate_amount: u64,
+    pub split_stake_account: Option<SplitStakeAccountInfo>, // None if whole stake is redelegating
+    pub redelegate_stake_index: u32,
+    pub redelegate_stake_account: Pubkey,
+}
 
 #[event]
 pub struct StakeReserveEvent {
