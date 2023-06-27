@@ -1,4 +1,5 @@
 use crate::error::MarinadeError;
+use crate::events::liq_pool::RemoveLiquidityEvent;
 use crate::{calc::proportional, require_lte, state::liq_pool::LiqPool, State};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
@@ -92,7 +93,6 @@ impl<'info> RemoveLiquidity<'info> {
     }
 
     pub fn process(&mut self, tokens: u64) -> Result<()> {
-        msg!("rem-liq pre check");
         self.check_burn_from(tokens)?;
 
         // Update virtual lp_supply by real one
@@ -184,6 +184,23 @@ impl<'info> RemoveLiquidity<'info> {
             tokens,
         )?;
         self.state.liq_pool.on_lp_burn(tokens)?;
+
+        self.liq_pool_msol_leg.reload()?;
+        self.transfer_msol_to.reload()?;
+        self.burn_from.reload()?;
+        self.lp_mint.reload()?;
+        emit!(RemoveLiquidityEvent {
+            state: self.state.key(),
+            lp_burned: tokens,
+            sol_out_amount,
+            msol_out_amount,
+            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
+            new_msol_leg_balance: self.liq_pool_msol_leg.amount,
+            new_user_lp_balance: self.burn_from.amount,
+            new_user_msol_balance: self.transfer_msol_to.amount,
+            new_user_sol_balance: self.transfer_sol_to.lamports(),
+            new_lp_supply: self.lp_mint.supply,
+        });
 
         Ok(())
     }

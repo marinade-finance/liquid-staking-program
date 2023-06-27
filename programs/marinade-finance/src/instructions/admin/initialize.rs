@@ -4,8 +4,10 @@ use crate::{
         check_token_owner,
     },
     error::MarinadeError,
+    events::admin::InitializeEvent,
+    require_lte,
     state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee},
-    State, ID, require_lte,
+    State, ID,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
@@ -172,16 +174,34 @@ impl<'info> Initialize<'info> {
             emergency_cooling_down: 0,
         });
 
+        emit!(InitializeEvent {
+            state: self.state.key(),
+            params: InitializeData {
+                admin_authority,
+                validator_manager_authority,
+                min_stake,
+                rewards_fee,
+                liq_pool,
+                additional_stake_record_space,
+                additional_validator_record_space,
+                slots_for_stake_delta,
+            },
+            stake_list: self.stake_list.key(),
+            validator_list: self.validator_list.key(),
+            msol_mint: self.msol_mint.key(),
+            operational_sol_account: self.operational_sol_account.key(),
+            lp_mint: self.liq_pool.lp_mint.key(),
+            lp_msol_leg: self.liq_pool.msol_leg.key(),
+            treasury_msol_account: self.treasury_msol_account.key(),
+        });
+
         Ok(())
     }
 }
 
 impl<'info> LiqPoolInitialize<'info> {
     pub fn check_lp_mint(parent: &Initialize) -> Result<u8> {
-        require_keys_neq!(
-            parent.liq_pool.lp_mint.key(),
-            parent.msol_mint.key(),
-        );
+        require_keys_neq!(parent.liq_pool.lp_mint.key(), parent.msol_mint.key(),);
         let (authority_address, authority_bump_seed) =
             LiqPool::find_lp_mint_authority(parent.state_address());
 

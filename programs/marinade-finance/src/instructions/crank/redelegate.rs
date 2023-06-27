@@ -1,6 +1,7 @@
 use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
+    events::crank::{RedelegateEvent, SplitStakeAccountInfo},
     state::{
         stake_system::{StakeRecord, StakeSystem},
         validator_system::ValidatorSystem,
@@ -135,6 +136,7 @@ impl<'info> ReDelegate<'info> {
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
+        let last_update_delegation = stake.last_update_delegated_lamports;
 
         // check the account is not already in emergency_unstake
         require_eq!(
@@ -147,6 +149,7 @@ impl<'info> ReDelegate<'info> {
             &self.validator_list.data.as_ref().borrow(),
             source_validator_index,
         )?;
+        let source_validator_balance = source_validator.active_balance;
 
         // check amount currently_staked matched observation (stake is updated)
         // and that the account is delegated to the validator_index sent
@@ -203,6 +206,7 @@ impl<'info> ReDelegate<'info> {
                 &self.dest_validator_account.key(),
             )
             .map_err(|e| e.with_account_name("dest_validator_account"))?;
+        let dest_validator_balance = dest_validator.active_balance;
 
         // compute dest validator target
         let dest_validator_stake_target = self
@@ -264,7 +268,7 @@ impl<'info> ReDelegate<'info> {
             } else {
                 // not whole account,
                 // we need to split first
-                self.split_stake_for_redelegation(stake, redelegate_amount_theoretical)?;
+                self.split_stake_for_redelegation(&mut stake, redelegate_amount_theoretical)?;
                 // account to redelegate is the splitted account
                 (
                     self.split_stake_account.to_account_info(),
@@ -286,7 +290,7 @@ impl<'info> ReDelegate<'info> {
         invoke_signed(
             redelegate_instruction,
             &[
-                source_account,
+                source_account.clone(),
                 self.dest_validator_account.to_account_info(),
                 self.redelegate_stake_account.to_account_info(),
                 self.stake_config.to_account_info(),
@@ -331,6 +335,35 @@ impl<'info> ReDelegate<'info> {
             dest_validator,
         )?;
 
+        emit!(RedelegateEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            stake_index,
+            stake_account: self.stake_account.key(),
+            last_update_delegation,
+            source_validator_index,
+            source_validator_vote: source_validator.validator_account,
+            source_validator_score: source_validator.score,
+            source_validator_balance,
+            source_validator_stake_target,
+            dest_validator_index,
+            dest_validator_vote: dest_validator.validator_account,
+            dest_validator_score: dest_validator.score,
+            dest_validator_balance,
+            dest_validator_stake_target,
+            redelegate_amount: redelegate_amount_effective,
+            split_stake_account: if source_account.key() == self.split_stake_account.key() {
+                Some(SplitStakeAccountInfo {
+                    account: self.split_stake_account.key(),
+                    index: self.state.stake_system.stake_count() - 2,
+                })
+            } else {
+                None
+            },
+            redelegate_stake_index: self.state.stake_system.stake_count() - 1,
+            redelegate_stake_account: self.redelegate_stake_account.key(),
+        });
+
         Ok(())
     }
 
@@ -358,7 +391,7 @@ impl<'info> ReDelegate<'info> {
     #[inline] // separated for readability
     pub fn split_stake_for_redelegation(
         &mut self,
-        mut stake: StakeRecord,
+        stake: &mut StakeRecord,
         amount: u64,
     ) -> Result<()> {
         msg!(

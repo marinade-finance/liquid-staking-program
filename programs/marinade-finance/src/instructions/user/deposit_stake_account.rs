@@ -9,6 +9,7 @@ use anchor_lang::solana_program::{
 use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
+use crate::events::user::DepositStakeAccountEvent;
 use crate::{
     checks::check_owner_program,
     error::MarinadeError,
@@ -94,6 +95,9 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::UnregisteredMsolMinted
         );
 
+        let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
+        let msol_supply = self.state.msol_supply;
+
         let delegation = self.stake_account.delegation().ok_or_else(|| {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
@@ -139,7 +143,7 @@ impl<'info> DepositStakeAccount<'info> {
                 .map_err(|e| e.with_account_name("stake_account"));
         }
 
-        if validator_index == self.state.validator_system.validator_count() {
+        let new_validator_active_balance = if validator_index == self.state.validator_system.validator_count() {
             if self.state.validator_system.auto_add_validator_enabled == 0 {
                 return err!(MarinadeError::AutoAddValidatorIsNotEnabled);
             }
@@ -190,6 +194,7 @@ impl<'info> DepositStakeAccount<'info> {
                     )
                 },
             )?;
+            delegation.stake
         } else {
             let mut validator = self.state.validator_system.get_checked(
                 &self.validator_list.data.as_ref().borrow(),
@@ -206,7 +211,8 @@ impl<'info> DepositStakeAccount<'info> {
                 validator_index,
                 validator,
             )?;
-        }
+            validator.active_balance
+        };
 
         {
             let new_staker = Pubkey::create_program_address(
@@ -263,6 +269,7 @@ impl<'info> DepositStakeAccount<'info> {
             )?;
         }
 
+        let old_withdrawer = self.stake_account.meta().unwrap().authorized.withdrawer;
         {
             let new_withdrawer = Pubkey::create_program_address(
                 &[
@@ -273,7 +280,6 @@ impl<'info> DepositStakeAccount<'info> {
                 &ID,
             )
             .unwrap();
-            let old_withdrawer = self.stake_account.meta().unwrap().authorized.withdrawer;
             // Can not deposit stake already under marinade stake auth. old_withdrawer must be different than ours
             require_keys_neq!(
                 old_withdrawer,
@@ -333,6 +339,22 @@ impl<'info> DepositStakeAccount<'info> {
             .checked_add(delegation.stake)
             .ok_or(MarinadeError::CalculationFailure)?;
 
+        self.mint_to.reload()?;
+        emit!(DepositStakeAccountEvent {
+            state: self.state.key(),
+            stake: self.stake_account.key(),
+            stake_index: self.state.stake_system.stake_count() - 1,
+            validator: delegation.voter_pubkey,
+            validator_index,
+            delegated: delegation.stake,
+            withdrawer: old_withdrawer,
+            msol_minted: msol_to_mint,
+            new_user_msol_balance: self.mint_to.amount,
+            new_validator_active_balance,
+            new_total_active_balance: self.state.validator_system.total_active_balance,
+            total_virtual_staked_lamports,
+            msol_supply
+        });
         Ok(())
     }
 }

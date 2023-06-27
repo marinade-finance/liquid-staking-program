@@ -4,6 +4,7 @@ use anchor_spl::token::{
     transfer as transfer_token, Mint, Token, TokenAccount, Transfer as TransferToken,
 };
 
+use crate::events::liq_pool::LiquidUnstakeEvent;
 use crate::state::liq_pool::LiqPool;
 use crate::State;
 use crate::{require_lte, MarinadeError};
@@ -181,6 +182,34 @@ impl<'info> LiquidUnstake<'info> {
                 treasury_msol_cut,
             )?;
         }
+
+        self.liq_pool_msol_leg.reload()?;
+        let new_treasury_msol_balance = if is_treasury_msol_ready_for_transfer {
+            let treasury = TokenAccount::try_deserialize(
+                &mut self.treasury_msol_account.data.borrow().as_ref(),
+            )?;
+            Some(treasury.amount)
+        } else {
+            None
+        };
+        self.get_msol_from.reload()?;
+        emit!(LiquidUnstakeEvent {
+            state: self.state.key(),
+            msol_owner: self.get_msol_from.owner,
+            msol_amount,
+            msol_fee,
+            treasury_msol_cut,
+            sol_amount: working_lamports_value,
+            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
+            new_msol_leg_balance: self.liq_pool_msol_leg.amount,
+            new_treasury_msol_balance,
+            new_user_msol_balance: self.get_msol_from.amount,
+            new_user_sol_balance: self.transfer_sol_to.lamports(),
+            lp_liquidity_target: self.state.liq_pool.lp_liquidity_target,
+            lp_max_fee: self.state.liq_pool.lp_max_fee,
+            lp_min_fee: self.state.liq_pool.lp_min_fee,
+            treasury_cut: self.state.liq_pool.treasury_cut
+        });
 
         Ok(())
     }

@@ -3,6 +3,7 @@ use anchor_lang::solana_program::sysvar::stake_history;
 use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
+use crate::events::crank::MergeStakesEvent;
 use crate::{
     error::MarinadeError,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
@@ -85,6 +86,8 @@ impl<'info> MergeStakes<'info> {
             destination_stake_index,
             self.destination_stake.to_account_info().key,
         )?;
+        let last_update_destination_stake_delegation =
+            destination_stake_info.last_update_delegated_lamports;
         let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
         } else {
@@ -240,12 +243,23 @@ impl<'info> MergeStakes<'info> {
                 None,
             )?;
         }
-        if extra_delegated > 0 {
-            msg!(
-                "Extra delegation of {} lamports. Will add to mSOL price",
-                extra_delegated
-            );
-        }
+        emit!(MergeStakesEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            destination_stake_index,
+            destination_stake_account: destination_stake_info.stake_account,
+            last_update_destination_stake_delegation,
+            source_stake_index,
+            source_stake_account: source_stake_info.stake_account,
+            last_update_source_stake_delegation: source_stake_info.last_update_delegated_lamports,
+            validator_index,
+            validator_vote: validator.validator_account,
+            extra_delegated,
+            returned_stake_rent,
+            new_validator_active_balance: validator.active_balance,
+            new_total_active_balance: self.state.validator_system.total_active_balance,
+            new_operational_sol_balance: self.operational_sol_account.lamports(),
+        });
         Ok(())
     }
 }

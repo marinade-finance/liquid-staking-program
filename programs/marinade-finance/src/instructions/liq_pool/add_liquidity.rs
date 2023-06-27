@@ -1,5 +1,6 @@
 use crate::calc::shares_from_value;
 use crate::error::MarinadeError;
+use crate::events::liq_pool::AddLiquidityEvent;
 use crate::state::liq_pool::LiqPool;
 use crate::{require_lte, State};
 use anchor_lang::prelude::*;
@@ -86,6 +87,9 @@ impl<'info> AddLiquidity<'info> {
         );
 
         self.state.liq_pool.lp_supply = self.lp_mint.supply;
+        // save msol price source
+        let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
+        let msol_supply = self.state.msol_supply;
         // we need to compute how many LP-shares to mint for this deposit in the liq-pool
         // in order to do that, we need total liq-pool value, to compute LP-share price
         // liq_pool_total_value = liq_pool_sol_account_pda.lamports() + value_from_msol_tokens(liq_pool_msol_account.token.balance)
@@ -148,6 +152,21 @@ impl<'info> AddLiquidity<'info> {
             shares_for_user,
         )?;
         self.state.liq_pool.on_lp_mint(shares_for_user);
+
+        self.mint_to.reload()?;
+        self.lp_mint.reload()?;
+        emit!(AddLiquidityEvent {
+            state: self.state.key(),
+            sol_owner: self.transfer_from.key(),
+            sol_amount: lamports,
+            lp_minted: shares_for_user,
+            new_user_sol_balance: self.transfer_from.lamports(),
+            new_user_lp_balance: self.mint_to.amount,
+            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
+            new_lp_supply: self.lp_mint.supply,
+            total_virtual_staked_lamports,
+            msol_supply,
+        });
 
         Ok(())
     }

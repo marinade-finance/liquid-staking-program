@@ -8,6 +8,8 @@ use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
+use crate::events::crank::{UpdateActiveEvent, UpdateDeactivatedEvent};
+use crate::events::U64ValueChange;
 use crate::{
     error::MarinadeError,
     state::{
@@ -243,23 +245,29 @@ impl<'info> UpdateCommon<'info> {
     }
 
     #[inline]
-    pub fn update_msol_price(&mut self) -> Result<()> {
+    pub fn update_msol_price(&mut self) -> Result<U64ValueChange> {
         // price is computed as:
         // total_active_balance + total_cooling_down + reserve - circulating_ticket_balance
         // DIVIDED by msol_supply
+        let old = self.state.msol_price;
         self.state.msol_price = self
             .state
             .calc_lamports_from_msol_amount(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
-        Ok(())
+        Ok(U64ValueChange {
+            old,
+            new: self.state.msol_price,
+        })
     }
 
-    pub fn mint_protocol_fees(&mut self, lamports_incoming: u64) -> Result<()> {
+    // returns fees in msol
+    pub fn mint_protocol_fees(&mut self, lamports_incoming: u64) -> Result<u64> {
         // apply x% protocol fee on staking rewards (do this before updating validators' balance, so it's 1% at old, lower, price)
         let protocol_rewards_fee = self.state.reward_fee.apply(lamports_incoming);
         msg!("protocol_rewards_fee {}", protocol_rewards_fee);
         // compute mSOL amount for protocol_rewards_fee
         let fee_as_msol_amount = self.state.calc_msol_from_lamports(protocol_rewards_fee)?;
-        self.mint_to_treasury(fee_as_msol_amount)
+        self.mint_to_treasury(fee_as_msol_amount)?;
+        Ok(fee_as_msol_amount)
     }
 }
 
@@ -272,6 +280,8 @@ impl<'info> UpdateActive<'info> {
     //
     // fn update_active()
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
+        let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
+        let msol_supply = self.state.msol_supply;
         let BeginOutput {
             mut stake,
             is_treasury_msol_ready_for_transfer,
@@ -304,46 +314,70 @@ impl<'info> UpdateActive<'info> {
         // normally extra-lamports in the native stake means MEV rewards
         let extra_lamports = stake_balance_without_rent.saturating_sub(delegated_lamports);
         msg!("Extra lamports in stake balance: {}", extra_lamports);
-        if extra_lamports > 0 {
-            // by withdrawing to reserve, we add to the SOL assets under control, 
+        let extra_msol_fees = if extra_lamports > 0 {
+            // by withdrawing to reserve, we add to the SOL assets under control,
             // and by that we increase the mSOL price
             self.withdraw_to_reserve(extra_lamports)?;
             // after sending to reserve, we take protocol_fees as minted mSOL
             if is_treasury_msol_ready_for_transfer {
-                self.mint_protocol_fees(extra_lamports)?;
+                Some(self.mint_protocol_fees(extra_lamports)?)
+            } else {
+                None
             }
-        }
+        } else {
+            if is_treasury_msol_ready_for_transfer {
+                Some(0)
+            } else {
+                None
+            }
+        };
 
         msg!("current staked lamports {}", delegated_lamports);
-        if delegated_lamports >= stake.last_update_delegated_lamports {
-            // re-delegated by solana rewards
-            let rewards = delegated_lamports - stake.last_update_delegated_lamports;
-            msg!("Staking rewards: {}", rewards);
+        let delegation_growth_msol_fees =
+            if delegated_lamports >= stake.last_update_delegated_lamports {
+                // re-delegated by solana rewards
+                let rewards = delegated_lamports - stake.last_update_delegated_lamports;
+                msg!("Staking rewards: {}", rewards);
 
-            if is_treasury_msol_ready_for_transfer {
-                self.mint_protocol_fees(rewards)?;
-            }
+                let delegation_growth_msol_fees = if is_treasury_msol_ready_for_transfer {
+                    Some(self.mint_protocol_fees(rewards)?)
+                } else {
+                    None
+                };
 
-            // validator active balance is updated with rewards
-            validator.active_balance += rewards;
-            // validator_system.total_active_balance is updated with re-delegated rewards (this impacts price-calculation)
-            self.state.validator_system.total_active_balance += rewards;
-        } else {
-            //slashed
-            let slashed = stake.last_update_delegated_lamports - delegated_lamports;
-            msg!("slashed {}", slashed);
-            //validator balance is updated with slashed
-            validator.active_balance = validator.active_balance.saturating_sub(slashed);
-            self.state.validator_system.total_active_balance = self
-                .state
-                .validator_system
-                .total_active_balance
-                .saturating_sub(slashed);
-        }
+                // validator active balance is updated with rewards
+                validator.active_balance += rewards;
+                // validator_system.total_active_balance is updated with re-delegated rewards (this impacts price-calculation)
+                self.state.validator_system.total_active_balance += rewards;
+                delegation_growth_msol_fees
+            } else {
+                //slashed
+                let slashed = stake.last_update_delegated_lamports - delegated_lamports;
+                msg!("slashed {}", slashed);
+                //validator balance is updated with slashed
+                validator.active_balance = validator.active_balance.saturating_sub(slashed);
+                self.state.validator_system.total_active_balance = self
+                    .state
+                    .validator_system
+                    .total_active_balance
+                    .saturating_sub(slashed);
+                if is_treasury_msol_ready_for_transfer {
+                    Some(0)
+                } else {
+                    None
+                }
+            };
 
         // mark stake-account as visited
         stake.last_update_epoch = self.clock.epoch;
-        stake.last_update_delegated_lamports = delegated_lamports;
+        let delegation_change = {
+            let old = stake.last_update_delegated_lamports;
+            stake.last_update_delegated_lamports = delegated_lamports;
+            U64ValueChange {
+                old,
+                new: delegated_lamports,
+            }
+        };
 
         //update validator-list
         self.state.validator_system.set(
@@ -353,7 +387,7 @@ impl<'info> UpdateActive<'info> {
         )?;
 
         // set new mSOL price
-        self.update_msol_price()?;
+        let msol_price_change = self.update_msol_price()?;
         // save stake record
         self.state.stake_system.set(
             &mut self.stake_list.data.as_ref().borrow_mut(),
@@ -365,6 +399,24 @@ impl<'info> UpdateActive<'info> {
             self.state.available_reserve_balance + self.state.rent_exempt_for_token_acc,
             self.reserve_pda.lamports()
         );
+        emit!(UpdateActiveEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            stake_index,
+            stake_account: stake.stake_account,
+            validator_index,
+            validator_vote: validator.validator_account,
+            delegation_change,
+            delegation_growth_msol_fees,
+            extra_lamports,
+            extra_msol_fees,
+            new_validator_active_balance: validator.active_balance,
+            new_total_active_balance: self.state.validator_system.total_active_balance,
+            msol_price_change,
+            reward_fee_used: self.state.reward_fee,
+            total_virtual_staked_lamports,
+            msol_supply,
+        });
         Ok(())
     }
 }
@@ -376,6 +428,8 @@ impl<'info> UpdateDeactivated<'info> {
     /// Optional Future Expansion: Partial: If the stake-account is a fully-deactivated stake account ready to withdraw,
     /// (cool-down period is complete) delete-withdraw the stake-account, send SOL to reserve-account
     pub fn process(&mut self, stake_index: u32) -> Result<()> {
+        let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
+        let msol_supply = self.state.msol_supply;
         let BeginOutput {
             stake,
             is_treasury_msol_ready_for_transfer,
@@ -407,19 +461,26 @@ impl<'info> UpdateDeactivated<'info> {
         let rent = self.stake_account.meta().unwrap().rent_exempt_reserve;
         let stake_balance_without_rent = self.stake_account.to_account_info().lamports() - rent;
 
-        if stake_balance_without_rent >= stake.last_update_delegated_lamports {
+        let msol_fees = if stake_balance_without_rent >= stake.last_update_delegated_lamports {
             // if there were rewards, mint treasury fee
             // Note: this includes any extra lamports in the stake-account (MEV rewards mostly)
             let rewards = stake_balance_without_rent - stake.last_update_delegated_lamports;
             msg!("Staking rewards: {}", rewards);
             if is_treasury_msol_ready_for_transfer {
-                self.mint_protocol_fees(rewards)?;
+                Some(self.mint_protocol_fees(rewards)?)
+            } else {
+                None
             }
         } else {
             // less than observed last time
             let slashed = stake.last_update_delegated_lamports - stake_balance_without_rent;
             msg!("Slashed {}", slashed);
-        }
+            if is_treasury_msol_ready_for_transfer {
+                Some(0)
+            } else {
+                None
+            }
+        };
 
         // withdraw all to reserve (the stake account will be marked for deletion by the system)
         self.common
@@ -456,13 +517,27 @@ impl<'info> UpdateDeactivated<'info> {
         // We update mSOL price in case we receive "extra deactivating rewards" after the start of Delayed-unstake.
         // Those rewards went into reserve_pda, are part of mSOL price (benefit all stakers) and even might be re-staked
         // set new mSOL price
-        self.update_msol_price()?;
+        let msol_price_change = self.update_msol_price()?;
 
         //remove deleted stake-account from our list
         self.common.state.stake_system.remove(
             &mut self.common.stake_list.data.as_ref().borrow_mut(),
             stake_index,
         )?;
+        emit!(UpdateDeactivatedEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            stake_index,
+            stake_account: stake.stake_account,
+            balance_without_rent_exempt: stake_balance_without_rent,
+            last_update_delegated_lamports: stake.last_update_delegated_lamports,
+            msol_fees,
+            msol_price_change,
+            reward_fee_used: self.state.reward_fee,
+            new_operational_sol_balance: self.operational_sol_account.lamports(),
+            total_virtual_staked_lamports,
+            msol_supply,
+        });
 
         Ok(())
     }

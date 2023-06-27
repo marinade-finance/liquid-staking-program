@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 
+use crate::events::delayed_unstake::ClaimEvent;
 use crate::state::delayed_unstake_ticket::TicketAccountData;
 use crate::MarinadeError;
 use crate::State;
@@ -26,7 +27,7 @@ pub struct Claim<'info> {
 
     #[account(
         mut,
-        close = transfer_sol_to, 
+        close = transfer_sol_to,
         // at the end of this instruction, all lamports from ticket_account go to transfer_sol_to
     )]
     pub ticket_account: Account<'info, TicketAccountData>,
@@ -86,9 +87,8 @@ impl<'info> Claim<'info> {
 
     pub fn process(&mut self) -> Result<()> {
         // fn claim()
-        self.check_ticket_account().map_err(
-            |e| e.with_account_name("ticket_account")
-        )?;
+        self.check_ticket_account()
+            .map_err(|e| e.with_account_name("ticket_account"))?;
 
         let lamports = self.ticket_account.lamports_amount;
 
@@ -108,10 +108,10 @@ impl<'info> Claim<'info> {
         // If circulating_ticket_balance = sum(ticket.balance) is violated we can have a problem
         self.state.circulating_ticket_balance -= lamports;
         self.state.circulating_ticket_count -= 1;
-        //disable ticket-account
+        // disable ticket-account
         self.ticket_account.lamports_amount = 0;
 
-        //transfer sol from reserve_pda to user
+        // transfer sol from reserve_pda to user
         transfer(
             CpiContext::new_with_signer(
                 self.system_program.to_account_info(),
@@ -128,6 +128,18 @@ impl<'info> Claim<'info> {
             lamports,
         )?;
         self.state.on_transfer_from_reserve(lamports)?;
+
+        emit!(ClaimEvent {
+            state: self.state.key(),
+            epoch: self.clock.epoch,
+            ticket: self.ticket_account.key(),
+            beneficiary: self.ticket_account.beneficiary,
+            amount: lamports,
+            new_circulating_ticket_balance: self.state.circulating_ticket_balance,
+            new_circulating_ticket_count: self.state.circulating_ticket_count,
+            new_reserve_balance: self.reserve_pda.lamports(),
+            new_user_balance: self.transfer_sol_to.lamports(),
+        });
 
         Ok(())
     }

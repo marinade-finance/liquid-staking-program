@@ -7,13 +7,14 @@ use error::MarinadeError;
 pub mod calc;
 pub mod checks;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod state;
 
 use instructions::*;
 
-pub use state::State;
 use solana_security_txt::security_txt;
+pub use state::State;
 
 declare_id!("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD");
 
@@ -58,7 +59,8 @@ pub mod marinade_finance {
 
     pub fn initialize(ctx: Context<Initialize>, data: InitializeData) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts.process(data, *ctx.bumps.get("reserve_pda").unwrap())?;
+        ctx.accounts
+            .process(data, *ctx.bumps.get("reserve_pda").unwrap())?;
         Ok(())
     }
 
@@ -219,5 +221,16 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts
             .process(destination_stake_index, source_stake_index, validator_index)
+    }
+
+    pub fn redelegate(
+        ctx: Context<ReDelegate>,
+        stake_index: u32,
+        source_validator_index: u32,
+        dest_validator_index: u32,
+    ) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts
+            .process(stake_index, source_validator_index, dest_validator_index)
     }
 }

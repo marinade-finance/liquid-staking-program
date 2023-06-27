@@ -2,7 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 use crate::{
-    error::MarinadeError, require_lte, state::delayed_unstake_ticket::TicketAccountData, State,
+    error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent, require_lte,
+    state::delayed_unstake_ticket::TicketAccountData, State,
 };
 
 #[derive(Accounts)]
@@ -70,6 +71,9 @@ impl<'info> OrderUnstake<'info> {
         self.check_burn_msol_from(msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
 
+        // save msol price source
+        let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
+        let msol_supply = self.state.msol_supply;
         let lamports_amount = self.state.calc_lamports_from_msol_amount(msol_amount)?;
 
         require_gte!(
@@ -83,7 +87,7 @@ impl<'info> OrderUnstake<'info> {
             .state
             .circulating_ticket_balance
             .checked_add(lamports_amount)
-            .expect("circulating_ticket_balance overflow");
+            .ok_or(MarinadeError::CalculationFailure)?;
         self.state.circulating_ticket_count += 1;
 
         // burn mSOL (no delegate) -- commented here as reference
@@ -113,20 +117,33 @@ impl<'info> OrderUnstake<'info> {
         )?;
         self.state.on_msol_burn(msol_amount)?;
 
-        //initialize new_ticket_account
-        self.new_ticket_account.state_address = *self.state.to_account_info().key;
-        self.new_ticket_account.beneficiary = ticket_beneficiary;
-        self.new_ticket_account.lamports_amount = lamports_amount;
-        // If user calls OrderUnstake after we start the stake/unstake delta (close to the end of the epoch),
-        // we must set ticket-due as if unstaking was asked **next-epoch**
-        // Because there's a delay until the bot actually starts the unstakes
-        // and it's not guaranteed that the unstake for the user will be started this epoch
-        self.new_ticket_account.created_epoch = self.clock.epoch
+        // initialize new_ticket_account
+        let created_epoch = self.clock.epoch
             + if self.clock.epoch == self.state.stake_system.last_stake_delta_epoch {
                 1
             } else {
                 0
             };
+        self.new_ticket_account.set_inner(TicketAccountData {
+            state_address: self.state.key(),
+            beneficiary: ticket_beneficiary,
+            lamports_amount,
+            created_epoch,
+        });
+        self.burn_msol_from.reload()?;
+        emit!(OrderUnstakeEvent {
+            state: self.state.key(),
+            ticket_epoch: created_epoch,
+            ticket: self.new_ticket_account.key(),
+            beneficiary: ticket_beneficiary,
+            sol_amount: lamports_amount,
+            msol_amount,
+            new_circulating_ticket_balance: self.state.circulating_ticket_balance,
+            new_circulating_ticket_count: self.state.circulating_ticket_count,
+            new_user_msol_balance: self.burn_msol_from.amount,
+            total_virtual_staked_lamports,
+            msol_supply,
+        });
 
         Ok(())
     }
