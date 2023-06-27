@@ -66,7 +66,7 @@ pub struct RedelegateEvent {
     pub dest_validator_balance: u64,
     pub dest_validator_stake_target: u64,
     pub redelegate_amount: u64,
-    pub split_stake_account: Option<SplitStakeAccountInfo>, // None if whole stake is redelegating
+    pub split_stake_account: Option<SplitStakeAccountInfo>, // None if whole stake is being redelegated
     pub redelegate_stake_index: u32,
     pub redelegate_stake_account: Pubkey,
 }

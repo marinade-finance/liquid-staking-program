@@ -68,9 +68,10 @@ impl<'info> AddLiquidity<'info> {
             self.state.min_deposit,
             MarinadeError::DepositAmountIsTooLow
         );
+        let user_sol_balance = self.transfer_from.lamports();
         require_lte!(
             lamports,
-            self.transfer_from.lamports(),
+            user_sol_balance,
             MarinadeError::NotEnoughUserFunds
         );
         self.state
@@ -95,34 +96,34 @@ impl<'info> AddLiquidity<'info> {
         // liq_pool_total_value = liq_pool_sol_account_pda.lamports() + value_from_msol_tokens(liq_pool_msol_account.token.balance)
         // shares_for_user = amount * shares_per_lamport => shares_for_user = amount * total_shares/total_value
 
-        //compute current liq-pool total value BEFORE adding user's deposit
-        let sol_leg_lamports = self
+        // compute current liq-pool total value BEFORE adding user's deposit
+        let sol_leg_balance = self
             .liq_pool_sol_leg_pda
             .lamports()
             .checked_sub(self.state.rent_exempt_for_token_acc)
             .expect("sol_leg_lamports");
         let msol_leg_value = self
             .state
-            .calc_lamports_from_msol_amount(self.liq_pool_msol_leg.amount)
-            .expect("msol_leg_value");
-        let total_liq_pool_value = sol_leg_lamports + msol_leg_value;
+            .calc_lamports_from_msol_amount(self.liq_pool_msol_leg.amount)?;
+        let total_liq_pool_value = sol_leg_balance + msol_leg_value;
         msg!(
             "liq_pool SOL:{}, liq_pool mSOL value:{} liq_pool_value:{}",
-            sol_leg_lamports,
+            sol_leg_balance,
             msol_leg_value,
             total_liq_pool_value
         );
 
+        let lp_supply = self.state.liq_pool.lp_supply;
         let shares_for_user = shares_from_value(
             lamports,
             total_liq_pool_value,
-            self.state.liq_pool.lp_supply,
+            lp_supply,
         )?;
 
         msg!("LP for user {}", shares_for_user);
 
-        //we start with a transfer instruction so the user can verify the SOL amount they're staking while approving the transaction
-        //transfer sol into liq-pool sol leg
+        // we start with a transfer instruction so the user can verify the SOL amount they're staking while approving the transaction
+        // transfer sol into liq-pool sol leg
         transfer(
             CpiContext::new(
                 self.system_program.to_account_info(),
@@ -134,7 +135,8 @@ impl<'info> AddLiquidity<'info> {
             lamports,
         )?;
 
-        //mint liq-pool shares (mSOL-SOL-LP tokens) for the user
+        // mint liq-pool shares (mSOL-SOL-LP tokens) for the user
+        let user_lp_balance = self.mint_to.amount;
         mint_to(
             CpiContext::new_with_signer(
                 self.token_program.to_account_info(),
@@ -153,17 +155,16 @@ impl<'info> AddLiquidity<'info> {
         )?;
         self.state.liq_pool.on_lp_mint(shares_for_user);
 
-        self.mint_to.reload()?;
-        self.lp_mint.reload()?;
         emit!(AddLiquidityEvent {
             state: self.state.key(),
             sol_owner: self.transfer_from.key(),
-            sol_amount: lamports,
+            user_sol_balance,
+            user_lp_balance,
+            sol_leg_balance, 
+            lp_supply,
+            sol_added_amount: lamports,
             lp_minted: shares_for_user,
-            new_user_sol_balance: self.transfer_from.lamports(),
-            new_user_lp_balance: self.mint_to.amount,
-            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
-            new_lp_supply: self.lp_mint.supply,
+            // msol price components
             total_virtual_staked_lamports,
             msol_supply,
         });

@@ -6,12 +6,12 @@ use crate::state::Fee;
 pub struct AddLiquidityEvent {
     pub state: Pubkey,
     pub sol_owner: Pubkey,
-    pub sol_amount: u64,
+    pub user_sol_balance: u64,
+    pub user_lp_balance: u64,
+    pub sol_leg_balance: u64,
+    pub lp_supply: u64,
+    pub sol_added_amount: u64,
     pub lp_minted: u64,
-    pub new_user_sol_balance: u64,
-    pub new_user_lp_balance: u64,
-    pub new_sol_leg_balance: u64,
-    pub new_lp_supply: u64,
     // MSOL price used
     pub total_virtual_staked_lamports: u64,
     pub msol_supply: u64,
