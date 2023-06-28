@@ -50,7 +50,7 @@ impl TryFrom<f64> for Fee {
         let basis_points =
             u32::try_from(basis_points_i).map_err(|_| MarinadeError::CalculationFailure)?;
         let fee = Fee::from_basis_points(basis_points);
-        fee.check(source!())?;
+        fee.check()?;
         Ok(fee)
     }
 }
