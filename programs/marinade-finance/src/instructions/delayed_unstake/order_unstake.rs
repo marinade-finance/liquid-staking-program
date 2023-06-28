@@ -37,37 +37,40 @@ pub struct OrderUnstake<'info> {
 }
 
 impl<'info> OrderUnstake<'info> {
-    // returns user msol available balance (can be owner or delegate)
-    fn check_burn_msol_from(&self, msol_amount: u64) -> Result<u64> {
-        let user_msol_balance = if self
+    fn check_burn_msol_from(&self, msol_amount: u64) -> Result<()> {
+        if self
             .burn_msol_from
             .delegate
             .contains(self.burn_msol_authority.key)
         {
             // if delegated, check delegated amount
             // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            self.burn_msol_from.delegated_amount
+            require_lte!(
+                msol_amount,
+                self.burn_msol_from.delegated_amount,
+                MarinadeError::NotEnoughUserFunds
+            );
         } else if self.burn_msol_authority.key() == self.burn_msol_from.owner {
-            self.burn_msol_from.amount
+            require_lte!(
+                msol_amount,
+                self.burn_msol_from.amount,
+                MarinadeError::NotEnoughUserFunds
+            );
         } else {
             return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
                 e.with_account_name("burn_msol_from")
                     .with_pubkeys((self.burn_msol_from.owner, self.burn_msol_authority.key()))
             });
-        };
-        require_lte!(
-            msol_amount,
-            user_msol_balance,
-            MarinadeError::NotEnoughUserFunds
-        );
-        Ok(user_msol_balance)
+        }
+        Ok(())
     }
 
     // fn order_unstake() // create delayed-unstake Ticket-account
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         // fn order_unstake()
-        let user_msol_available = self.check_burn_msol_from(msol_amount)?;
+        self.check_burn_msol_from(msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
+        let user_msol_balance = self.burn_msol_from.amount;
 
         // save msol price source
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
@@ -133,7 +136,7 @@ impl<'info> OrderUnstake<'info> {
             ticket_epoch: created_epoch,
             ticket: self.new_ticket_account.key(),
             beneficiary: ticket_beneficiary,
-            user_msol_available,
+            user_msol_balance,
             burned_msol_amount: msol_amount,
             sol_amount: lamports_amount,
             new_circulating_ticket_balance: self.state.circulating_ticket_balance,

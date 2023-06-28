@@ -19,7 +19,7 @@ pub struct OrderUnstakeEvent {
     pub ticket_epoch: u64,
     pub ticket: Pubkey,
     pub beneficiary: Pubkey,
-    pub user_msol_available: u64,
+    pub user_msol_balance: u64,
     pub burned_msol_amount: u64,
     pub sol_amount: u64,
     pub new_circulating_ticket_balance: u64,
