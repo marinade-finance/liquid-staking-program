@@ -168,7 +168,7 @@ impl<'info> MergeStakes<'info> {
                 &[self.state.stake_system.stake_deposit_bump_seed],
             ]],
         )?;
-        // reread stake after merging
+        // reread stake after merging to properly compute extra_delegated
         self.destination_stake.reload()?;
         // extra_delegated = dest.delegation.stake after merge - (dest.last_update_delegated_lamports + source.last_update_delegated_lamports)
         let extra_delegated = self

@@ -70,6 +70,7 @@ impl<'info> OrderUnstake<'info> {
         // fn order_unstake()
         self.check_burn_msol_from(msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
+        let user_msol_balance = self.burn_msol_from.amount;
 
         // save msol price source
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
@@ -130,17 +131,16 @@ impl<'info> OrderUnstake<'info> {
             lamports_amount,
             created_epoch,
         });
-        self.burn_msol_from.reload()?;
         emit!(OrderUnstakeEvent {
             state: self.state.key(),
             ticket_epoch: created_epoch,
             ticket: self.new_ticket_account.key(),
             beneficiary: ticket_beneficiary,
+            user_msol_balance,
+            burned_msol_amount: msol_amount,
             sol_amount: lamports_amount,
-            msol_amount,
             new_circulating_ticket_balance: self.state.circulating_ticket_balance,
             new_circulating_ticket_count: self.state.circulating_ticket_count,
-            new_user_msol_balance: self.burn_msol_from.amount,
             total_virtual_staked_lamports,
             msol_supply,
         });
