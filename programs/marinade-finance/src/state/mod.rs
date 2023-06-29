@@ -111,7 +111,7 @@ impl State {
     // this fn returns Some(u64) if the treasury account is valid and ready to receive transfers
     // or None if it is not. This fn does not fail on an invalid treasury account, an invalid
     // treasury account configured in State means the protocol does not want to receive fees
-    pub fn check_treasury_msol_account<'info>(
+    pub fn get_treasury_msol_balance<'info>(
         &self,
         treasury_msol_account: &AccountInfo<'info>,
     ) -> Option<u64> {

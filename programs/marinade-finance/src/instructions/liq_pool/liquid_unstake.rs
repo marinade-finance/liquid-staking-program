@@ -90,7 +90,7 @@ impl<'info> LiquidUnstake<'info> {
         let user_msol_balance = self.get_msol_from.amount;
         let treasury_msol_balance = self
             .state
-            .check_treasury_msol_account(&self.treasury_msol_account);
+            .get_treasury_msol_balance(&self.treasury_msol_account);
 
         let liq_pool_msol_balance = self.liq_pool_msol_leg.amount;
         let liq_pool_sol_balance = self
@@ -186,7 +186,6 @@ impl<'info> LiquidUnstake<'info> {
             )?;
         }
 
-        self.get_msol_from.reload()?;
         emit!(LiquidUnstakeEvent {
             state: self.state.key(),
             msol_owner: self.get_msol_from.owner,
