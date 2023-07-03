@@ -36,8 +36,9 @@ pub struct LiquidUnstake<'info> {
         address = state.liq_pool.msol_leg
     )]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
-    #[account(mut)]
+    
     /// CHECK: deserialized in code, must be the one in State (State has_one treasury_msol_account)
+    #[account(mut)]
     pub treasury_msol_account: UncheckedAccount<'info>,
 
     #[account(
