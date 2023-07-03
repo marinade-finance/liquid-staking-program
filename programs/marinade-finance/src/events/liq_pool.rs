@@ -40,13 +40,13 @@ pub struct LiquidUnstakeEvent {
 #[event]
 pub struct RemoveLiquidityEvent {
     pub state: Pubkey,
+    pub sol_leg_balance: u64,
+    pub msol_leg_balance: u64,
+    pub user_lp_balance: u64,
+    pub user_sol_balance: u64,
+    pub user_msol_balance: u64,
+    pub lp_mint_supply: u64,
     pub lp_burned: u64,
     pub sol_out_amount: u64,
     pub msol_out_amount: u64,
-    pub new_sol_leg_balance: u64,
-    pub new_msol_leg_balance: u64,
-    pub new_user_lp_balance: u64,
-    pub new_user_msol_balance: u64,
-    pub new_user_sol_balance: u64,
-    pub new_lp_supply: u64,
 }
