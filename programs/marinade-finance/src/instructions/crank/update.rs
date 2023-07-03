@@ -146,7 +146,7 @@ impl<'info> UpdateCommon<'info> {
     fn begin(&mut self, stake_index: u32) -> Result<BeginOutput> {
         let is_treasury_msol_ready_for_transfer = self
             .state
-            .check_treasury_msol_account(&self.treasury_msol_account)?;
+            .get_treasury_msol_balance(&self.treasury_msol_account).is_some();
 
         let virtual_reserve_balance = self
             .state

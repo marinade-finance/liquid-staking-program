@@ -95,28 +95,34 @@ impl<'info> RemoveLiquidity<'info> {
     pub fn process(&mut self, tokens: u64) -> Result<()> {
         self.check_burn_from(tokens)?;
 
+        let user_lp_balance = self.burn_from.amount;
+        let user_sol_balance = self.transfer_sol_to.lamports();
+        let user_msol_balance = self.transfer_msol_to.amount;
+
+        let sol_leg_balance = self.liq_pool_sol_leg_pda.lamports();
+        let msol_leg_balance = self.liq_pool_msol_leg.amount;
+
         // Update virtual lp_supply by real one
-        if self.lp_mint.supply > self.state.liq_pool.lp_supply {
+        let lp_mint_supply = self.lp_mint.supply;
+        if  lp_mint_supply > self.state.liq_pool.lp_supply {
             msg!("Someone minted lp tokens without our permission or bug found");
             // return an error
         } else {
             // maybe burn
-            self.state.liq_pool.lp_supply = self.lp_mint.supply;
+            self.state.liq_pool.lp_supply = lp_mint_supply;
         }
-
-        msg!("mSOL-SOL-LP total supply:{}", self.lp_mint.supply);
+        msg!("mSOL-SOL-LP total supply:{}", lp_mint_supply);
 
         let sol_out_amount = proportional(
             tokens,
-            self.liq_pool_sol_leg_pda
-                .lamports()
+                sol_leg_balance
                 .checked_sub(self.state.rent_exempt_for_token_acc)
                 .unwrap(),
             self.state.liq_pool.lp_supply, // Use virtual amount
         )?;
         let msol_out_amount = proportional(
             tokens,
-            self.liq_pool_msol_leg.amount,
+            msol_leg_balance,
             self.state.liq_pool.lp_supply, // Use virtual amount
         )?;
 
@@ -185,21 +191,17 @@ impl<'info> RemoveLiquidity<'info> {
         )?;
         self.state.liq_pool.on_lp_burn(tokens)?;
 
-        self.liq_pool_msol_leg.reload()?;
-        self.transfer_msol_to.reload()?;
-        self.burn_from.reload()?;
-        self.lp_mint.reload()?;
         emit!(RemoveLiquidityEvent {
             state: self.state.key(),
+            sol_leg_balance,
+            msol_leg_balance,
+            user_lp_balance,
+            user_sol_balance,
+            user_msol_balance,
+            lp_mint_supply,
             lp_burned: tokens,
             sol_out_amount,
             msol_out_amount,
-            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
-            new_msol_leg_balance: self.liq_pool_msol_leg.amount,
-            new_user_lp_balance: self.burn_from.amount,
-            new_user_msol_balance: self.transfer_msol_to.amount,
-            new_user_sol_balance: self.transfer_sol_to.lamports(),
-            new_lp_supply: self.lp_mint.supply,
         });
 
         Ok(())

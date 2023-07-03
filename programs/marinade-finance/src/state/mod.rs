@@ -108,22 +108,25 @@ impl State {
         Pubkey::create_with_seed(state, Self::VALIDATOR_LIST_SEED, &ID).unwrap()
     }
 
-    pub fn check_treasury_msol_account<'info>(
+    // this fn returns Some(u64) if the treasury account is valid and ready to receive transfers
+    // or None if it is not. This fn does not fail on an invalid treasury account, an invalid
+    // treasury account configured in State means the protocol does not want to receive fees
+    pub fn get_treasury_msol_balance<'info>(
         &self,
         treasury_msol_account: &AccountInfo<'info>,
-    ) -> Result<bool> {
+    ) -> Option<u64> {
         if treasury_msol_account.owner != &spl_token::ID {
             msg!(
                 "treasury_msol_account {} is not a token account",
                 treasury_msol_account.key
             );
-            return Ok(false); // Not an error. Admins may decide to reject fee transfers to themselves
+            return None; // Not an error. Admins may decide to reject fee transfers to themselves
         }
 
         match spl_token::state::Account::unpack(treasury_msol_account.data.borrow().as_ref()) {
             Ok(token_account) => {
                 if token_account.mint == self.msol_mint {
-                    Ok(true)
+                    Some(token_account.amount)
                 } else {
                     msg!(
                         "treasury_msol_account {} has wrong mint {}. Expected {}",
@@ -131,7 +134,7 @@ impl State {
                         token_account.mint,
                         self.msol_mint
                     );
-                    Ok(false) // Not an error. Admins may decide to reject fee transfers to themselves
+                    None // Not an error. Admins may decide to reject fee transfers to themselves
                 }
             }
             Err(e) => {
@@ -140,7 +143,7 @@ impl State {
                     treasury_msol_account.key,
                     e
                 );
-                Ok(false) // Not an error. Admins may decide to reject fee transfers to themselves
+                None // Not an error. Admins may decide to reject fee transfers to themselves
             }
         }
     }
