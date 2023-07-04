@@ -94,10 +94,9 @@ impl<'info> LiquidUnstake<'info> {
             .get_treasury_msol_balance(&self.treasury_msol_account);
 
         let liq_pool_msol_balance = self.liq_pool_msol_leg.amount;
-        let liq_pool_available_sol_balance = self
-            .liq_pool_sol_leg_pda
-            .lamports()
-            .saturating_sub(self.state.rent_exempt_for_token_acc);
+        let liq_pool_sol_balance = self.liq_pool_sol_leg_pda.lamports();
+        let liq_pool_available_sol_balance =
+            liq_pool_sol_balance.saturating_sub(self.state.rent_exempt_for_token_acc);
 
         // fee is computed based on the liquidity *after* the user takes the sol
         let user_remove_lamports = self.state.calc_lamports_from_msol_amount(msol_amount)?;
@@ -191,8 +190,7 @@ impl<'info> LiquidUnstake<'info> {
             state: self.state.key(),
             msol_owner: self.get_msol_from.owner,
             msol_amount,
-            liq_pool_sol_balance: liq_pool_available_sol_balance
-                + self.state.rent_exempt_for_token_acc,
+            liq_pool_sol_balance,
             liq_pool_msol_balance,
             treasury_msol_balance,
             user_msol_balance,
