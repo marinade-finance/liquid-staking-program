@@ -98,6 +98,8 @@ impl<'info> StakeReserve<'info> {
             self.rent.minimum_balance(std::mem::size_of::<StakeState>()),
             MarinadeError::InvalidEmptyStakeBalance
         );
+        // record for event
+        let total_active_balance = self.state.validator_system.total_active_balance;
 
         let staker = Pubkey::create_program_address(
             &[
@@ -133,11 +135,7 @@ impl<'info> StakeReserve<'info> {
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
         let total_stake_delta = u64::try_from(stake_delta).expect("Stake delta overflow");
-        let total_stake_target = self
-            .state
-            .validator_system
-            .total_active_balance
-            .saturating_add(total_stake_delta);
+        let total_stake_target = total_active_balance.saturating_add(total_stake_delta);
 
         let mut validator = self
             .state
@@ -148,6 +146,8 @@ impl<'info> StakeReserve<'info> {
                 self.validator_vote.key,
             )
             .map_err(|e| e.with_account_name("validator_vote"))?;
+        // record for event
+        let validator_active_balance = validator.active_balance;
 
         if validator.last_stake_delta_epoch == self.clock.epoch {
             // check if we have some extra stake runs allowed
@@ -181,7 +181,7 @@ impl<'info> StakeReserve<'info> {
             .validator_stake_target(&validator, total_stake_target)?;
 
         //verify the validator is under-staked
-        if validator.active_balance >= validator_stake_target {
+        if validator_active_balance >= validator_stake_target {
             msg!(
                     "Validator {} has already reached stake target {}. Please stake into another validator",
                     validator.validator_account,
@@ -193,7 +193,7 @@ impl<'info> StakeReserve<'info> {
         // compute stake_target
         // stake_target = target_validator_balance - validator.balance, at least self.state.min_stake and at most delta_stake
         let stake_target = validator_stake_target
-            .saturating_sub(validator.active_balance)
+            .saturating_sub(validator_active_balance)
             .max(self.state.stake_system.min_stake)
             .min(total_stake_delta);
 
@@ -271,10 +271,8 @@ impl<'info> StakeReserve<'info> {
             0, // is_emergency_unstaking? no
         )?;
 
-        validator.active_balance = validator
-            .active_balance
-            .checked_add(stake_target)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        // update validator record and store in list
+        validator.active_balance += stake_target;
         validator.last_stake_delta_epoch = self.clock.epoch;
         // Any stake-delta activity must activate stake delta mode
         self.state.stake_system.last_stake_delta_epoch = self.clock.epoch;
@@ -283,12 +281,9 @@ impl<'info> StakeReserve<'info> {
             validator_index,
             validator,
         )?;
-        self.state.validator_system.total_active_balance = self
-            .state
-            .validator_system
-            .total_active_balance
-            .checked_add(stake_target)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        // update also total_active_balance
+        self.state.validator_system.total_active_balance += stake_target;
+
         emit!(StakeReserveEvent {
             state: self.state.key(),
             epoch: self.clock.epoch,
@@ -299,9 +294,9 @@ impl<'info> StakeReserve<'info> {
             amount: stake_target,
             total_stake_target,
             validator_stake_target,
-            new_reserve_balance: self.reserve_pda.lamports(),
-            new_total_active_balance: self.state.validator_system.total_active_balance,
-            new_validator_active_balance: validator.active_balance,
+            reserve_balance,
+            total_active_balance,
+            validator_active_balance,
             total_stake_delta,
         });
         Ok(())

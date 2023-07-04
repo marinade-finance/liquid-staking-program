@@ -146,7 +146,8 @@ impl<'info> UpdateCommon<'info> {
     fn begin(&mut self, stake_index: u32) -> Result<BeginOutput> {
         let is_treasury_msol_ready_for_transfer = self
             .state
-            .get_treasury_msol_balance(&self.treasury_msol_account).is_some();
+            .get_treasury_msol_balance(&self.treasury_msol_account)
+            .is_some();
 
         let virtual_reserve_balance = self
             .state
@@ -296,6 +297,9 @@ impl<'info> UpdateActive<'info> {
             validator_index,
             &delegation.voter_pubkey,
         )?;
+        // record for event
+        let validator_active_balance = validator.active_balance;
+        let total_active_balance = self.state.validator_system.total_active_balance;
 
         // require stake is active (deactivation_epoch == u64::MAX)
         require_eq!(
@@ -356,11 +360,8 @@ impl<'info> UpdateActive<'info> {
                 msg!("slashed {}", slashed);
                 //validator balance is updated with slashed
                 validator.active_balance = validator.active_balance.saturating_sub(slashed);
-                self.state.validator_system.total_active_balance = self
-                    .state
-                    .validator_system
-                    .total_active_balance
-                    .saturating_sub(slashed);
+                self.state.validator_system.total_active_balance =
+                    total_active_balance.saturating_sub(slashed);
                 if is_treasury_msol_ready_for_transfer {
                     Some(0)
                 } else {
@@ -410,8 +411,8 @@ impl<'info> UpdateActive<'info> {
             delegation_growth_msol_fees,
             extra_lamports,
             extra_msol_fees,
-            new_validator_active_balance: validator.active_balance,
-            new_total_active_balance: self.state.validator_system.total_active_balance,
+            validator_active_balance,
+            total_active_balance,
             msol_price_change,
             reward_fee_used: self.state.reward_fee,
             total_virtual_staked_lamports,
@@ -430,6 +431,7 @@ impl<'info> UpdateDeactivated<'info> {
     pub fn process(&mut self, stake_index: u32) -> Result<()> {
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
+        let operational_sol_balance = self.operational_sol_account.lamports();
         let BeginOutput {
             stake,
             is_treasury_msol_ready_for_transfer,
@@ -534,7 +536,7 @@ impl<'info> UpdateDeactivated<'info> {
             msol_fees,
             msol_price_change,
             reward_fee_used: self.state.reward_fee,
-            new_operational_sol_balance: self.operational_sol_account.lamports(),
+            operational_sol_balance,
             total_virtual_staked_lamports,
             msol_supply,
         });

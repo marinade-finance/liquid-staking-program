@@ -76,10 +76,16 @@ impl<'info> MergeStakes<'info> {
         source_stake_index: u32,
         validator_index: u32,
     ) -> Result<()> {
+
         let mut validator = self
             .state
             .validator_system
             .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
+
+        // record for event
+        let validator_active_balance = validator.active_balance;
+        let total_active_balance = self.state.validator_system.total_active_balance;
+        let operational_sol_balance = self.operational_sol_account.lamports();
 
         let mut destination_stake_info = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
@@ -193,21 +199,16 @@ impl<'info> MergeStakes<'info> {
             .rent_exempt_reserve
             .checked_sub(extra_delegated)
             .ok_or(MarinadeError::CalculationFailure)?;
-        validator.active_balance = validator
-            .active_balance
-            .checked_add(extra_delegated)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        // update validator.active_balance
+        validator.active_balance += extra_delegated;
+        // store in list
         self.state.validator_system.set(
             &mut self.validator_list.data.as_ref().borrow_mut(),
             validator_index,
             validator,
         )?;
-        self.state.validator_system.total_active_balance = self
-            .state
-            .validator_system
-            .total_active_balance
-            .checked_add(extra_delegated)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        // update also total_active_balance
+        self.state.validator_system.total_active_balance += extra_delegated;
 
         destination_stake_info.last_update_delegated_lamports =
             self.destination_stake.delegation().unwrap().stake;
@@ -256,9 +257,9 @@ impl<'info> MergeStakes<'info> {
             validator_vote: validator.validator_account,
             extra_delegated,
             returned_stake_rent,
-            new_validator_active_balance: validator.active_balance,
-            new_total_active_balance: self.state.validator_system.total_active_balance,
-            new_operational_sol_balance: self.operational_sol_account.lamports(),
+            validator_active_balance,
+            total_active_balance,
+            operational_sol_balance,
         });
         Ok(())
     }

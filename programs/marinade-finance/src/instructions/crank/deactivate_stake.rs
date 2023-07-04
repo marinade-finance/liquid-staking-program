@@ -1,8 +1,6 @@
 use crate::{
     error::MarinadeError,
-    events::{
-        crank::{DeactivateStakeEvent, SplitStakeAccountInfo},
-    },
+    events::crank::{DeactivateStakeEvent, SplitStakeAccountInfo},
     require_lt,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State,
@@ -129,11 +127,8 @@ impl<'info> DeactivateStake<'info> {
         let total_unstake_delta =
             u64::try_from(-total_stake_delta_i128).expect("Unstake delta overflow");
         // compute total target stake (current total active stake minus delta)
-        let total_stake_target = self
-            .state
-            .validator_system
-            .total_active_balance
-            .saturating_sub(total_unstake_delta);
+        let total_active_balance = self.state.validator_system.total_active_balance; // record for event
+        let total_stake_target = total_active_balance.saturating_sub(total_unstake_delta);
 
         // check currently_staked in this account & validator vote-key
         check_stake_amount_and_validator(
@@ -149,7 +144,8 @@ impl<'info> DeactivateStake<'info> {
             .validator_stake_target(&validator, total_stake_target)?;
 
         // compute how much we should unstake from this validator
-        if validator.active_balance <= validator_stake_target {
+        let validator_active_balance = validator.active_balance; // record for event
+        if validator_active_balance <= validator_stake_target {
             msg!(
                 "Validator {} has already reached unstake target {}",
                 validator.validator_account,
@@ -157,7 +153,7 @@ impl<'info> DeactivateStake<'info> {
             );
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
-        let unstake_from_validator = validator.active_balance - validator_stake_target;
+        let unstake_from_validator = validator_active_balance - validator_stake_target;
         msg!(
             "unstake {} from_validator {}",
             unstake_from_validator,
@@ -309,12 +305,9 @@ impl<'info> DeactivateStake<'info> {
             .total_active_balance
             .checked_sub(unstaked_amount)
             .ok_or(MarinadeError::CalculationFailure)?;
-        self.state.stake_system.delayed_unstake_cooling_down = self
-            .state
-            .stake_system
-            .delayed_unstake_cooling_down
-            .checked_add(unstaked_amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        // record for event and update
+        let delayed_unstake_cooling_down = self.state.stake_system.delayed_unstake_cooling_down;
+        self.state.stake_system.delayed_unstake_cooling_down += unstaked_amount;
 
         // update stake-list & validator-list
         self.state.stake_system.set(
@@ -345,13 +338,13 @@ impl<'info> DeactivateStake<'info> {
             },
             validator_index,
             validator_vote: validator.validator_account,
-            unstaked_amount,
             total_stake_target,
             validator_stake_target,
-            new_total_active_balance: self.state.validator_system.total_active_balance,
-            new_delayed_unstake_cooling_down: self.state.stake_system.delayed_unstake_cooling_down,
-            new_validator_active_balance: validator.active_balance,
+            total_active_balance,
+            delayed_unstake_cooling_down,
+            validator_active_balance,
             total_unstake_delta,
+            unstaked_amount,
         });
 
         Ok(())
