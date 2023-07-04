@@ -36,7 +36,7 @@ pub struct LiquidUnstake<'info> {
         address = state.liq_pool.msol_leg
     )]
     pub liq_pool_msol_leg: Box<Account<'info, TokenAccount>>,
-    
+
     /// CHECK: deserialized in code, must be the one in State (State has_one treasury_msol_account)
     #[account(mut)]
     pub treasury_msol_account: UncheckedAccount<'info>,
@@ -94,18 +94,18 @@ impl<'info> LiquidUnstake<'info> {
             .get_treasury_msol_balance(&self.treasury_msol_account);
 
         let liq_pool_msol_balance = self.liq_pool_msol_leg.amount;
-        let liq_pool_sol_balance = self
+        let liq_pool_available_sol_balance = self
             .liq_pool_sol_leg_pda
             .lamports()
             .saturating_sub(self.state.rent_exempt_for_token_acc);
 
         // fee is computed based on the liquidity *after* the user takes the sol
         let user_remove_lamports = self.state.calc_lamports_from_msol_amount(msol_amount)?;
-        let liquid_unstake_fee = if user_remove_lamports >= liq_pool_sol_balance {
+        let liquid_unstake_fee = if user_remove_lamports >= liq_pool_available_sol_balance {
             // user is removing all liquidity
             self.state.liq_pool.lp_max_fee
         } else {
-            let after_lamports = liq_pool_sol_balance - user_remove_lamports; //how much will be left?
+            let after_lamports = liq_pool_available_sol_balance - user_remove_lamports; //how much will be left?
             self.state.liq_pool.linear_fee(after_lamports)
         };
 
@@ -191,7 +191,8 @@ impl<'info> LiquidUnstake<'info> {
             state: self.state.key(),
             msol_owner: self.get_msol_from.owner,
             msol_amount,
-            liq_pool_sol_balance,
+            liq_pool_sol_balance: liq_pool_available_sol_balance
+                + self.state.rent_exempt_for_token_acc,
             liq_pool_msol_balance,
             treasury_msol_balance,
             user_msol_balance,

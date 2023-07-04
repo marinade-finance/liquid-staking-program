@@ -97,7 +97,7 @@ impl<'info> AddLiquidity<'info> {
         // shares_for_user = amount * shares_per_lamport => shares_for_user = amount * total_shares/total_value
 
         // compute current liq-pool total value BEFORE adding user's deposit
-        let sol_leg_balance = self
+        let sol_leg_available_balance = self
             .liq_pool_sol_leg_pda
             .lamports()
             .checked_sub(self.state.rent_exempt_for_token_acc)
@@ -105,20 +105,16 @@ impl<'info> AddLiquidity<'info> {
         let msol_leg_value = self
             .state
             .calc_lamports_from_msol_amount(self.liq_pool_msol_leg.amount)?;
-        let total_liq_pool_value = sol_leg_balance + msol_leg_value;
+        let total_liq_pool_value = sol_leg_available_balance + msol_leg_value;
         msg!(
             "liq_pool SOL:{}, liq_pool mSOL value:{} liq_pool_value:{}",
-            sol_leg_balance,
+            sol_leg_available_balance,
             msol_leg_value,
             total_liq_pool_value
         );
 
         let lp_supply = self.state.liq_pool.lp_supply;
-        let shares_for_user = shares_from_value(
-            lamports,
-            total_liq_pool_value,
-            lp_supply,
-        )?;
+        let shares_for_user = shares_from_value(lamports, total_liq_pool_value, lp_supply)?;
 
         msg!("LP for user {}", shares_for_user);
 
@@ -160,7 +156,7 @@ impl<'info> AddLiquidity<'info> {
             sol_owner: self.transfer_from.key(),
             user_sol_balance,
             user_lp_balance,
-            sol_leg_balance, 
+            sol_leg_balance: sol_leg_available_balance - self.state.rent_exempt_for_token_acc,
             lp_supply,
             sol_added_amount: lamports,
             lp_minted: shares_for_user,
