@@ -192,7 +192,7 @@ impl<'info> LiquidUnstake<'info> {
             msol_owner: self.get_msol_from.owner,
             msol_amount,
             liq_pool_sol_balance: liq_pool_available_sol_balance
-                - self.state.rent_exempt_for_token_acc,
+                + self.state.rent_exempt_for_token_acc,
             liq_pool_msol_balance,
             treasury_msol_balance,
             user_msol_balance,

@@ -156,7 +156,7 @@ impl<'info> AddLiquidity<'info> {
             sol_owner: self.transfer_from.key(),
             user_sol_balance,
             user_lp_balance,
-            sol_leg_balance: sol_leg_available_balance - self.state.rent_exempt_for_token_acc,
+            sol_leg_balance: sol_leg_available_balance + self.state.rent_exempt_for_token_acc,
             lp_supply,
             sol_added_amount: lamports,
             lp_minted: shares_for_user,
