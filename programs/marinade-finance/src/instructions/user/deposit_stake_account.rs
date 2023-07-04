@@ -95,6 +95,8 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::UnregisteredMsolMinted
         );
 
+        // record values for event log
+        let user_msol_balance = self.mint_to.amount;
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
 
@@ -109,15 +111,14 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::RequiredActiveStake
         );
 
+        // require the stake is active for 2 epochs at least
         require_gte!(
             self.clock.epoch,
-            delegation
-                .activation_epoch
-                .checked_add(Self::WAIT_EPOCHS)
-                .unwrap(),
+            delegation.activation_epoch + Self::WAIT_EPOCHS,
             MarinadeError::DepositingNotActivatedStake
         );
 
+        // require the stake amount is at least min_stake
         require_gte!(
             delegation.stake,
             self.state.stake_system.min_stake,
@@ -143,7 +144,7 @@ impl<'info> DepositStakeAccount<'info> {
                 .map_err(|e| e.with_account_name("stake_account"));
         }
 
-        let new_validator_active_balance = if validator_index == self.state.validator_system.validator_count() {
+        let validator_active_balance = if validator_index == self.state.validator_system.validator_count() {
             if self.state.validator_system.auto_add_validator_enabled == 0 {
                 return err!(MarinadeError::AutoAddValidatorIsNotEnabled);
             }
@@ -194,7 +195,7 @@ impl<'info> DepositStakeAccount<'info> {
                     )
                 },
             )?;
-            delegation.stake
+            0
         } else {
             let mut validator = self.state.validator_system.get_checked(
                 &self.validator_list.data.as_ref().borrow(),
@@ -202,16 +203,16 @@ impl<'info> DepositStakeAccount<'info> {
                 &delegation.voter_pubkey,
             )?;
 
-            validator.active_balance = validator
-                .active_balance
-                .checked_add(delegation.stake)
-                .ok_or(MarinadeError::CalculationFailure)?;
+            // record balance for event log
+            let current_active_balance = validator.active_balance;
+            // update validator.active_balance
+            validator.active_balance += delegation.stake;
             self.state.validator_system.set(
                 &mut self.validator_list.data.as_ref().borrow_mut(),
                 validator_index,
                 validator,
             )?;
-            validator.active_balance
+            current_active_balance
         };
 
         {
@@ -332,26 +333,23 @@ impl<'info> DepositStakeAccount<'info> {
         )?;
         self.state.on_msol_mint(msol_to_mint);
 
-        self.state.validator_system.total_active_balance = self
-            .state
-            .validator_system
-            .total_active_balance
-            .checked_add(delegation.stake)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        // record current total_active_balance for the event log
+        let total_active_balance = self.state.validator_system.total_active_balance;
+        // update total_active_balance
+        self.state.validator_system.total_active_balance += delegation.stake;
 
-        self.mint_to.reload()?;
         emit!(DepositStakeAccountEvent {
             state: self.state.key(),
             stake: self.stake_account.key(),
+            delegated: delegation.stake,
+            withdrawer: old_withdrawer,
             stake_index: self.state.stake_system.stake_count() - 1,
             validator: delegation.voter_pubkey,
             validator_index,
-            delegated: delegation.stake,
-            withdrawer: old_withdrawer,
+            validator_active_balance,
+            total_active_balance,
+            user_msol_balance,
             msol_minted: msol_to_mint,
-            new_user_msol_balance: self.mint_to.amount,
-            new_validator_active_balance,
-            new_total_active_balance: self.state.validator_system.total_active_balance,
             total_virtual_staked_lamports,
             msol_supply
         });

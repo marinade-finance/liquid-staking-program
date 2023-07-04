@@ -92,11 +92,17 @@ impl<'info> Deposit<'info> {
             self.state.min_deposit,
             MarinadeError::DepositAmountIsTooLow
         );
-        require_lte!(
+        let user_sol_balance = self.transfer_from.lamports();
+        require_gte!(
+            user_sol_balance,
             lamports,
-            self.transfer_from.lamports(),
             MarinadeError::NotEnoughUserFunds
         );
+
+        // store for event log
+        let user_msol_balance = self.mint_to.amount;
+        let reserve_balance = self.reserve_pda.lamports();
+        let sol_leg_balance = self.liq_pool_sol_leg_pda.lamports();
 
         // impossible to happen check outside bug (msol mint auth is a PDA)
         require_lte!(
@@ -117,7 +123,8 @@ impl<'info> Deposit<'info> {
         //so, if we can, the LiqPool "sells" mSOL to the user (no fee)
         //
         // At max, we can sell all the mSOL in the LiqPool.mSOL_leg
-        let msol_swapped: u64 = user_msol_buy_order.min(self.liq_pool_msol_leg.amount);
+        let msol_leg_balance = self.liq_pool_msol_leg.amount;
+        let msol_swapped: u64 = user_msol_buy_order.min(msol_leg_balance);
         msg!("--- swap_m_sol_max {}", msol_swapped);
 
         //if we can sell from the LiqPool
@@ -217,20 +224,18 @@ impl<'info> Deposit<'info> {
             0
         };
 
-        self.mint_to.reload()?;
-        self.liq_pool_msol_leg.reload()?;
         emit!(DepositEvent {
             state: self.state.key(),
             sol_owner: self.transfer_from.key(),
+            user_sol_balance,
+            user_msol_balance,
+            sol_leg_balance,
+            msol_leg_balance,
+            reserve_balance,
             sol_swapped,
             msol_swapped,
             sol_deposited,
             msol_minted,
-            new_user_sol_balance: self.transfer_from.lamports(),
-            new_user_msol_balance: self.mint_to.amount,
-            new_sol_leg_balance: self.liq_pool_sol_leg_pda.lamports(),
-            new_msol_leg_balance: self.liq_pool_msol_leg.amount,
-            new_reserve_balance: self.reserve_pda.lamports(),
             total_virtual_staked_lamports,
             msol_supply
         });
