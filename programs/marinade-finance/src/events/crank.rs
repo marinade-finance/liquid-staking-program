@@ -20,13 +20,13 @@ pub struct DeactivateStakeEvent {
     pub split_stake_account: Option<SplitStakeAccountInfo>, // None if whole stake is deactivating
     pub validator_index: u32,
     pub validator_vote: Pubkey,
-    pub unstaked_amount: u64,
     pub total_stake_target: u64,
     pub validator_stake_target: u64,
-    pub new_total_active_balance: u64,
-    pub new_delayed_unstake_cooling_down: u64,
-    pub new_validator_active_balance: u64,
+    pub total_active_balance: u64,
+    pub delayed_unstake_cooling_down: u64,
+    pub validator_active_balance: u64,
     pub total_unstake_delta: u64,
+    pub unstaked_amount: u64,
 }
 
 #[event]
@@ -43,9 +43,9 @@ pub struct MergeStakesEvent {
     pub validator_vote: Pubkey,
     pub extra_delegated: u64,
     pub returned_stake_rent: u64,
-    pub new_validator_active_balance: u64,
-    pub new_total_active_balance: u64,
-    pub new_operational_sol_balance: u64,
+    pub validator_active_balance: u64,
+    pub total_active_balance: u64,
+    pub operational_sol_balance: u64,
 }
 
 #[event]
@@ -79,13 +79,13 @@ pub struct StakeReserveEvent {
     pub stake_account: Pubkey,
     pub validator_index: u32,
     pub validator_vote: Pubkey,
-    pub amount: u64,
     pub total_stake_target: u64,
     pub validator_stake_target: u64,
-    pub new_reserve_balance: u64,
-    pub new_total_active_balance: u64,
-    pub new_validator_active_balance: u64,
+    pub reserve_balance: u64,
+    pub total_active_balance: u64,
+    pub validator_active_balance: u64,
     pub total_stake_delta: u64,
+    pub amount: u64,
 }
 
 #[event]
@@ -100,8 +100,8 @@ pub struct UpdateActiveEvent {
     pub delegation_growth_msol_fees: Option<u64>,
     pub extra_lamports: u64,
     pub extra_msol_fees: Option<u64>,
-    pub new_validator_active_balance: u64,
-    pub new_total_active_balance: u64,
+    pub validator_active_balance: u64,
+    pub total_active_balance: u64,
     pub msol_price_change: U64ValueChange,
     pub reward_fee_used: Fee,
     // MSOL price used
@@ -120,7 +120,7 @@ pub struct UpdateDeactivatedEvent {
     pub msol_fees: Option<u64>,
     pub msol_price_change: U64ValueChange,
     pub reward_fee_used: Fee,
-    pub new_operational_sol_balance: u64,
+    pub operational_sol_balance: u64,
     // MSOL price used
     pub total_virtual_staked_lamports: u64,
     pub msol_supply: u64,
