@@ -83,28 +83,14 @@ impl<'info> OrderUnstake<'info> {
             MarinadeError::WithdrawAmountIsTooLow
         );
 
+        // record for event and then update
+        let circulating_ticket_balance = self.state.circulating_ticket_balance;
+        let circulating_ticket_count = self.state.circulating_ticket_count;
         // circulating_ticket_balance +
-        self.state.circulating_ticket_balance = self
-            .state
-            .circulating_ticket_balance
-            .checked_add(lamports_amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        self.state.circulating_ticket_balance += lamports_amount;
         self.state.circulating_ticket_count += 1;
 
-        // burn mSOL (no delegate) -- commented here as reference
-        // burn(
-        //     CpiContext::new(
-        //         self.token_program.clone(),
-        //         Burn {
-        //             mint: self.msol_mint.to_account_info(),
-        //             to: self.burn_msol_from.to_account_info(),
-        //             authority: self.ticket_beneficiary.clone(),
-        //         },
-        //     ),
-        //     msol_amount,
-        // )?;
-        // --------
-        //burn mSOL (with_token_delegate_authority_seeds)
+        // burn mSOL
         burn(
             CpiContext::new(
                 self.token_program.to_account_info(),
@@ -137,10 +123,10 @@ impl<'info> OrderUnstake<'info> {
             ticket: self.new_ticket_account.key(),
             beneficiary: ticket_beneficiary,
             user_msol_balance,
+            circulating_ticket_count,
+            circulating_ticket_balance,
             burned_msol_amount: msol_amount,
             sol_amount: lamports_amount,
-            new_circulating_ticket_balance: self.state.circulating_ticket_balance,
-            new_circulating_ticket_count: self.state.circulating_ticket_count,
             total_virtual_staked_lamports,
             msol_supply,
         });

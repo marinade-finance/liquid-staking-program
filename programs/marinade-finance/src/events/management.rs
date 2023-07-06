@@ -10,7 +10,7 @@ pub struct AddValidatorEvent {
     pub score: u32,
 }
 
-// TODO: EmergenyUnstake
+// TODO: EmergencyUnstake
 // TODO: PartialUnstake
 
 #[event]
@@ -18,7 +18,7 @@ pub struct RemoveValidatorEvent {
     pub state: Pubkey,
     pub validator: Pubkey,
     pub index: u32,
-    pub new_operational_sol_balance: u64,
+    pub operational_sol_balance: u64,
 }
 
 #[event]

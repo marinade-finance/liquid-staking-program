@@ -90,11 +90,13 @@ impl<'info> Claim<'info> {
         self.check_ticket_account()
             .map_err(|e| e.with_account_name("ticket_account"))?;
 
+        // record for event, use real balance not virtual field
+        let user_balance = self.transfer_sol_to.lamports();
+        let reserve_balance = self.reserve_pda.lamports();
         let lamports = self.ticket_account.lamports_amount;
 
-        // Real balance not virtual field
-        let available_for_claim =
-            self.reserve_pda.lamports() - self.state.rent_exempt_for_token_acc;
+        // use real balance not virtual field
+        let available_for_claim = reserve_balance - self.state.rent_exempt_for_token_acc;
         if lamports > available_for_claim {
             msg!(
                 "Requested to claim {} when only {} ready. Wait a few hours and retry",
@@ -105,6 +107,9 @@ impl<'info> Claim<'info> {
             return err!(MarinadeError::TicketNotReady);
         }
 
+        // record for event and then update
+        let circulating_ticket_balance = self.state.circulating_ticket_balance;
+        let circulating_ticket_count = self.state.circulating_ticket_count;
         // If circulating_ticket_balance = sum(ticket.balance) is violated we can have a problem
         self.state.circulating_ticket_balance -= lamports;
         self.state.circulating_ticket_count -= 1;
@@ -134,11 +139,11 @@ impl<'info> Claim<'info> {
             epoch: self.clock.epoch,
             ticket: self.ticket_account.key(),
             beneficiary: self.ticket_account.beneficiary,
+            circulating_ticket_balance,
+            circulating_ticket_count,
+            reserve_balance,
+            user_balance,
             amount: lamports,
-            new_circulating_ticket_balance: self.state.circulating_ticket_balance,
-            new_circulating_ticket_count: self.state.circulating_ticket_count,
-            new_reserve_balance: self.reserve_pda.lamports(),
-            new_user_balance: self.transfer_sol_to.lamports(),
         });
 
         Ok(())
