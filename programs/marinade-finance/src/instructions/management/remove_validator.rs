@@ -67,6 +67,8 @@ impl<'info> RemoveValidator<'info> {
             validator,
         )?;
 
+        // record for event, then remove all flag-account lamports to remove flag
+        let operational_sol_balance = self.operational_sol_account.lamports();
         let rent_return = self.duplication_flag.lamports();
         **self.duplication_flag.try_borrow_mut_lamports()? = 0;
         **self.operational_sol_account.try_borrow_mut_lamports()? += rent_return;
@@ -75,7 +77,7 @@ impl<'info> RemoveValidator<'info> {
             state: self.state.key(),
             validator: validator_vote,
             index,
-            new_operational_sol_balance: self.operational_sol_account.lamports(),
+            operational_sol_balance,
         });
 
         Ok(())
