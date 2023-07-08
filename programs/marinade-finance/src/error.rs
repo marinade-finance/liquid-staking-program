@@ -227,8 +227,24 @@ pub enum MarinadeError {
     UnregisteredLPMinted, // 6072
 
     #[msg("List index out of bounds")]
-    ListIndexOutOfBounds,
+    ListIndexOutOfBounds, // 6073
 
     #[msg("List overflow")]
-    ListOverflow,
+    ListOverflow, // 6074
+
+    #[msg("Requested pause and already Paused")]
+    AlreadyPaused, // 6075
+
+    #[msg("Requested un-pause, but not Paused")]
+    NotPaused, // 6076
+
+    #[msg("Can not re-pause immediately")]
+    TooSoonToRePause, // 6077
+
+    #[msg("Emergency Pause is Active")]
+    ProgramIsPaused, // 6078
+
+    #[msg("Invalid pause authority")]
+    InvalidPauseAuthority, // 6079
+
 }

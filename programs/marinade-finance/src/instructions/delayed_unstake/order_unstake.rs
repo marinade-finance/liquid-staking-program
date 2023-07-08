@@ -68,6 +68,7 @@ impl<'info> OrderUnstake<'info> {
     // fn order_unstake() // create delayed-unstake Ticket-account
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         // fn order_unstake()
+        self.state.check_paused()?;
         self.check_burn_msol_from(msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
         let user_msol_balance = self.burn_msol_from.amount;

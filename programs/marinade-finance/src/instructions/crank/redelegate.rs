@@ -119,6 +119,7 @@ impl<'info> ReDelegate<'info> {
             MarinadeError::SourceAndDestValidatorsAreTheSame
         );
 
+        self.state.check_paused()?;
         // only allow redelegation in the stake/unstake window at the end of the epoch
         {
             let last_slot = EpochSchedule::get()

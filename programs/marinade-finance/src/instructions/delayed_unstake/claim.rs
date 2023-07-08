@@ -87,6 +87,7 @@ impl<'info> Claim<'info> {
 
     pub fn process(&mut self) -> Result<()> {
         // fn claim()
+        self.state.check_paused()?;
         self.check_ticket_account()
             .map_err(|e| e.with_account_name("ticket_account"))?;
 

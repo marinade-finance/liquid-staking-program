@@ -11,6 +11,7 @@ pub struct ChangeAuthorityEvent {
     pub validator_manager_change: Option<PubkeyValueChange>,
     pub operational_sol_account_change: Option<PubkeyValueChange>,
     pub treasury_msol_account_change: Option<PubkeyValueChange>,
+    pub pause_authority_change: Option<PubkeyValueChange>,
 }
 
 #[event]
@@ -48,4 +49,12 @@ pub struct InitializeEvent {
     pub lp_mint: Pubkey,
     pub lp_msol_leg: Pubkey,
     pub treasury_msol_account: Pubkey,
+}
+
+#[event]
+pub struct EmergencyPauseEvent {
+    pub state: Pubkey,
+    pub resume_at_epoch: u64,
+    pub set_pause: bool,
+    pub result_resume_at_epoch: u64,
 }

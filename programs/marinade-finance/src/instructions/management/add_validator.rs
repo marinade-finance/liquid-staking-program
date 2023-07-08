@@ -52,6 +52,7 @@ pub struct AddValidator<'info> {
 
 impl<'info> AddValidator<'info> {
     pub fn process(&mut self, score: u32) -> Result<()> {
+        self.state.check_paused()?;
         msg!("Add validator {}", self.validator_vote.key);
 
         let state_address = self.state.key();

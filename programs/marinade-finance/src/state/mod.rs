@@ -66,6 +66,10 @@ pub struct State {
     pub staking_sol_cap: u64,
 
     pub emergency_cooling_down: u64,
+
+    /// emergency pause
+    pub pause_authority: Pubkey,
+    pub resume_at_epoch: u64,
 }
 
 impl State {
@@ -80,6 +84,8 @@ impl State {
 
     pub const MAX_REWARD_FEE: Fee = Fee::from_basis_points(1_000); // 10% max reward fee
     pub const MAX_WITHDRAW_ATOM: u64 = LAMPORTS_PER_SOL / 10;
+
+    pub const PAUSE_MAX_EPOCHS: u64 = 12; // 12 epochs is approx 27 days
 
     pub fn serialized_len() -> usize {
         unsafe { MaybeUninit::<Self>::zeroed().assume_init() }
@@ -255,13 +261,46 @@ impl State {
         Ok(())
     }
 
-    /*
-    pub fn register_stake_order(&mut self, lamports_amount: u64) {
-        self.epoch_stake_orders += lamports_amount;
+    // ---------------
+    // EMERGENCY PAUSE
+    // ---------------
+
+    // is paused if `MAX_PAUSE_EPOCHS` haven't elapsed starting from the last `pause()`
+    // is paused if we haven't reached `resume_at_epoch`
+    // as soon as we enter `resume_at_epoch` epoch the contract will self-resume
+    pub fn is_paused(&self) -> Result<bool> {
+        Ok(Clock::get()?.epoch < self.resume_at_epoch)
     }
 
-    pub fn register_unstake_order(&mut self, unstaker_index: u32, lamports_amount: u64) {
-        self.epoch_unstake_orders += lamports_amount;
-        self.unstakers[unstaker_index as usize].amount += lamports_amount;
-    }*/
+    // set resume_at_epoch to current epoch
+    pub fn pause(&mut self) -> Result<()> {
+        require!(!self.is_paused()?, MarinadeError::AlreadyPaused);
+        let epoch = Clock::get()?.epoch;
+        // if we just ended the pause, and for the next epoch, can't re-pause
+        require_gt!(
+            epoch,
+            self.resume_at_epoch + 1,
+            MarinadeError::TooSoonToRePause
+        );
+        self.resume_at_epoch = epoch + State::PAUSE_MAX_EPOCHS;
+        Ok(())
+    }
+
+    pub fn resume(&mut self) -> Result<()> {
+        require!(self.is_paused()?, MarinadeError::NotPaused);
+        // set resume_at_epoch to current epoch
+        // this unpauses immediately
+        // and prevents re-pausing for the current epoch and the next
+        self.resume_at_epoch = Clock::get()?.epoch;
+        Ok(())
+    }
+
+    // returns MarinadeError::ProgramIsPaused if paused
+    pub fn check_paused(&self) -> Result<()> {
+        if self.is_paused()? {
+            err!(MarinadeError::ProgramIsPaused)
+        } else {
+            Ok(())
+        }
+    }
 }

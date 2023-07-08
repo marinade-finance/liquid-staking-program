@@ -69,6 +69,7 @@ pub struct InitializeData {
     pub additional_stake_record_space: u32,
     pub additional_validator_record_space: u32,
     pub slots_for_stake_delta: u64,
+    pub pause_authority: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -126,6 +127,7 @@ impl<'info> Initialize<'info> {
             additional_stake_record_space,
             additional_validator_record_space,
             slots_for_stake_delta,
+            pause_authority,
         }: InitializeData,
         reserve_pda_bump: u8,
     ) -> Result<()> {
@@ -172,6 +174,8 @@ impl<'info> Initialize<'info> {
             min_withdraw: 1,                // 1 lamport
             staking_sol_cap: std::u64::MAX, // Unlimited
             emergency_cooling_down: 0,
+            pause_authority,
+            resume_at_epoch: 0,
         });
 
         emit!(InitializeEvent {
@@ -185,6 +189,7 @@ impl<'info> Initialize<'info> {
                 additional_stake_record_space,
                 additional_validator_record_space,
                 slots_for_stake_delta,
+                pause_authority
             },
             stake_list: self.stake_list.key(),
             validator_list: self.validator_list.key(),
