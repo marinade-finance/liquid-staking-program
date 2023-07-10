@@ -49,7 +49,7 @@ pub struct RemoveValidator<'info> {
 
 impl<'info> RemoveValidator<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey) -> Result<()> {
-        self.state.check_paused()?;
+        self.state.check_not_paused()?;
 
         let validator = self.state.validator_system.get_checked(
             &self.validator_list.data.borrow(),

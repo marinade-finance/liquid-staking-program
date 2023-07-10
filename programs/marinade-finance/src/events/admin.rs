@@ -52,9 +52,9 @@ pub struct InitializeEvent {
 }
 
 #[event]
-pub struct EmergencyPauseEvent {
+pub struct SetEmergencyPauseEvent {
     pub state: Pubkey,
-    pub resume_at_epoch: u64,
-    pub set_pause: bool,
-    pub result_resume_at_epoch: u64,
+    pub old_resume_at_epoch: u64,
+    pub value: bool,
+    pub new_resume_at_epoch: u64,
 }

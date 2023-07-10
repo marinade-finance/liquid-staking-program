@@ -88,7 +88,7 @@ impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 2;
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
-        self.state.check_paused()?;
+        self.state.check_not_paused()?;
 
         // impossible to happen check outside bug (msol mint auth is a PDA)
         require_lte!(

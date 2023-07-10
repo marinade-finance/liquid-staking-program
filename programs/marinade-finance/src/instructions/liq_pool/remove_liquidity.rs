@@ -93,7 +93,7 @@ impl<'info> RemoveLiquidity<'info> {
     }
 
     pub fn process(&mut self, tokens: u64) -> Result<()> {
-        self.state.check_paused()?;
+        self.state.check_not_paused()?;
         self.check_burn_from(tokens)?;
 
         let user_lp_balance = self.burn_from.amount;

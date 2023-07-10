@@ -63,7 +63,7 @@ pub struct AddLiquidity<'info> {
 impl<'info> AddLiquidity<'info> {
     // fn add_liquidity()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
-        self.state.check_paused()?;
+        self.state.check_not_paused()?;
         require_gte!(
             lamports,
             self.state.min_deposit,

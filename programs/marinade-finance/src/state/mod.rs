@@ -86,6 +86,7 @@ impl State {
     pub const MAX_WITHDRAW_ATOM: u64 = LAMPORTS_PER_SOL / 10;
 
     pub const PAUSE_MAX_EPOCHS: u64 = 12; // 12 epochs is approx 27 days
+    pub const COOL_DOWN_AFTER_PAUSE: u64 = 1; // 1 full-epoch where the contract can not be re-paused after a resume
 
     pub fn serialized_len() -> usize {
         unsafe { MaybeUninit::<Self>::zeroed().assume_init() }
@@ -279,7 +280,7 @@ impl State {
         // if we just ended the pause, and for the next epoch, can't re-pause
         require_gt!(
             epoch,
-            self.resume_at_epoch + 1,
+            self.resume_at_epoch + State::COOL_DOWN_AFTER_PAUSE,
             MarinadeError::TooSoonToRePause
         );
         self.resume_at_epoch = epoch + State::PAUSE_MAX_EPOCHS;
@@ -295,8 +296,9 @@ impl State {
         Ok(())
     }
 
-    // returns MarinadeError::ProgramIsPaused if paused
-    pub fn check_paused(&self) -> Result<()> {
+    // returns/throws MarinadeError::ProgramIsPaused if paused
+    #[inline]
+    pub fn check_not_paused(&self) -> Result<()> {
         if self.is_paused()? {
             err!(MarinadeError::ProgramIsPaused)
         } else {

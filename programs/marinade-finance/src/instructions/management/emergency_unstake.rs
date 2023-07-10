@@ -54,7 +54,7 @@ pub struct EmergencyUnstake<'info> {
 
 impl<'info> EmergencyUnstake<'info> {
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
-        self.state.check_paused()?;
+        self.state.check_not_paused()?;
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             stake_index,

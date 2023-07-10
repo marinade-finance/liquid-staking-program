@@ -77,7 +77,7 @@ impl<'info> MergeStakes<'info> {
         validator_index: u32,
     ) -> Result<()> {
 
-        self.state.check_paused()?;
+        self.state.check_not_paused()?;
         let mut validator = self
             .state
             .validator_system
