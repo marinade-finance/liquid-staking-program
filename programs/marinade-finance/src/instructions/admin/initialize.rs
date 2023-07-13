@@ -15,10 +15,6 @@ use anchor_spl::token::{spl_token, Mint, TokenAccount};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(
-        address = Self::CREATOR_AUTHORITY,
-    )]
-    pub creator_authority: Signer<'info>,
     #[account(zero)]
     pub state: Box<Account<'info, State>>,
 
@@ -87,10 +83,6 @@ pub struct LiqPoolInitializeData {
 }
 
 impl<'info> Initialize<'info> {
-    pub const CREATOR_AUTHORITY: Pubkey = Pubkey::new_from_array([
-        130, 33, 92, 198, 248, 0, 48, 210, 221, 172, 150, 104, 107, 227, 44, 217, 3, 61, 74, 58,
-        179, 76, 35, 104, 39, 67, 130, 92, 93, 25, 180, 107,
-    ]); // 9kyWPBeU9RnjxnWkkYKYVeShAwQgPDmxujr77thREZtN
 
     pub fn state(&self) -> &State {
         &self.state
