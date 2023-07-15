@@ -85,7 +85,7 @@ pub struct DepositStakeAccount<'info> {
 }
 
 impl<'info> DepositStakeAccount<'info> {
-    pub const WAIT_EPOCHS: u64 = 2;
+
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         // impossible to happen check outside bug (msol mint auth is a PDA)
@@ -111,10 +111,10 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::RequiredActiveStake
         );
 
-        // require the stake is active for 2 epochs at least
+        // require the stake is active in this epoch at least
         require_gte!(
             self.clock.epoch,
-            delegation.activation_epoch + Self::WAIT_EPOCHS,
+            delegation.activation_epoch,
             MarinadeError::DepositingNotActivatedStake
         );
 
