@@ -92,8 +92,8 @@ impl<'info> StakeReserve<'info> {
     /// stakes from available delta-stake in data.validator_index
     /// pub fn stake_reserve()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        self.state.check_not_paused()?;
         sol_log_compute_units();
         require_eq!(
             self.stake_account.to_account_info().lamports(),

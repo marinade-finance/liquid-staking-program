@@ -281,7 +281,8 @@ impl<'info> UpdateActive<'info> {
     //
     // fn update_active()
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
-        self.state.check_not_paused()?;
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
         let BeginOutput {
@@ -430,7 +431,8 @@ impl<'info> UpdateDeactivated<'info> {
     /// Optional Future Expansion: Partial: If the stake-account is a fully-deactivated stake account ready to withdraw,
     /// (cool-down period is complete) delete-withdraw the stake-account, send SOL to reserve-account
     pub fn process(&mut self, stake_index: u32) -> Result<()> {
-        self.state.check_not_paused()?;
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
         let operational_sol_balance = self.operational_sol_account.lamports();

@@ -91,7 +91,8 @@ impl<'info> PartialUnstake<'info> {
         validator_index: u32,
         desired_unstake_amount: u64,
     ) -> Result<()> {
-        self.state.check_not_paused()?;
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         assert!(
             desired_unstake_amount >= self.state.stake_system.min_stake,
             "desired_unstake_amount too low"

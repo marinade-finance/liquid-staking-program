@@ -175,7 +175,7 @@ impl<'info> Initialize<'info> {
             staking_sol_cap: std::u64::MAX, // Unlimited
             emergency_cooling_down: 0,
             pause_authority,
-            resume_at_epoch: 0,
+            paused: false,
         });
 
         emit!(InitializeEvent {

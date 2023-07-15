@@ -87,7 +87,8 @@ pub struct Deposit<'info> {
 impl<'info> Deposit<'info> {
     // fn deposit_sol()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
-        self.state.check_not_paused()?;
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         require_gte!(
             lamports,
             self.state.min_deposit,

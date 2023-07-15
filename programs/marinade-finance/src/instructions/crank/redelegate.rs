@@ -113,13 +113,14 @@ impl<'info> ReDelegate<'info> {
         source_validator_index: u32,
         dest_validator_index: u32,
     ) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         require_neq!(
             source_validator_index,
             dest_validator_index,
             MarinadeError::SourceAndDestValidatorsAreTheSame
         );
 
-        self.state.check_not_paused()?;
         // only allow redelegation in the stake/unstake window at the end of the epoch
         {
             let last_slot = EpochSchedule::get()

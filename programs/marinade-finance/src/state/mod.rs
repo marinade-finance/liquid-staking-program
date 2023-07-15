@@ -69,7 +69,7 @@ pub struct State {
 
     /// emergency pause
     pub pause_authority: Pubkey,
-    pub resume_at_epoch: u64,
+    pub paused: bool,
 }
 
 impl State {
@@ -260,49 +260,5 @@ impl State {
             .checked_sub(amount)
             .ok_or(MarinadeError::CalculationFailure)?;
         Ok(())
-    }
-
-    // ---------------
-    // EMERGENCY PAUSE
-    // ---------------
-
-    // is paused if `MAX_PAUSE_EPOCHS` haven't elapsed starting from the last `pause()`
-    // is paused if we haven't reached `resume_at_epoch`
-    // as soon as we enter `resume_at_epoch` epoch the contract will self-resume
-    pub fn is_paused(&self) -> Result<bool> {
-        Ok(Clock::get()?.epoch < self.resume_at_epoch)
-    }
-
-    // set resume_at_epoch to current epoch
-    pub fn pause(&mut self) -> Result<()> {
-        require!(!self.is_paused()?, MarinadeError::AlreadyPaused);
-        let epoch = Clock::get()?.epoch;
-        // if we just ended the pause, and for the next epoch, can't re-pause
-        require_gt!(
-            epoch,
-            self.resume_at_epoch + State::COOL_DOWN_AFTER_PAUSE,
-            MarinadeError::TooSoonToRePause
-        );
-        self.resume_at_epoch = epoch + State::PAUSE_MAX_EPOCHS;
-        Ok(())
-    }
-
-    pub fn resume(&mut self) -> Result<()> {
-        require!(self.is_paused()?, MarinadeError::NotPaused);
-        // set resume_at_epoch to current epoch
-        // this unpauses immediately
-        // and prevents re-pausing for the current epoch and the next
-        self.resume_at_epoch = Clock::get()?.epoch;
-        Ok(())
-    }
-
-    // returns/throws MarinadeError::ProgramIsPaused if paused
-    #[inline]
-    pub fn check_not_paused(&self) -> Result<()> {
-        if self.is_paused()? {
-            err!(MarinadeError::ProgramIsPaused)
-        } else {
-            Ok(())
-        }
     }
 }

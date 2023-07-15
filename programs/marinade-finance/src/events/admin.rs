@@ -54,13 +54,9 @@ pub struct InitializeEvent {
 #[event]
 pub struct EmergencyPauseEvent {
     pub state: Pubkey,
-    pub current_epoch: u64,
-    pub resume_at_epoch_change: U64ValueChange,
 }
 
 #[event]
 pub struct ResumeEvent {
     pub state: Pubkey,
-    pub current_epoch: u64,
-    pub resume_at_epoch_change: U64ValueChange,
 }

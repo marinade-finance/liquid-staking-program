@@ -85,9 +85,10 @@ impl<'info> Claim<'info> {
         Ok(())
     }
 
+    // fn claim()
     pub fn process(&mut self) -> Result<()> {
-        // fn claim()
-        self.state.check_not_paused()?;
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         self.check_ticket_account()
             .map_err(|e| e.with_account_name("ticket_account"))?;
 
