@@ -88,6 +88,8 @@ impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 2;
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         // impossible to happen check outside bug (msol mint auth is a PDA)
         require_lte!(
             self.msol_mint.supply,

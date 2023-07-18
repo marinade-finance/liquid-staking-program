@@ -66,6 +66,10 @@ pub struct State {
     pub staking_sol_cap: u64,
 
     pub emergency_cooling_down: u64,
+
+    /// emergency pause
+    pub pause_authority: Pubkey,
+    pub paused: bool,
 }
 
 impl State {
@@ -254,14 +258,4 @@ impl State {
             .ok_or(MarinadeError::CalculationFailure)?;
         Ok(())
     }
-
-    /*
-    pub fn register_stake_order(&mut self, lamports_amount: u64) {
-        self.epoch_stake_orders += lamports_amount;
-    }
-
-    pub fn register_unstake_order(&mut self, unstaker_index: u32, lamports_amount: u64) {
-        self.epoch_unstake_orders += lamports_amount;
-        self.unstakers[unstaker_index as usize].amount += lamports_amount;
-    }*/
 }

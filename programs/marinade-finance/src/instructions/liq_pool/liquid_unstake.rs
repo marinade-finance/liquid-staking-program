@@ -86,6 +86,8 @@ impl<'info> LiquidUnstake<'info> {
 
     // fn liquid_unstake()
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        
         self.check_get_msol_from(msol_amount)?;
         let user_sol_balance = self.transfer_sol_to.lamports();
         let user_msol_balance = self.get_msol_from.amount;

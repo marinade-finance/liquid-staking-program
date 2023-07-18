@@ -76,6 +76,7 @@ impl<'info> MergeStakes<'info> {
         source_stake_index: u32,
         validator_index: u32,
     ) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
         let mut validator = self
             .state
@@ -190,7 +191,7 @@ impl<'info> MergeStakes<'info> {
         // the source account *rent-lamports* are added to the destination account on top of the delegation (extra-delegated).
         // This is not normal operation for the bot, but this instruction is permissionless so anyone can call any time,
         // and so we should consider the case.
-        // In normal cases (the bot merging to active accounts) the *rent-lamports* go to dest account *native lamports*, 
+        // In normal cases (the bot merging to active accounts) the *rent-lamports* go to dest account *native lamports*,
         // so the destination account will have double the rent-exempt lamports
         let returned_stake_rent = self
             .source_stake

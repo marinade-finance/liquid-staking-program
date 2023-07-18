@@ -13,6 +13,7 @@
         "doctest",
         "FFAO",
         "keybase",
+        "keypair",
         "keypairs",
         "lamport",
         "lamports",

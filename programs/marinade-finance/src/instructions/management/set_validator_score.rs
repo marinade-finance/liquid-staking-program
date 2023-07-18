@@ -29,6 +29,8 @@ pub struct SetValidatorScore<'info> {
 
 impl<'info> SetValidatorScore<'info> {
     pub fn process(&mut self, index: u32, validator_vote: Pubkey, score: u32) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         let mut validator = self.state.validator_system.get_checked(
             &self.validator_list.data.borrow(),
             index,

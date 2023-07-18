@@ -234,4 +234,17 @@ pub mod marinade_finance {
         ctx.accounts
             .process(stake_index, source_validator_index, dest_validator_index)
     }
+
+    // emergency pauses the contract
+    pub fn pause(ctx: Context<EmergencyPause>) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts.pause()
+    }
+
+    // resumes the contract
+    pub fn resume(ctx: Context<EmergencyPause>) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts.resume()
+    }
+    
 }

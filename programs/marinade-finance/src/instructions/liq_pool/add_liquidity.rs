@@ -63,6 +63,8 @@ pub struct AddLiquidity<'info> {
 impl<'info> AddLiquidity<'info> {
     // fn add_liquidity()
     pub fn process(&mut self, lamports: u64) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         require_gte!(
             lamports,
             self.state.min_deposit,

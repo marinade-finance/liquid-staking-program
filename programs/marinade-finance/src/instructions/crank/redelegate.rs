@@ -113,6 +113,8 @@ impl<'info> ReDelegate<'info> {
         source_validator_index: u32,
         dest_validator_index: u32,
     ) -> Result<()> {
+        require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+
         require_neq!(
             source_validator_index,
             dest_validator_index,

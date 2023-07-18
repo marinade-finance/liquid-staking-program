@@ -22,6 +22,7 @@ pub struct ChangeAuthorityData {
     pub validator_manager: Option<Pubkey>,
     pub operational_sol_account: Option<Pubkey>,
     pub treasury_msol_account: Option<Pubkey>,
+    pub pause_authority: Option<Pubkey>,
 }
 
 impl<'info> ChangeAuthority<'info> {
@@ -69,12 +70,21 @@ impl<'info> ChangeAuthority<'info> {
                 None
             };
 
+        let pause_authority_change = if let Some(pause_authority) = data.pause_authority {
+            let old = self.state.pause_authority;
+            self.state.pause_authority = pause_authority;
+            Some(PubkeyValueChange { old, new: pause_authority })
+        } else {
+            None
+        };
+
         emit!(ChangeAuthorityEvent {
             state: self.state.key(),
             admin_change,
             validator_manager_change,
             operational_sol_account_change,
-            treasury_msol_account_change
+            treasury_msol_account_change,
+            pause_authority_change
         });
 
         Ok(())
