@@ -235,16 +235,13 @@ pub enum MarinadeError {
     #[msg("Requested pause and already Paused")]
     AlreadyPaused, // 6075
 
-    #[msg("Requested un-pause, but not Paused")]
+    #[msg("Requested resume, but not Paused")]
     NotPaused, // 6076
 
-    #[msg("Can not re-pause immediately")]
-    TooSoonToRePause, // 6077
-
     #[msg("Emergency Pause is Active")]
-    ProgramIsPaused, // 6078
+    ProgramIsPaused, // 6077
 
     #[msg("Invalid pause authority")]
-    InvalidPauseAuthority, // 6079
+    InvalidPauseAuthority, // 6078
 
 }
