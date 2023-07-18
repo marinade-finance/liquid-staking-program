@@ -85,9 +85,6 @@ impl State {
     pub const MAX_REWARD_FEE: Fee = Fee::from_basis_points(1_000); // 10% max reward fee
     pub const MAX_WITHDRAW_ATOM: u64 = LAMPORTS_PER_SOL / 10;
 
-    pub const PAUSE_MAX_EPOCHS: u64 = 12; // 12 epochs is approx 27 days
-    pub const COOL_DOWN_AFTER_PAUSE: u64 = 1; // 1 full-epoch where the contract can not be re-paused after a resume
-
     pub fn serialized_len() -> usize {
         unsafe { MaybeUninit::<Self>::zeroed().assume_init() }
             .try_to_vec()
