@@ -102,7 +102,7 @@ impl<'info> Initialize<'info> {
         let (authority_address, authority_bump_seed) =
             State::find_msol_mint_authority(self.state_address());
 
-        check_mint_authority(&self.msol_mint, authority_address, "msol_mint")?;
+        check_mint_authority(&self.msol_mint, &authority_address, "msol_mint")?;
         check_mint_empty(&self.msol_mint, "msol_mint")?;
         check_freeze_authority(&self.msol_mint, "msol_mint")?;
         Ok(authority_bump_seed)
@@ -202,7 +202,7 @@ impl<'info> LiqPoolInitialize<'info> {
         let (authority_address, authority_bump_seed) =
             LiqPool::find_lp_mint_authority(parent.state_address());
 
-        check_mint_authority(&parent.liq_pool.lp_mint, authority_address, "lp_mint")?;
+        check_mint_authority(&parent.liq_pool.lp_mint, &authority_address, "lp_mint")?;
         check_mint_empty(&parent.liq_pool.lp_mint, "lp_mint")?;
         check_freeze_authority(&parent.liq_pool.lp_mint, "lp_mint")?;
 
@@ -219,7 +219,7 @@ impl<'info> LiqPoolInitialize<'info> {
     pub fn check_msol_leg(parent: &Initialize) -> Result<u8> {
         check_token_mint(
             &parent.liq_pool.msol_leg,
-            *parent.msol_mint.to_account_info().key,
+            &parent.msol_mint.key(),
             "liq_msol",
         )?;
         let (msol_authority, msol_authority_bump_seed) =

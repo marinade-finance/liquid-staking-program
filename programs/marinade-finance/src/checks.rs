@@ -25,8 +25,8 @@ pub fn check_owner_program<'info, A: ToAccountInfo<'info>>(
     }
 }
 
-pub fn check_mint_authority(mint: &Mint, mint_authority: Pubkey, field_name: &str) -> Result<()> {
-    if mint.mint_authority.contains(&mint_authority) {
+pub fn check_mint_authority(mint: &Mint, mint_authority: &Pubkey, field_name: &str) -> Result<()> {
+    if mint.mint_authority.contains(mint_authority) {
         Ok(())
     } else {
         msg!(
@@ -57,8 +57,8 @@ pub fn check_mint_empty(mint: &Mint, field_name: &str) -> Result<()> {
     }
 }
 
-pub fn check_token_mint(token: &TokenAccount, mint: Pubkey, field_name: &str) -> Result<()> {
-    if token.mint == mint {
+pub fn check_token_mint(token: &TokenAccount, mint: &Pubkey, field_name: &str) -> Result<()> {
+    if token.mint == *mint {
         Ok(())
     } else {
         msg!(
@@ -130,4 +130,35 @@ macro_rules! require_lt {
             return Err(error!($error_code).with_values(($value1, $value2)));
         }
     };
+}
+
+pub fn check_burn_msol_from<'info>(
+    burn_msol_from: &Account<'info, TokenAccount>,
+    &burn_msol_authority: &Pubkey,
+    msol_amount: u64,
+) -> Result<()> {
+    if burn_msol_from
+        .delegate
+        .contains(&burn_msol_authority)
+    {
+        // if delegated, check delegated amount
+        // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
+        require_lte!(
+            msol_amount,
+            burn_msol_from.delegated_amount,
+            MarinadeError::NotEnoughUserFunds
+        );
+    } else if burn_msol_authority == burn_msol_from.owner {
+        require_lte!(
+            msol_amount,
+            burn_msol_from.amount,
+            MarinadeError::NotEnoughUserFunds
+        );
+    } else {
+        return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
+            e.with_account_name("burn_msol_from")
+                .with_pubkeys((burn_msol_from.owner, burn_msol_authority))
+        });
+    }
+    Ok(())
 }

@@ -2,9 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 use crate::{
-    error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent, require_lte,
-    state::delayed_unstake_ticket::TicketAccountData, State,
-};
+    error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent,
+    state::delayed_unstake_ticket::TicketAccountData, State, checks::check_burn_msol_from};
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
@@ -37,39 +36,12 @@ pub struct OrderUnstake<'info> {
 }
 
 impl<'info> OrderUnstake<'info> {
-    fn check_burn_msol_from(&self, msol_amount: u64) -> Result<()> {
-        if self
-            .burn_msol_from
-            .delegate
-            .contains(self.burn_msol_authority.key)
-        {
-            // if delegated, check delegated amount
-            // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            require_lte!(
-                msol_amount,
-                self.burn_msol_from.delegated_amount,
-                MarinadeError::NotEnoughUserFunds
-            );
-        } else if self.burn_msol_authority.key() == self.burn_msol_from.owner {
-            require_lte!(
-                msol_amount,
-                self.burn_msol_from.amount,
-                MarinadeError::NotEnoughUserFunds
-            );
-        } else {
-            return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
-                e.with_account_name("burn_msol_from")
-                    .with_pubkeys((self.burn_msol_from.owner, self.burn_msol_authority.key()))
-            });
-        }
-        Ok(())
-    }
 
     // fn order_unstake() // create delayed-unstake Ticket-account
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        self.check_burn_msol_from(msol_amount)?;
+        check_burn_msol_from(&self.burn_msol_from, &self.burn_msol_authority.key(), msol_amount)?;
         let ticket_beneficiary = self.burn_msol_from.owner;
         let user_msol_balance = self.burn_msol_from.amount;
 
