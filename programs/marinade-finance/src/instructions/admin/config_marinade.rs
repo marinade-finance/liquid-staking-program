@@ -1,5 +1,6 @@
 use crate::events::admin::ConfigMarinadeEvent;
-use crate::events::{BoolValueChange, FeeValueChange, U64ValueChange};
+use crate::events::{BoolValueChange, FeeCentsValueChange, FeeValueChange, U64ValueChange};
+use crate::state::fee::FeeCents;
 use crate::state::stake_system::StakeSystem;
 use crate::state::Fee;
 use crate::{require_lte, MarinadeError, State};
@@ -15,6 +16,8 @@ pub struct ConfigMarinadeParams {
     pub staking_sol_cap: Option<u64>,
     pub liquidity_sol_cap: Option<u64>,
     pub auto_add_validator_enabled: Option<bool>,
+    pub delayed_unstake_fee: Option<FeeCents>,
+    pub withdraw_stake_account_fee: Option<FeeCents>,
 }
 
 #[derive(Accounts)]
@@ -40,12 +43,14 @@ impl<'info> ConfigMarinade<'info> {
             staking_sol_cap,
             liquidity_sol_cap,
             auto_add_validator_enabled,
+            delayed_unstake_fee,
+            withdraw_stake_account_fee,
         }: ConfigMarinadeParams,
     ) -> Result<()> {
         let rewards_fee_change = if let Some(rewards_fee) = rewards_fee {
             require_lte!(
-                rewards_fee,
-                State::MAX_REWARD_FEE,
+                rewards_fee.basis_points,
+                State::MAX_REWARD_FEE.basis_points,
                 MarinadeError::RewardsFeeIsTooHigh
             );
             let old = self.state.reward_fee;
@@ -156,6 +161,39 @@ impl<'info> ConfigMarinade<'info> {
                 None
             };
 
+        let delayed_unstake_fee_change = if let Some(delayed_unstake_fee) = delayed_unstake_fee {
+            require_lte!(
+                delayed_unstake_fee.bp_cents,
+                State::MAX_DELAYED_UNSTAKE_FEE.bp_cents,
+                MarinadeError::RewardsFeeIsTooHigh
+            );
+            let old = self.state.delayed_unstake_fee;
+            self.state.delayed_unstake_fee = delayed_unstake_fee;
+            Some(FeeCentsValueChange {
+                old,
+                new: delayed_unstake_fee,
+            })
+        } else {
+            None
+        };
+
+        let withdraw_stake_account_fee_change =
+            if let Some(withdraw_stake_account_fee) = withdraw_stake_account_fee {
+                require_lte!(
+                    withdraw_stake_account_fee.bp_cents,
+                    State::MAX_WITHDRAW_STAKE_ACCOUNT_FEE.bp_cents,
+                    MarinadeError::RewardsFeeIsTooHigh
+                );
+                let old = self.state.withdraw_stake_account_fee;
+                self.state.withdraw_stake_account_fee = withdraw_stake_account_fee;
+                Some(FeeCentsValueChange {
+                    old,
+                    new: withdraw_stake_account_fee,
+                })
+            } else {
+                None
+            };
+
         emit!(ConfigMarinadeEvent {
             state: self.state.key(),
             rewards_fee_change,
@@ -165,7 +203,9 @@ impl<'info> ConfigMarinade<'info> {
             min_withdraw_change,
             staking_sol_cap_change,
             liquidity_sol_cap_change,
-            auto_add_validator_enabled_change
+            auto_add_validator_enabled_change,
+            delayed_unstake_fee_change,
+            withdraw_stake_account_fee_change,
         });
 
         Ok(())

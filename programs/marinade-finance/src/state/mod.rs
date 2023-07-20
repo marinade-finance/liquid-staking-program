@@ -9,7 +9,7 @@ use anchor_lang::{
 use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
-use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem};
+use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, fee::FeeCents};
 
 pub mod delayed_unstake_ticket;
 pub mod fee;
@@ -70,6 +70,18 @@ pub struct State {
     /// emergency pause
     pub pause_authority: Pubkey,
     pub paused: bool,
+
+    // delayed unstake account fee
+    // to avoid economic attacks this value should not be zero 
+    // (this is required because tickets are ready at the end of the epoch)
+    // preferred value is one epoch rewards
+    pub delayed_unstake_fee: FeeCents, 
+
+    // withdraw stake account fee
+    // to avoid economic attacks this value should not be zero
+    // (this is required because stake accounts are delivered immediately)
+    // preferred value is one epoch rewards
+    pub withdraw_stake_account_fee: FeeCents, 
 }
 
 impl State {
@@ -84,6 +96,12 @@ impl State {
 
     pub const MAX_REWARD_FEE: Fee = Fee::from_basis_points(1_000); // 10% max reward fee
     pub const MAX_WITHDRAW_ATOM: u64 = LAMPORTS_PER_SOL / 10;
+
+    // Note as of July 2023, observable staking reward per epoch is 0.045%
+    // 1.00045 ** 160 - 1 = 0.0746 ~ 7.46 % which is normal APY for July 2023
+    // set a max fee to protect users
+    pub const MAX_DELAYED_UNSTAKE_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
+    pub const MAX_WITHDRAW_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
 
     pub fn serialized_len() -> usize {
         unsafe { MaybeUninit::<Self>::zeroed().assume_init() }

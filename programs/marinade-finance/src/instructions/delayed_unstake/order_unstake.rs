@@ -2,8 +2,9 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 use crate::{
-    error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent,
-    state::delayed_unstake_ticket::TicketAccountData, State, checks::check_burn_msol_from};
+    checks::check_msol_source_account, error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent,
+    state::delayed_unstake_ticket::TicketAccountData, State,
+};
 
 #[derive(Accounts)]
 pub struct OrderUnstake<'info> {
@@ -41,14 +42,24 @@ impl<'info> OrderUnstake<'info> {
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        check_burn_msol_from(&self.burn_msol_from, &self.burn_msol_authority.key(), msol_amount)?;
+        check_msol_source_account(
+            &self.burn_msol_from,
+            self.burn_msol_authority.key,
+            msol_amount,
+        )?;
         let ticket_beneficiary = self.burn_msol_from.owner;
         let user_msol_balance = self.burn_msol_from.amount;
 
         // save msol price source
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
-        let lamports_amount = self.state.calc_lamports_from_msol_amount(msol_amount)?;
+
+        let sol_value = self.state.calc_lamports_from_msol_amount(msol_amount)?;
+        // apply delay_unstake_fee to avoid economical attacks
+        // delay_unstake_fee must be >= one epoch staking rewards
+        let delay_unstake_fee_lamports = self.state.delayed_unstake_fee.apply(sol_value);
+        // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
+        let lamports_amount = sol_value - delay_unstake_fee_lamports;
 
         require_gte!(
             lamports_amount,
@@ -100,6 +111,7 @@ impl<'info> OrderUnstake<'info> {
             circulating_ticket_balance,
             burned_msol_amount: msol_amount,
             sol_amount: lamports_amount,
+            fee_bp_cents: self.state.delayed_unstake_fee.bp_cents,
             total_virtual_staked_lamports,
             msol_supply,
         });

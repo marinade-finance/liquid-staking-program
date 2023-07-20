@@ -6,7 +6,7 @@ use crate::{
     error::MarinadeError,
     events::admin::InitializeEvent,
     require_lte,
-    state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee},
+    state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee, fee::FeeCents},
     State, ID,
 };
 use anchor_lang::prelude::*;
@@ -124,8 +124,8 @@ impl<'info> Initialize<'info> {
         reserve_pda_bump: u8,
     ) -> Result<()> {
         require_lte!(
-            rewards_fee,
-            State::MAX_REWARD_FEE,
+            rewards_fee.basis_points,
+            State::MAX_REWARD_FEE.basis_points,
             MarinadeError::RewardsFeeIsTooHigh
         );
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);
@@ -168,6 +168,8 @@ impl<'info> Initialize<'info> {
             emergency_cooling_down: 0,
             pause_authority,
             paused: false,
+            delayed_unstake_fee: FeeCents::from_bp_cents(0),
+            withdraw_stake_account_fee: FeeCents::from_bp_cents(0),
         });
 
         emit!(InitializeEvent {
