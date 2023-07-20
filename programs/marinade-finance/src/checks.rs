@@ -132,28 +132,28 @@ macro_rules! require_lt {
     };
 }
 
-pub fn check_msol_source_account<'info>(
-    burn_msol_from: &Account<'info, TokenAccount>,
-    burn_msol_authority: &Pubkey,
-    msol_amount: u64,
+pub fn check_token_source_account<'info>(
+    source_account: &Account<'info, TokenAccount>,
+    authority: &Pubkey,
+    token_amount: u64,
 ) -> Result<()> {
-    if burn_msol_from.delegate.contains(burn_msol_authority) {
+    if source_account.delegate.contains(authority) {
         // if delegated, check delegated amount
         // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
         require_lte!(
-            msol_amount,
-            burn_msol_from.delegated_amount,
+            token_amount,
+            source_account.delegated_amount,
             MarinadeError::NotEnoughUserFunds
         );
-    } else if *burn_msol_authority == burn_msol_from.owner {
+    } else if *authority == source_account.owner {
         require_lte!(
-            msol_amount,
-            burn_msol_from.amount,
+            token_amount,
+            source_account.amount,
             MarinadeError::NotEnoughUserFunds
         );
     } else {
         return err!(MarinadeError::WrongTokenOwnerOrDelegate)
-            .map_err(|e| e.with_pubkeys((burn_msol_from.owner, *burn_msol_authority)));
+            .map_err(|e| e.with_pubkeys((source_account.owner, *authority)));
     }
     Ok(())
 }

@@ -1,5 +1,5 @@
 use crate::{
-    checks::check_msol_source_account,
+    checks::check_token_source_account,
     error::MarinadeError,
     events::user::WithdrawStakeAccountEvent,
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
@@ -92,6 +92,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         msol_amount: u64,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require!(!self.state.withdraw_stake_account_enabled, MarinadeError::WithdrawStakeAccountIsNotEnabled);
 
         // record  for event
         let user_msol_balance = self.burn_msol_from.amount;
@@ -99,7 +100,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
 
-        check_msol_source_account(
+        check_token_source_account(
             &self.burn_msol_from,
             self.burn_msol_authority.key,
             msol_amount,

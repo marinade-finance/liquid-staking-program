@@ -16,6 +16,7 @@ pub struct ConfigMarinadeParams {
     pub staking_sol_cap: Option<u64>,
     pub liquidity_sol_cap: Option<u64>,
     pub auto_add_validator_enabled: Option<bool>,
+    pub withdraw_stake_account_enabled: Option<bool>,
     pub delayed_unstake_fee: Option<FeeCents>,
     pub withdraw_stake_account_fee: Option<FeeCents>,
 }
@@ -43,6 +44,7 @@ impl<'info> ConfigMarinade<'info> {
             staking_sol_cap,
             liquidity_sol_cap,
             auto_add_validator_enabled,
+            withdraw_stake_account_enabled,
             delayed_unstake_fee,
             withdraw_stake_account_fee,
         }: ConfigMarinadeParams,
@@ -161,6 +163,18 @@ impl<'info> ConfigMarinade<'info> {
                 None
             };
 
+        let withdraw_stake_account_enabled_change =
+            if let Some(withdraw_stake_account_enabled) = withdraw_stake_account_enabled {
+                let old = self.state.withdraw_stake_account_enabled;
+                self.state.withdraw_stake_account_enabled =withdraw_stake_account_enabled;
+                Some(BoolValueChange {
+                    old,
+                    new: withdraw_stake_account_enabled,
+                })
+            } else {
+                None
+            };
+
         let delayed_unstake_fee_change = if let Some(delayed_unstake_fee) = delayed_unstake_fee {
             require_lte!(
                 delayed_unstake_fee.bp_cents,
@@ -204,6 +218,7 @@ impl<'info> ConfigMarinade<'info> {
             staking_sol_cap_change,
             liquidity_sol_cap_change,
             auto_add_validator_enabled_change,
+            withdraw_stake_account_enabled_change,
             delayed_unstake_fee_change,
             withdraw_stake_account_fee_change,
         });

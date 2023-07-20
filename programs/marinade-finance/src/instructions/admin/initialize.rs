@@ -170,6 +170,7 @@ impl<'info> Initialize<'info> {
             paused: false,
             delayed_unstake_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_fee: FeeCents::from_bp_cents(0),
+            withdraw_stake_account_enabled: false,
         });
 
         emit!(InitializeEvent {

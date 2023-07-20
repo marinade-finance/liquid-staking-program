@@ -249,5 +249,8 @@ pub enum MarinadeError {
 
     #[msg("Basis point CENTS overflow")]
     BasisPointCentsOverflow, // 6080
-        
+
+    #[msg("Withdraw Stake Account is not enabled")]
+    WithdrawStakeAccountIsNotEnabled, // 6081
+    
 }

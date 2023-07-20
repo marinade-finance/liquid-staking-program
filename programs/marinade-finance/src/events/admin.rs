@@ -34,6 +34,7 @@ pub struct ConfigMarinadeEvent {
     pub staking_sol_cap_change: Option<U64ValueChange>,
     pub liquidity_sol_cap_change: Option<U64ValueChange>,
     pub auto_add_validator_enabled_change: Option<BoolValueChange>,
+    pub withdraw_stake_account_enabled_change: Option<BoolValueChange>,
     pub delayed_unstake_fee_change: Option<FeeCentsValueChange>,
     pub withdraw_stake_account_fee_change: Option<FeeCentsValueChange>,
 }

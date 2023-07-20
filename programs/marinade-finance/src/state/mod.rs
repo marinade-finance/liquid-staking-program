@@ -82,6 +82,7 @@ pub struct State {
     // (this is required because stake accounts are delivered immediately)
     // preferred value is one epoch rewards
     pub withdraw_stake_account_fee: FeeCents, 
+    pub withdraw_stake_account_enabled: bool,
 }
 
 impl State {

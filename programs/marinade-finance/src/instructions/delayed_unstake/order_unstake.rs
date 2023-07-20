@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 use crate::{
-    checks::check_msol_source_account, error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent,
+    checks::check_token_source_account, error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent,
     state::delayed_unstake_ticket::TicketAccountData, State,
 };
 
@@ -42,7 +42,7 @@ impl<'info> OrderUnstake<'info> {
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        check_msol_source_account(
+        check_token_source_account(
             &self.burn_msol_from,
             self.burn_msol_authority.key,
             msol_amount,
