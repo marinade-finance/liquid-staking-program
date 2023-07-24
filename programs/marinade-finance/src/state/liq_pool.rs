@@ -119,13 +119,13 @@ impl LiqPool {
             .map_err(|e| e.with_source(source!()))?;
         // hard-limit, max liquid unstake-fee of 10%
         require_lte!(
-            self.lp_max_fee.basis_points,
-            Self::MAX_FEE.basis_points,
+            self.lp_max_fee,
+            Self::MAX_FEE,
             MarinadeError::LpMaxFeeIsTooHigh
         );
         require_gte!(
-            self.lp_max_fee.basis_points,
-            self.lp_min_fee.basis_points,
+            self.lp_max_fee,
+            self.lp_min_fee,
             MarinadeError::LpFeesAreWrongWayRound
         );
         require_gte!(
@@ -134,8 +134,8 @@ impl LiqPool {
             MarinadeError::LiquidityTargetTooLow
         );
         require_lte!(
-            self.treasury_cut.basis_points,
-            Self::MAX_TREASURY_CUT.basis_points,
+            self.treasury_cut,
+            Self::MAX_TREASURY_CUT,
             MarinadeError::TreasuryCutIsTooHigh
         );
 

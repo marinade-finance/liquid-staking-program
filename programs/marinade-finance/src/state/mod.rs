@@ -9,7 +9,7 @@ use anchor_lang::{
 use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
-use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, fee::FeeCents};
+use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem};
 
 pub mod delayed_unstake_ticket;
 pub mod fee;
@@ -19,6 +19,7 @@ pub mod stake_system;
 pub mod validator_system;
 
 pub use fee::Fee;
+pub use fee::FeeCents;
 
 #[account]
 #[derive(Debug)]

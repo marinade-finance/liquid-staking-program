@@ -1,7 +1,6 @@
 use crate::{error::MarinadeError, require_lte};
 use anchor_lang::prelude::*;
 
-#[cfg(feature = "no-entrypoint")]
 use std::fmt::Display;
 #[cfg(feature = "no-entrypoint")]
 use std::str::FromStr;
@@ -13,10 +12,10 @@ pub struct Fee {
     pub basis_points: u32,
 }
 
-#[cfg(feature = "no-entrypoint")]
 impl Display for Fee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}%", self.basis_points as f32 / 100.0)
+        // use integer division to avoid including f64 libs
+        write!(f, "{}.{}%", self.basis_points / 100, self.basis_points % 100)
     }
 }
 
@@ -73,15 +72,15 @@ pub struct FeeCents {
     pub bp_cents: u32,
 }
 
-#[cfg(feature = "no-entrypoint")]
 impl Display for FeeCents {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}%", self.bp_cents as f32 / 10000.0)
+        // use integer division to avoid including f64 libs
+        write!(f, "{}.{}%", self.bp_cents / 10000, self.bp_cents % 10000)
     }
 }
 
 impl FeeCents {
-    pub const MAX_BP_CENTS: u32 = 1_000_000;
+    pub const MAX_BP_CENTS: FeeCents = FeeCents::from_bp_cents(1_000_000); // 100%
 
     pub const fn from_bp_cents(bp_cents: u32) -> Self {
         Self { bp_cents }
@@ -89,8 +88,8 @@ impl FeeCents {
 
     pub fn check(&self) -> Result<()> {
         require_lte!(
-            self.bp_cents,
-            Self::MAX_BP_CENTS,
+            self,
+            &Self::MAX_BP_CENTS,
             MarinadeError::BasisPointCentsOverflow
         );
         Ok(())
@@ -98,7 +97,7 @@ impl FeeCents {
 
     pub fn apply(&self, lamports: u64) -> u64 {
         // LMT no error possible
-        (lamports as u128 * self.bp_cents as u128 / Self::MAX_BP_CENTS as u128) as u64
+        (lamports as u128 * self.bp_cents as u128 / Self::MAX_BP_CENTS.bp_cents as u128) as u64
     }
 }
 

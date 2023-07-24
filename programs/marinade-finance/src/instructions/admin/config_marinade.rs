@@ -1,9 +1,12 @@
-use crate::events::admin::ConfigMarinadeEvent;
-use crate::events::{BoolValueChange, FeeCentsValueChange, FeeValueChange, U64ValueChange};
-use crate::state::fee::FeeCents;
-use crate::state::stake_system::StakeSystem;
-use crate::state::Fee;
-use crate::{require_lte, MarinadeError, State};
+use crate::events::{
+    admin::ConfigMarinadeEvent, BoolValueChange, FeeCentsValueChange, FeeValueChange,
+    U64ValueChange,
+};
+use crate::{
+    require_lte,
+    state::{stake_system::StakeSystem, Fee, FeeCents},
+    MarinadeError, State,
+};
 use anchor_lang::prelude::*;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
@@ -51,8 +54,8 @@ impl<'info> ConfigMarinade<'info> {
     ) -> Result<()> {
         let rewards_fee_change = if let Some(rewards_fee) = rewards_fee {
             require_lte!(
-                rewards_fee.basis_points,
-                State::MAX_REWARD_FEE.basis_points,
+                rewards_fee,
+                State::MAX_REWARD_FEE,
                 MarinadeError::RewardsFeeIsTooHigh
             );
             let old = self.state.reward_fee;
@@ -177,8 +180,8 @@ impl<'info> ConfigMarinade<'info> {
 
         let delayed_unstake_fee_change = if let Some(delayed_unstake_fee) = delayed_unstake_fee {
             require_lte!(
-                delayed_unstake_fee.bp_cents,
-                State::MAX_DELAYED_UNSTAKE_FEE.bp_cents,
+                delayed_unstake_fee,
+                State::MAX_DELAYED_UNSTAKE_FEE,
                 MarinadeError::RewardsFeeIsTooHigh
             );
             let old = self.state.delayed_unstake_fee;
@@ -194,8 +197,8 @@ impl<'info> ConfigMarinade<'info> {
         let withdraw_stake_account_fee_change =
             if let Some(withdraw_stake_account_fee) = withdraw_stake_account_fee {
                 require_lte!(
-                    withdraw_stake_account_fee.bp_cents,
-                    State::MAX_WITHDRAW_STAKE_ACCOUNT_FEE.bp_cents,
+                    withdraw_stake_account_fee,
+                    State::MAX_WITHDRAW_STAKE_ACCOUNT_FEE,
                     MarinadeError::RewardsFeeIsTooHigh
                 );
                 let old = self.state.withdraw_stake_account_fee;

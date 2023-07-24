@@ -5,11 +5,12 @@ use crate::{
     state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
     State,
 };
-
 use anchor_lang::{
     prelude::*,
     solana_program::{
-        native_token::LAMPORTS_PER_SOL, program::invoke_signed, stake, stake::state::StakeAuthorize,
+        program::invoke_signed,
+        stake,
+        stake::state::{StakeAuthorize, StakeState},
     },
 };
 use anchor_spl::{
@@ -68,11 +69,10 @@ pub struct WithdrawStakeAccount<'info> {
     pub stake_account: Box<Account<'info, StakeAccount>>,
 
     #[account(
-        seeds = [
-            &state.key().to_bytes(),
-            StakeSystem::STAKE_DEPOSIT_SEED
-        ],
-        bump = state.stake_system.stake_deposit_bump_seed
+        init,
+        payer = burn_msol_authority,
+        space = std::mem::size_of::<StakeState>(),
+        owner = stake::program::ID,
     )]
     pub split_stake_account: Account<'info, StakeAccount>,
 
@@ -105,8 +105,9 @@ impl<'info> WithdrawStakeAccount<'info> {
             &self.burn_msol_from,
             self.burn_msol_authority.key,
             msol_amount,
-        ).map_err(|e| e.with_account_name("burn_msol_from"))?;
-    
+        )
+        .map_err(|e| e.with_account_name("burn_msol_from"))?;
+
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             stake_index,
@@ -153,21 +154,22 @@ impl<'info> WithdrawStakeAccount<'info> {
             self.state.withdraw_stake_account_fee.apply(sol_value);
         // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
         let split_lamports = sol_value - withdraw_stake_account_fee_lamports;
-        // check withdraw amount >= WithdrawAmountIsTooLow
+        // check withdraw amount (stake) >= self.state.stake_system.min_stake
+        // and also >= self.state.min_withdraw
         require_gte!(
             split_lamports,
-            self.state.min_withdraw,
+            std::cmp::max(self.state.min_withdraw, self.state.stake_system.min_stake),
             MarinadeError::WithdrawAmountIsTooLow
         );
-        // we make sure at least 2 SOL will remain in the stake account after the split
-        const MIN_STAKE_ACCOUNT_LAMPORTS: u64 = 2 * LAMPORTS_PER_SOL;
-        // Simplification, we always deliver a splitted account, so some lamports must remain in the original account
-        // check that after split, the amount remaining in the stake account is >= MIN_STAKE_ACCOUNT_LAMPORTS
+        // require remainder stake also >= self.state.stake_system.min_stake
+        // To simplify the flow, we always deliver the lamports in the splitted account,
+        // so some lamports must remain in the original account. Check that
+        // after split, the amount remaining in the stake account is >= state.stake_system.min_stake
         require_gte!(
             stake
                 .last_update_delegated_lamports
                 .saturating_sub(split_lamports),
-            MIN_STAKE_ACCOUNT_LAMPORTS,
+            self.state.stake_system.min_stake,
             MarinadeError::StakeAccountRemainderTooLow
         );
 

@@ -6,11 +6,13 @@ use crate::{
     error::MarinadeError,
     events::admin::InitializeEvent,
     require_lte,
-    state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee, fee::FeeCents},
+    state::{
+        fee::FeeCents, liq_pool::LiqPool, stake_system::StakeSystem,
+        validator_system::ValidatorSystem, Fee,
+    },
     State, ID,
 };
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program_pack::Pack;
+use anchor_lang::{prelude::*, solana_program::program_pack::Pack};
 use anchor_spl::token::{spl_token, Mint, TokenAccount};
 
 #[derive(Accounts)]
@@ -84,7 +86,6 @@ pub struct LiqPoolInitializeData {
 }
 
 impl<'info> Initialize<'info> {
-
     pub fn state(&self) -> &State {
         &self.state
     }
@@ -124,8 +125,8 @@ impl<'info> Initialize<'info> {
         reserve_pda_bump: u8,
     ) -> Result<()> {
         require_lte!(
-            rewards_fee.basis_points,
-            State::MAX_REWARD_FEE.basis_points,
+            rewards_fee,
+            State::MAX_REWARD_FEE,
             MarinadeError::RewardsFeeIsTooHigh
         );
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);
