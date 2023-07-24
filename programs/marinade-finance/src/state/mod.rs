@@ -217,7 +217,7 @@ impl State {
     }
     /// calculate lamports value from some msol_amount
     /// result_lamports = msol_amount * msol_price
-    pub fn calc_lamports_from_msol_amount(&self, msol_amount: u64) -> Result<u64> {
+    pub fn msol_to_sol(&self, msol_amount: u64) -> Result<u64> {
         value_from_shares(
             msol_amount,
             self.total_virtual_staked_lamports(),

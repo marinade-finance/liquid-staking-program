@@ -46,7 +46,7 @@ impl<'info> OrderUnstake<'info> {
             &self.burn_msol_from,
             self.burn_msol_authority.key,
             msol_amount,
-        )?;
+        ).map_err(|e| e.with_account_name("burn_msol_from"))?;
         let ticket_beneficiary = self.burn_msol_from.owner;
         let user_msol_balance = self.burn_msol_from.amount;
 
@@ -54,15 +54,15 @@ impl<'info> OrderUnstake<'info> {
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
 
-        let sol_value = self.state.calc_lamports_from_msol_amount(msol_amount)?;
+        let sol_value_of_msol_burned = self.state.msol_to_sol(msol_amount)?;
         // apply delay_unstake_fee to avoid economical attacks
         // delay_unstake_fee must be >= one epoch staking rewards
-        let delay_unstake_fee_lamports = self.state.delayed_unstake_fee.apply(sol_value);
+        let delay_unstake_fee_lamports = self.state.delayed_unstake_fee.apply(sol_value_of_msol_burned);
         // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
-        let lamports_amount = sol_value - delay_unstake_fee_lamports;
+        let lamports_for_user = sol_value_of_msol_burned - delay_unstake_fee_lamports;
 
         require_gte!(
-            lamports_amount,
+            lamports_for_user,
             self.state.min_withdraw,
             MarinadeError::WithdrawAmountIsTooLow
         );
@@ -71,7 +71,7 @@ impl<'info> OrderUnstake<'info> {
         let circulating_ticket_balance = self.state.circulating_ticket_balance;
         let circulating_ticket_count = self.state.circulating_ticket_count;
         // circulating_ticket_balance +
-        self.state.circulating_ticket_balance += lamports_amount;
+        self.state.circulating_ticket_balance += lamports_for_user;
         self.state.circulating_ticket_count += 1;
 
         // burn mSOL
@@ -98,7 +98,7 @@ impl<'info> OrderUnstake<'info> {
         self.new_ticket_account.set_inner(TicketAccountData {
             state_address: self.state.key(),
             beneficiary: ticket_beneficiary,
-            lamports_amount,
+            lamports_amount: lamports_for_user,
             created_epoch,
         });
         emit!(OrderUnstakeEvent {
@@ -110,7 +110,7 @@ impl<'info> OrderUnstake<'info> {
             circulating_ticket_count,
             circulating_ticket_balance,
             burned_msol_amount: msol_amount,
-            sol_amount: lamports_amount,
+            sol_amount: lamports_for_user,
             fee_bp_cents: self.state.delayed_unstake_fee.bp_cents,
             total_virtual_staked_lamports,
             msol_supply,

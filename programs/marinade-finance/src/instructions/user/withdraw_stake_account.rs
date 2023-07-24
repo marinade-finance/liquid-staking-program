@@ -6,16 +6,14 @@ use crate::{
     State,
 };
 
-use anchor_lang::solana_program::{native_token::LAMPORTS_PER_SOL, program::invoke_signed, stake};
 use anchor_lang::{
     prelude::*,
-    solana_program::{program::invoke, stake::state::StakeAuthorize},
+    solana_program::{
+        native_token::LAMPORTS_PER_SOL, program::invoke_signed, stake, stake::state::StakeAuthorize,
+    },
 };
 use anchor_spl::{
-    stake::{
-        deactivate_stake as solana_deactivate_stake, DeactivateStake as SolanaDeactivateStake,
-        Stake, StakeAccount,
-    },
+    stake::{Stake, StakeAccount},
     token::{burn, Burn, Mint, Token, TokenAccount},
 };
 
@@ -23,7 +21,7 @@ use crate::checks::check_stake_amount_and_validator;
 
 #[derive(Accounts)]
 pub struct WithdrawStakeAccount<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = msol_mint)]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
@@ -32,7 +30,7 @@ pub struct WithdrawStakeAccount<'info> {
     // Note: new stake account withdraw-auth (owner) & staker-auth will be owner of burn_msol_from
     #[account(
         mut,
-        token::mint = state.msol_mint
+        token::mint = msol_mint
     )]
     pub burn_msol_from: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
@@ -92,7 +90,10 @@ impl<'info> WithdrawStakeAccount<'info> {
         msol_amount: u64,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
-        require!(!self.state.withdraw_stake_account_enabled, MarinadeError::WithdrawStakeAccountIsNotEnabled);
+        require!(
+            !self.state.withdraw_stake_account_enabled,
+            MarinadeError::WithdrawStakeAccountIsNotEnabled
+        );
 
         // record  for event
         let user_msol_balance = self.burn_msol_from.amount;
@@ -104,8 +105,8 @@ impl<'info> WithdrawStakeAccount<'info> {
             &self.burn_msol_from,
             self.burn_msol_authority.key,
             msol_amount,
-        )?;
-
+        ).map_err(|e| e.with_account_name("burn_msol_from"))?;
+    
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.data.as_ref().borrow(),
             stake_index,
@@ -143,8 +144,9 @@ impl<'info> WithdrawStakeAccount<'info> {
         )?;
 
         // compute how many lamport the burned mSOL represents
-        require_gt!(msol_amount, self.state.min_withdraw);
-        let sol_value = self.state.calc_lamports_from_msol_amount(msol_amount)?;
+        let sol_value = self.state.msol_to_sol(msol_amount)?;
+        require_gt!(sol_value, self.state.min_withdraw);
+
         // apply withdraw_stake_account_fee to avoid economical attacks
         // withdraw_stake_account_fee must be >= one epoch staking rewards
         let withdraw_stake_account_fee_lamports =
@@ -157,7 +159,8 @@ impl<'info> WithdrawStakeAccount<'info> {
             self.state.min_withdraw,
             MarinadeError::WithdrawAmountIsTooLow
         );
-        const MIN_STAKE_ACCOUNT_LAMPORTS: u64 = LAMPORTS_PER_SOL;
+        // we make sure at least 2 SOL will remain in the stake account after the split
+        const MIN_STAKE_ACCOUNT_LAMPORTS: u64 = 2 * LAMPORTS_PER_SOL;
         // Simplification, we always deliver a splitted account, so some lamports must remain in the original account
         // check that after split, the amount remaining in the stake account is >= MIN_STAKE_ACCOUNT_LAMPORTS
         require_gte!(
@@ -182,12 +185,12 @@ impl<'info> WithdrawStakeAccount<'info> {
         )?;
         self.state.on_msol_burn(msol_amount)?;
 
-        // split deactivate split_lamports from stake account
+        // split split_lamports from stake account into out split_stake_account
         msg!(
-            "Deactivate split {} ({} lamports) from stake {}",
-            self.split_stake_account.key(),
+            "Split {} lamports from stake {} into {}",
             split_lamports,
-            stake.stake_account
+            stake.stake_account,
+            self.split_stake_account.key(),
         );
 
         let split_instruction = stake::instruction::split(
@@ -214,20 +217,6 @@ impl<'info> WithdrawStakeAccount<'info> {
             ]],
         )?;
 
-        solana_deactivate_stake(CpiContext::new_with_signer(
-            self.stake_program.to_account_info(),
-            SolanaDeactivateStake {
-                stake: self.split_stake_account.to_account_info(),
-                staker: self.stake_withdraw_authority.to_account_info(),
-                clock: self.clock.to_account_info(),
-            },
-            &[&[
-                &self.state.key().to_bytes(),
-                StakeSystem::STAKE_DEPOSIT_SEED,
-                &[self.state.stake_system.stake_deposit_bump_seed],
-            ]],
-        ))?;
-
         stake.last_update_delegated_lamports -= split_lamports;
 
         // we now consider amount no longer "active" for this specific validator
@@ -248,7 +237,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         )?;
 
         // assign user as withdrawer (owner) & staker for the split_stake_account
-        invoke(
+        invoke_signed(
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,
                 self.stake_withdraw_authority.key,
@@ -262,8 +251,13 @@ impl<'info> WithdrawStakeAccount<'info> {
                 self.clock.to_account_info(),
                 self.stake_withdraw_authority.to_account_info(),
             ],
+            &[&[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_WITHDRAW_SEED,
+                &[self.state.stake_system.stake_deposit_bump_seed],
+            ]],
         )?;
-        invoke(
+        invoke_signed(
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,
                 self.stake_withdraw_authority.key,
@@ -277,6 +271,11 @@ impl<'info> WithdrawStakeAccount<'info> {
                 self.clock.to_account_info(),
                 self.stake_withdraw_authority.to_account_info(),
             ],
+            &[&[
+                &self.state.key().to_bytes(),
+                StakeSystem::STAKE_WITHDRAW_SEED,
+                &[self.state.stake_system.stake_deposit_bump_seed],
+            ]],
         )?;
 
         emit!(WithdrawStakeAccountEvent {

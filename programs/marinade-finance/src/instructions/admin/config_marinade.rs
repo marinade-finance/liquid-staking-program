@@ -166,7 +166,7 @@ impl<'info> ConfigMarinade<'info> {
         let withdraw_stake_account_enabled_change =
             if let Some(withdraw_stake_account_enabled) = withdraw_stake_account_enabled {
                 let old = self.state.withdraw_stake_account_enabled;
-                self.state.withdraw_stake_account_enabled =withdraw_stake_account_enabled;
+                self.state.withdraw_stake_account_enabled = withdraw_stake_account_enabled;
                 Some(BoolValueChange {
                     old,
                     new: withdraw_stake_account_enabled,

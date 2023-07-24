@@ -253,7 +253,7 @@ impl<'info> UpdateCommon<'info> {
         let old = self.state.msol_price;
         self.state.msol_price = self
             .state
-            .calc_lamports_from_msol_amount(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
+            .msol_to_sol(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
         Ok(U64ValueChange {
             old,
             new: self.state.msol_price,

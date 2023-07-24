@@ -138,7 +138,7 @@ impl<'info> Deposit<'info> {
             } else {
                 // partially filled
                 // then it's the lamport value of the tokens we're selling
-                self.state.calc_lamports_from_msol_amount(msol_swapped)?
+                self.state.msol_to_sol(msol_swapped)?
             };
 
             // transfer mSOL to the user

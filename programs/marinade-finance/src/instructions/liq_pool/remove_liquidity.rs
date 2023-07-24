@@ -130,7 +130,7 @@ impl<'info> RemoveLiquidity<'info> {
 
         require_gte!(
             sol_out_amount
-                .checked_add(self.state.calc_lamports_from_msol_amount(msol_out_amount)?,)
+                .checked_add(self.state.msol_to_sol(msol_out_amount)?,)
                 .ok_or(error!(MarinadeError::CalculationFailure))?,
             self.state.min_withdraw,
             MarinadeError::WithdrawAmountIsTooLow,

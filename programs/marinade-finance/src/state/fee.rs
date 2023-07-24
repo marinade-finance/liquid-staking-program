@@ -76,7 +76,7 @@ pub struct FeeCents {
 #[cfg(feature = "no-entrypoint")]
 impl Display for FeeCents {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}%", self.basis_points as f32 / 10000.0)
+        write!(f, "{}%", self.bp_cents as f32 / 10000.0)
     }
 }
 
