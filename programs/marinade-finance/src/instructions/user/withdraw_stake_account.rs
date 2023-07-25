@@ -266,10 +266,10 @@ impl<'info> WithdrawStakeAccount<'info> {
                 None,
             ),
             &[
-                self.stake_program.to_account_info(),
-                self.stake_account.to_account_info(),
-                self.clock.to_account_info(),
+                self.split_stake_account.to_account_info(),
                 self.stake_withdraw_authority.to_account_info(),
+                self.stake_program.to_account_info(),
+                self.clock.to_account_info(),
             ],
             &[&[
                 &self.state.key().to_bytes(),
@@ -286,10 +286,10 @@ impl<'info> WithdrawStakeAccount<'info> {
                 None,
             ),
             &[
-                self.stake_program.to_account_info(),
-                self.stake_account.to_account_info(),
-                self.clock.to_account_info(),
+                self.split_stake_account.to_account_info(),
                 self.stake_withdraw_authority.to_account_info(),
+                self.stake_program.to_account_info(),
+                self.clock.to_account_info(),
             ],
             &[&[
                 &self.state.key().to_bytes(),
