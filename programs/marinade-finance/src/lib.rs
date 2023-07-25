@@ -247,7 +247,7 @@ pub mod marinade_finance {
         ctx.accounts.resume()
     }
 
-    // resumes the contract
+    // immediate withdraw of an active stake account - feature can be enabled or disable by the DAO
     pub fn withdraw_stake_account(
         ctx: Context<WithdrawStakeAccount>,
         stake_index: u32,

@@ -182,7 +182,7 @@ impl<'info> ConfigMarinade<'info> {
             require_lte!(
                 delayed_unstake_fee,
                 State::MAX_DELAYED_UNSTAKE_FEE,
-                MarinadeError::RewardsFeeIsTooHigh
+                MarinadeError::DelayedUnstakeFeeIsTooHigh
             );
             let old = self.state.delayed_unstake_fee;
             self.state.delayed_unstake_fee = delayed_unstake_fee;
@@ -199,7 +199,7 @@ impl<'info> ConfigMarinade<'info> {
                 require_lte!(
                     withdraw_stake_account_fee,
                     State::MAX_WITHDRAW_STAKE_ACCOUNT_FEE,
-                    MarinadeError::RewardsFeeIsTooHigh
+                    MarinadeError::WithdrawStakeAccountFeeIsTooHigh
                 );
                 let old = self.state.withdraw_stake_account_fee;
                 self.state.withdraw_stake_account_fee = withdraw_stake_account_fee;

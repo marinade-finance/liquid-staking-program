@@ -70,11 +70,13 @@ pub struct WithdrawStakeAccount<'info> {
 
     #[account(
         init,
-        payer = burn_msol_authority,
+        payer = split_stake_rent_payer,
         space = std::mem::size_of::<StakeState>(),
         owner = stake::program::ID,
     )]
     pub split_stake_account: Account<'info, StakeAccount>,
+    #[account(mut)]
+    pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
     pub system_program: Program<'info, System>,
@@ -91,7 +93,7 @@ impl<'info> WithdrawStakeAccount<'info> {
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
         require!(
-            !self.state.withdraw_stake_account_enabled,
+            self.state.withdraw_stake_account_enabled,
             MarinadeError::WithdrawStakeAccountIsNotEnabled
         );
 
@@ -116,7 +118,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
         // require the stake is not in emergency_unstake
-        require_neq!(
+        require_eq!(
             stake.is_emergency_unstaking,
             0,
             MarinadeError::StakeAccountIsEmergencyUnstaking
@@ -146,7 +148,11 @@ impl<'info> WithdrawStakeAccount<'info> {
 
         // compute how many lamport the burned mSOL represents
         let sol_value = self.state.msol_to_sol(msol_amount)?;
-        require_gt!(sol_value, self.state.min_withdraw);
+        require_gte!(
+            sol_value,
+            self.state.min_withdraw,
+            MarinadeError::WithdrawAmountIsTooLow
+        );
 
         // apply withdraw_stake_account_fee to avoid economical attacks
         // withdraw_stake_account_fee must be >= one epoch staking rewards
@@ -154,12 +160,11 @@ impl<'info> WithdrawStakeAccount<'info> {
             self.state.withdraw_stake_account_fee.apply(sol_value);
         // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
         let split_lamports = sol_value - withdraw_stake_account_fee_lamports;
-        // check withdraw amount (stake) >= self.state.stake_system.min_stake
-        // and also >= self.state.min_withdraw
+        // check withdraw amount (new stake account) >= self.state.stake_system.min_stake
         require_gte!(
             split_lamports,
-            std::cmp::max(self.state.min_withdraw, self.state.stake_system.min_stake),
-            MarinadeError::WithdrawAmountIsTooLow
+            self.state.stake_system.min_stake,
+            MarinadeError::WithdrawStakeLamportsIsTooLow
         );
         // require remainder stake also >= self.state.stake_system.min_stake
         // To simplify the flow, we always deliver the lamports in the splitted account,
@@ -238,13 +243,13 @@ impl<'info> WithdrawStakeAccount<'info> {
             validator,
         )?;
 
-        // assign user as withdrawer (owner) & staker for the split_stake_account
+        // assign user staker and as withdrawer (owner) for the new split_stake_account
         invoke_signed(
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,
                 self.stake_withdraw_authority.key,
                 self.burn_msol_authority.key,
-                StakeAuthorize::Withdrawer,
+                StakeAuthorize::Staker,
                 None,
             ),
             &[
@@ -264,7 +269,7 @@ impl<'info> WithdrawStakeAccount<'info> {
                 self.split_stake_account.to_account_info().key,
                 self.stake_withdraw_authority.key,
                 self.burn_msol_authority.key,
-                StakeAuthorize::Staker,
+                StakeAuthorize::Withdrawer,
                 None,
             ),
             &[
