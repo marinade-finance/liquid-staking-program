@@ -66,6 +66,15 @@ pub struct WithdrawStakeAccount<'info> {
         bump = state.stake_system.stake_withdraw_bump_seed
     )]
     pub stake_withdraw_authority: UncheckedAccount<'info>,
+    /// CHECK: PDA
+    #[account(
+        seeds = [
+            &state.key().to_bytes(),
+            StakeSystem::STAKE_DEPOSIT_SEED
+        ],
+        bump = state.stake_system.stake_deposit_bump_seed
+    )]
+    pub stake_deposit_authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
 
@@ -206,7 +215,7 @@ impl<'info> WithdrawStakeAccount<'info> {
 
         let split_instruction = stake::instruction::split(
             self.stake_account.to_account_info().key,
-            self.stake_withdraw_authority.key,
+            self.stake_deposit_authority.key,
             split_lamports,
             &self.split_stake_account.key(),
         )
@@ -219,11 +228,11 @@ impl<'info> WithdrawStakeAccount<'info> {
                 self.stake_program.to_account_info(),
                 self.stake_account.to_account_info(),
                 self.split_stake_account.to_account_info(),
-                self.stake_withdraw_authority.to_account_info(),
+                self.stake_deposit_authority.to_account_info(),
             ],
             &[&[
                 &self.state.key().to_bytes(),
-                StakeSystem::STAKE_WITHDRAW_SEED,
+                StakeSystem::STAKE_DEPOSIT_SEED,
                 &[self.state.stake_system.stake_deposit_bump_seed],
             ]],
         )?;
