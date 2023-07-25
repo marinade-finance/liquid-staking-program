@@ -103,15 +103,16 @@ impl<'info> WithdrawStakeAccount<'info> {
         stake_index: u32,
         validator_index: u32,
         msol_amount: u64,
+        beneficiary: Option<Pubkey>,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
         require!(
             self.state.withdraw_stake_account_enabled,
             MarinadeError::WithdrawStakeAccountIsNotEnabled
         );
-
         // record  for event
         let user_msol_balance = self.burn_msol_from.amount;
+        let beneficiary = beneficiary.unwrap_or(self.burn_msol_authority.key());
         // save msol price source
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
@@ -261,7 +262,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,
                 self.stake_withdraw_authority.key,
-                self.burn_msol_authority.key,
+                &beneficiary,
                 StakeAuthorize::Staker,
                 None,
             ),
@@ -281,7 +282,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,
                 self.stake_withdraw_authority.key,
-                self.burn_msol_authority.key,
+                &beneficiary,
                 StakeAuthorize::Withdrawer,
                 None,
             ),
@@ -306,7 +307,8 @@ impl<'info> WithdrawStakeAccount<'info> {
             last_update_stake_delegation,
             validator_index,
             validator: validator.validator_account,
-            withdrawer: self.burn_msol_authority.key(),
+            user_msol_auth: self.burn_msol_authority.key(),
+            beneficiary,
             user_msol_balance,
             msol_burned: msol_amount,
             split_stake: self.split_stake_account.key(),
