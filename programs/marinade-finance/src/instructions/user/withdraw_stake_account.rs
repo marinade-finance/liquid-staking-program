@@ -223,7 +223,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             ],
             &[&[
                 &self.state.key().to_bytes(),
-                StakeSystem::STAKE_DEPOSIT_SEED,
+                StakeSystem::STAKE_WITHDRAW_SEED,
                 &[self.state.stake_system.stake_deposit_bump_seed],
             ]],
         )?;
