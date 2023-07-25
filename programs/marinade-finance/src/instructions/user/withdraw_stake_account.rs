@@ -11,6 +11,7 @@ use anchor_lang::{
         program::invoke_signed,
         stake,
         stake::state::{StakeAuthorize, StakeState},
+        system_program,
     },
 };
 use anchor_spl::{
@@ -75,7 +76,10 @@ pub struct WithdrawStakeAccount<'info> {
         owner = stake::program::ID,
     )]
     pub split_stake_account: Account<'info, StakeAccount>,
-    #[account(mut)]
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
     pub split_stake_rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
