@@ -15,7 +15,7 @@ pub struct Fee {
 impl Display for Fee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // use integer division to avoid including f64 libs
-        write!(f, "{}.{}%", self.basis_points / 100, self.basis_points % 100)
+        write!(f, "{}.{:0>2}%", self.basis_points / 100, self.basis_points % 100)
     }
 }
 
@@ -75,7 +75,7 @@ pub struct FeeCents {
 impl Display for FeeCents {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // use integer division to avoid including f64 libs
-        write!(f, "{}.{}%", self.bp_cents / 10000, self.bp_cents % 10000)
+        write!(f, "{}.{:0>4}%", self.bp_cents / 10_000, self.bp_cents % 10_000)
     }
 }
 
