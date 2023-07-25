@@ -274,7 +274,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             &[&[
                 &self.state.key().to_bytes(),
                 StakeSystem::STAKE_WITHDRAW_SEED,
-                &[self.state.stake_system.stake_deposit_bump_seed],
+                &[self.state.stake_system.stake_withdraw_bump_seed],
             ]],
         )?;
         invoke_signed(
@@ -294,7 +294,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             &[&[
                 &self.state.key().to_bytes(),
                 StakeSystem::STAKE_WITHDRAW_SEED,
-                &[self.state.stake_system.stake_deposit_bump_seed],
+                &[self.state.stake_system.stake_withdraw_bump_seed],
             ]],
         )?;
 
