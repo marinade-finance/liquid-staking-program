@@ -244,8 +244,8 @@ pub enum MarinadeError {
     #[msg("Invalid pause authority")]
     InvalidPauseAuthority, // 6078
 
-    #[msg("Stake account remainder too low")]
-    StakeAccountRemainderTooLow, // 6079
+    #[msg("Selected Stake account has not enough funds")]
+    SelectedStakeAccountHasNotEnoughFunds, // 6079
 
     #[msg("Basis point CENTS overflow")]
     BasisPointCentsOverflow, // 6080

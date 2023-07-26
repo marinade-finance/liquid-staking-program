@@ -188,7 +188,7 @@ impl<'info> WithdrawStakeAccount<'info> {
                 .last_update_delegated_lamports
                 .saturating_sub(split_lamports),
             self.state.stake_system.min_stake,
-            MarinadeError::StakeAccountRemainderTooLow
+            MarinadeError::SelectedStakeAccountHasNotEnoughFunds
         );
 
         // burn mSOL
