@@ -253,7 +253,7 @@ pub mod marinade_finance {
         stake_index: u32,
         validator_index: u32,
         msol_amount: u64,
-        beneficiary: Option<Pubkey>,
+        beneficiary: Pubkey,
     ) -> Result<()> {
         check_context(&ctx)?;
         ctx.accounts

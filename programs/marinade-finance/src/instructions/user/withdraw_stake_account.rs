@@ -103,7 +103,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         stake_index: u32,
         validator_index: u32,
         msol_amount: u64,
-        beneficiary: Option<Pubkey>,
+        beneficiary: Pubkey,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
         require!(
@@ -112,7 +112,6 @@ impl<'info> WithdrawStakeAccount<'info> {
         );
         // record  for event
         let user_msol_balance = self.burn_msol_from.amount;
-        let beneficiary = beneficiary.unwrap_or(self.burn_msol_authority.key());
         // save msol price source
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
