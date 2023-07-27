@@ -159,36 +159,42 @@ impl<'info> WithdrawStakeAccount<'info> {
             &validator.validator_account,
         )?;
 
-        // compute how many lamport the burned mSOL represents
-        let sol_value = self.state.msol_to_sol(msol_amount)?;
-        require_gte!(
-            sol_value,
-            self.state.min_withdraw,
-            MarinadeError::WithdrawAmountIsTooLow
-        );
-
-        // apply withdraw_stake_account_fee to avoid economical attacks
-        // withdraw_stake_account_fee must be >= one epoch staking rewards
-        let withdraw_stake_account_fee_lamports =
-            self.state.withdraw_stake_account_fee.apply(sol_value);
-        // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
-        let split_lamports = sol_value - withdraw_stake_account_fee_lamports;
+        // compute how many lamport to split
+        let split_lamports = {
+            // compute how many lamport the burned mSOL represents
+            let sol_value = self.state.msol_to_sol(msol_amount)?;
+            require_gte!(
+                sol_value,
+                self.state.min_withdraw,
+                MarinadeError::WithdrawAmountIsTooLow
+            );
+            // apply withdraw_stake_account_fee to avoid economical attacks
+            // withdraw_stake_account_fee must be >= one epoch staking rewards
+            let withdraw_stake_account_fee_lamports =
+                self.state.withdraw_stake_account_fee.apply(sol_value);
+            // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
+            sol_value - withdraw_stake_account_fee_lamports
+        };
         // check withdraw amount (new stake account) >= self.state.stake_system.min_stake
         require_gte!(
             split_lamports,
             self.state.stake_system.min_stake,
             MarinadeError::WithdrawStakeLamportsIsTooLow
         );
-        // require remainder stake also >= self.state.stake_system.min_stake
+        // the user can not ask for more that what is in the stake account
+        require_gte!(
+            stake.last_update_delegated_lamports,
+            split_lamports,
+            MarinadeError::SelectedStakeAccountHasNotEnoughFunds
+        );
+        // require also remainder stake to be >= self.state.stake_system.min_stake
         // To simplify the flow, we always deliver the lamports in the splitted account,
         // so some lamports must remain in the original account. Check that
         // after split, the amount remaining in the stake account is >= state.stake_system.min_stake
         require_gte!(
-            stake
-                .last_update_delegated_lamports
-                .saturating_sub(split_lamports),
+            stake.last_update_delegated_lamports - split_lamports,
             self.state.stake_system.min_stake,
-            MarinadeError::SelectedStakeAccountHasNotEnoughFunds
+            MarinadeError::StakeAccountRemainderTooLow
         );
 
         // burn mSOL
