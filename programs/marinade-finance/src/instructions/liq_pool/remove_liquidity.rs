@@ -91,9 +91,7 @@ impl<'info> RemoveLiquidity<'info> {
 
         let sol_out_amount = proportional(
             tokens,
-            sol_leg_balance
-                .checked_sub(self.state.rent_exempt_for_token_acc)
-                .unwrap(),
+            sol_leg_balance - self.state.rent_exempt_for_token_acc,
             self.state.liq_pool.lp_supply, // Use virtual amount
         )?;
         let msol_out_amount = proportional(
@@ -103,9 +101,7 @@ impl<'info> RemoveLiquidity<'info> {
         )?;
 
         require_gte!(
-            sol_out_amount
-                .checked_add(self.state.msol_to_sol(msol_out_amount)?,)
-                .ok_or(error!(MarinadeError::CalculationFailure))?,
+            sol_out_amount + self.state.msol_to_sol(msol_out_amount)?,
             self.state.min_withdraw,
             MarinadeError::WithdrawAmountIsTooLow,
         );
@@ -165,7 +161,7 @@ impl<'info> RemoveLiquidity<'info> {
             ),
             tokens,
         )?;
-        self.state.liq_pool.on_lp_burn(tokens)?;
+        self.state.liq_pool.on_lp_burn(tokens);
 
         emit!(RemoveLiquidityEvent {
             state: self.state.key(),

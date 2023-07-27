@@ -181,10 +181,7 @@ impl ValidatorSystem {
             MarinadeError::RemovingValidatorWithBalance
         );
 
-        self.total_validator_score = self
-            .total_validator_score
-            .checked_sub(record.score)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        self.total_validator_score -= record.score;
 
         self.validator_list
             .remove(validator_list_data, index)

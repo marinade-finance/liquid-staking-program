@@ -209,7 +209,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             ),
             msol_amount,
         )?;
-        self.state.on_msol_burn(msol_amount)?;
+        self.state.on_msol_burn(msol_amount);
 
         // split split_lamports from stake account into out split_stake_account
         msg!(

@@ -77,18 +77,11 @@ impl LiqPool {
     }
 
     pub fn on_lp_mint(&mut self, amount: u64) {
-        self.lp_supply = self
-            .lp_supply
-            .checked_add(amount)
-            .expect("lp_supply overflow");
+        self.lp_supply += amount
     }
 
-    pub fn on_lp_burn(&mut self, amount: u64) -> Result<()> {
-        self.lp_supply = self
-            .lp_supply
-            .checked_sub(amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
-        Ok(())
+    pub fn on_lp_burn(&mut self, amount: u64) {
+        self.lp_supply -= amount
     }
 
     pub fn check_liquidity_cap(
@@ -96,9 +89,7 @@ impl LiqPool {
         transfering_lamports: u64,
         sol_leg_balance: u64,
     ) -> Result<()> {
-        let result_amount = sol_leg_balance
-            .checked_add(transfering_lamports)
-            .ok_or(error!(MarinadeError::CalculationFailure))?;
+        let result_amount = sol_leg_balance + transfering_lamports;
         require_lte!(
             result_amount,
             self.liquidity_sol_cap,
