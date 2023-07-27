@@ -85,7 +85,7 @@ pub struct DepositStakeAccount<'info> {
 }
 
 impl<'info> DepositStakeAccount<'info> {
-    pub const WAIT_EPOCHS: u64 = 2;
+    pub const WAIT_EPOCHS: u64 = 0; // Accepting fresh/redelegated accounts also because it is mergeable anyways
     // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
