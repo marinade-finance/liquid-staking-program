@@ -103,9 +103,7 @@ impl<'info> AddLiquidity<'info> {
         let sol_leg_available_balance = sol_leg_balance
             .checked_sub(self.state.rent_exempt_for_token_acc)
             .expect("sol_leg_lamports");
-        let msol_leg_value = self
-            .state
-            .msol_to_sol(self.liq_pool_msol_leg.amount)?;
+        let msol_leg_value = self.state.msol_to_sol(self.liq_pool_msol_leg.amount)?;
         let total_liq_pool_value = sol_leg_available_balance + msol_leg_value;
         msg!(
             "liq_pool SOL:{}, liq_pool mSOL value:{} liq_pool_value:{}",

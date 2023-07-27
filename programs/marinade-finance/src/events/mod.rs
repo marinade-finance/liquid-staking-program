@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::{Fee, fee::FeeCents};
+use crate::state::{fee::FeeCents, Fee};
 
 pub mod admin;
 pub mod crank;
