@@ -52,7 +52,7 @@ pub enum MarinadeError {
     StakeAccountWithLockup, // 6014
 
     #[msg("Min stake is too low")]
-    MinStakeIsTooLow, // 6016
+    MinStakeIsTooLow, // 6015
 
     #[msg("Lp max fee is too high")]
     LpMaxFeeIsTooHigh, // 6016
