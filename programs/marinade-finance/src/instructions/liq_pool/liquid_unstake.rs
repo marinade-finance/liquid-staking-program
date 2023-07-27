@@ -4,10 +4,10 @@ use anchor_spl::token::{
     transfer as transfer_token, Mint, Token, TokenAccount, Transfer as TransferToken,
 };
 
-use crate::events::liq_pool::LiquidUnstakeEvent;
-use crate::state::liq_pool::LiqPool;
-use crate::State;
-use crate::{require_lte, MarinadeError};
+use crate::{
+    checks::check_token_source_account, events::liq_pool::LiquidUnstakeEvent,
+    state::liq_pool::LiqPool, MarinadeError, State,
+};
 
 #[derive(Accounts)]
 pub struct LiquidUnstake<'info> {
@@ -56,39 +56,16 @@ pub struct LiquidUnstake<'info> {
 }
 
 impl<'info> LiquidUnstake<'info> {
-    fn check_get_msol_from(&self, msol_amount: u64) -> Result<()> {
-        if self
-            .get_msol_from
-            .delegate
-            .contains(self.get_msol_from_authority.key)
-        {
-            // if delegated, check delegated amount
-            // delegated_amount & delegate must be set on the user's msol account before calling OrderUnstake
-            require_lte!(
-                msol_amount,
-                self.get_msol_from.delegated_amount,
-                MarinadeError::NotEnoughUserFunds
-            );
-        } else if *self.get_msol_from_authority.key == self.get_msol_from.owner {
-            require_lte!(
-                msol_amount,
-                self.get_msol_from.amount,
-                MarinadeError::NotEnoughUserFunds
-            );
-        } else {
-            return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
-                e.with_account_name("get_msol_from")
-                    .with_pubkeys((self.get_msol_from.owner, self.get_msol_from_authority.key()))
-            });
-        }
-        Ok(())
-    }
-
     // fn liquid_unstake()
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        self.check_get_msol_from(msol_amount)?;
+        check_token_source_account(
+            &self.get_msol_from,
+            self.get_msol_from_authority.key,
+            msol_amount,
+        )
+        .map_err(|e| e.with_account_name("get_msol_from"))?;
         let user_sol_balance = self.transfer_sol_to.lamports();
         let user_msol_balance = self.get_msol_from.amount;
         let treasury_msol_balance = self

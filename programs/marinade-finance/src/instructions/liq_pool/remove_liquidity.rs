@@ -1,6 +1,7 @@
-use crate::error::MarinadeError;
-use crate::events::liq_pool::RemoveLiquidityEvent;
-use crate::{calc::proportional, require_lte, state::liq_pool::LiqPool, State};
+use crate::{
+    calc::proportional, checks::check_token_source_account, error::MarinadeError,
+    events::liq_pool::RemoveLiquidityEvent, state::liq_pool::LiqPool, State,
+};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::token::{
@@ -64,38 +65,11 @@ pub struct RemoveLiquidity<'info> {
 }
 
 impl<'info> RemoveLiquidity<'info> {
-    fn check_burn_from(&self, tokens: u64) -> Result<()> {
-        if self
-            .burn_from
-            .delegate
-            .contains(self.burn_from_authority.key)
-        {
-            // if delegated, check delegated amount
-            // delegated_amount & delegate must be set on the user's lp account before
-            require_lte!(
-                tokens,
-                self.burn_from.delegated_amount,
-                MarinadeError::NotEnoughUserFunds
-            );
-        } else if *self.burn_from_authority.key == self.burn_from.owner {
-            require_lte!(
-                tokens,
-                self.burn_from.amount,
-                MarinadeError::NotEnoughUserFunds
-            );
-        } else {
-            return err!(MarinadeError::WrongTokenOwnerOrDelegate).map_err(|e| {
-                e.with_account_name("burn_from")
-                    .with_pubkeys((self.burn_from.owner, self.burn_from_authority.key()))
-            });
-        }
-        Ok(())
-    }
-
     pub fn process(&mut self, tokens: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        self.check_burn_from(tokens)?;
+        check_token_source_account(&self.burn_from, self.burn_from_authority.key, tokens)
+            .map_err(|e| e.with_account_name("burn_from"))?;
 
         let user_lp_balance = self.burn_from.amount;
         let user_sol_balance = self.transfer_sol_to.lamports();
