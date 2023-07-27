@@ -252,7 +252,7 @@ pub enum MarinadeError {
 
     #[msg("Withdraw stake account is not enabled")]
     WithdrawStakeAccountIsNotEnabled, // 6081
-    
+
     #[msg("Withdraw stake account fee is too high")]
     WithdrawStakeAccountFeeIsTooHigh, // 6082
 
@@ -264,6 +264,5 @@ pub enum MarinadeError {
 
     /// when the remainder after a withdraw stake account is less than min_stake
     #[msg("Stake account remainder too low")]
-    StakeAccountRemainderTooLow, // 6085 
-   
+    StakeAccountRemainderTooLow, // 6085
 }

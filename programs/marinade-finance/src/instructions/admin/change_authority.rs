@@ -73,7 +73,10 @@ impl<'info> ChangeAuthority<'info> {
         let pause_authority_change = if let Some(pause_authority) = data.pause_authority {
             let old = self.state.pause_authority;
             self.state.pause_authority = pause_authority;
-            Some(PubkeyValueChange { old, new: pause_authority })
+            Some(PubkeyValueChange {
+                old,
+                new: pause_authority,
+            })
         } else {
             None
         };

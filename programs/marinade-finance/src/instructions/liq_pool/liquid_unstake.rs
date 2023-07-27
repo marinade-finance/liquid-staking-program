@@ -87,7 +87,7 @@ impl<'info> LiquidUnstake<'info> {
     // fn liquid_unstake()
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
-        
+
         self.check_get_msol_from(msol_amount)?;
         let user_sol_balance = self.transfer_sol_to.lamports();
         let user_msol_balance = self.get_msol_from.amount;
@@ -116,9 +116,7 @@ impl<'info> LiquidUnstake<'info> {
 
         // fee goes into treasury & LPs, so the user receives lamport value of data.msol_amount - msol_fee
         // compute how many lamports the msol_amount the user is "selling" (minus fee) is worth
-        let working_lamports_value = self
-            .state
-            .msol_to_sol(msol_amount - msol_fee)?;
+        let working_lamports_value = self.state.msol_to_sol(msol_amount - msol_fee)?;
 
         // it can't be more than what's in the LiqPool
         if working_lamports_value + self.state.rent_exempt_for_token_acc

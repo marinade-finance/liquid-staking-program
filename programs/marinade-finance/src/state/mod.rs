@@ -73,16 +73,16 @@ pub struct State {
     pub paused: bool,
 
     // delayed unstake account fee
-    // to avoid economic attacks this value should not be zero 
+    // to avoid economic attacks this value should not be zero
     // (this is required because tickets are ready at the end of the epoch)
     // preferred value is one epoch rewards
-    pub delayed_unstake_fee: FeeCents, 
+    pub delayed_unstake_fee: FeeCents,
 
     // withdraw stake account fee
     // to avoid economic attacks this value should not be zero
     // (this is required because stake accounts are delivered immediately)
     // preferred value is one epoch rewards
-    pub withdraw_stake_account_fee: FeeCents, 
+    pub withdraw_stake_account_fee: FeeCents,
     pub withdraw_stake_account_enabled: bool,
 }
 

@@ -2,7 +2,9 @@ use anchor_lang::prelude::*;
 
 use crate::instructions::InitializeData;
 
-use super::{BoolValueChange, FeeValueChange, PubkeyValueChange, U64ValueChange, FeeCentsValueChange};
+use super::{
+    BoolValueChange, FeeCentsValueChange, FeeValueChange, PubkeyValueChange, U64ValueChange,
+};
 
 #[event]
 pub struct ChangeAuthorityEvent {

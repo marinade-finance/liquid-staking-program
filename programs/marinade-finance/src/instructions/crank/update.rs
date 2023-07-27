@@ -251,9 +251,7 @@ impl<'info> UpdateCommon<'info> {
         // total_active_balance + total_cooling_down + reserve - circulating_ticket_balance
         // DIVIDED by msol_supply
         let old = self.state.msol_price;
-        self.state.msol_price = self
-            .state
-            .msol_to_sol(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
+        self.state.msol_price = self.state.msol_to_sol(State::PRICE_DENOMINATOR)?; // store binary-denominated mSOL price
         Ok(U64ValueChange {
             old,
             new: self.state.msol_price,

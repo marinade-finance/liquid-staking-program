@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 pub struct DepositStakeAccountEvent {
     pub state: Pubkey,
     pub stake: Pubkey,
-    pub delegated: u64, // lamports in the stake account delegation
+    pub delegated: u64,     // lamports in the stake account delegation
     pub withdrawer: Pubkey, // withdraw auth for the stake account
     pub stake_index: u32,
     pub validator: Pubkey,

@@ -2,8 +2,9 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 use crate::{
-    checks::check_token_source_account, error::MarinadeError, events::delayed_unstake::OrderUnstakeEvent,
-    state::delayed_unstake_ticket::TicketAccountData, State,
+    checks::check_token_source_account, error::MarinadeError,
+    events::delayed_unstake::OrderUnstakeEvent, state::delayed_unstake_ticket::TicketAccountData,
+    State,
 };
 
 #[derive(Accounts)]
@@ -37,7 +38,6 @@ pub struct OrderUnstake<'info> {
 }
 
 impl<'info> OrderUnstake<'info> {
-
     // fn order_unstake() // create delayed-unstake Ticket-account
     pub fn process(&mut self, msol_amount: u64) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
@@ -46,7 +46,8 @@ impl<'info> OrderUnstake<'info> {
             &self.burn_msol_from,
             self.burn_msol_authority.key,
             msol_amount,
-        ).map_err(|e| e.with_account_name("burn_msol_from"))?;
+        )
+        .map_err(|e| e.with_account_name("burn_msol_from"))?;
         let ticket_beneficiary = self.burn_msol_from.owner;
         let user_msol_balance = self.burn_msol_from.amount;
 
@@ -57,7 +58,10 @@ impl<'info> OrderUnstake<'info> {
         let sol_value_of_msol_burned = self.state.msol_to_sol(msol_amount)?;
         // apply delay_unstake_fee to avoid economical attacks
         // delay_unstake_fee must be >= one epoch staking rewards
-        let delay_unstake_fee_lamports = self.state.delayed_unstake_fee.apply(sol_value_of_msol_burned);
+        let delay_unstake_fee_lamports = self
+            .state
+            .delayed_unstake_fee
+            .apply(sol_value_of_msol_burned);
         // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
         let lamports_for_user = sol_value_of_msol_burned - delay_unstake_fee_lamports;
 

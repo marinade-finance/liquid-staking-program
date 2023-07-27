@@ -146,76 +146,77 @@ impl<'info> DepositStakeAccount<'info> {
                 .map_err(|e| e.with_account_name("stake_account"));
         }
 
-        let validator_active_balance = if validator_index == self.state.validator_system.validator_count() {
-            if self.state.validator_system.auto_add_validator_enabled == 0 {
-                return err!(MarinadeError::AutoAddValidatorIsNotEnabled);
-            }
-            check_owner_program(
-                &self.duplication_flag,
-                &system_program::ID,
-                "duplication_flag",
-            )?;
-            if !self.rent.is_exempt(self.rent_payer.lamports(), 0) {
-                return Err(Error::from(ProgramError::InsufficientFunds)
-                    .with_source(source!())
-                    .with_account_name("rent_payer")
-                    .with_values((self.rent_payer.lamports(), self.rent.minimum_balance(0))));
-            }
-            // Add extra validator with 0 score
-            let state_address = *self.state.to_account_info().key;
-            self.state.validator_system.add_with_balance(
-                &mut self.validator_list.data.as_ref().borrow_mut(),
-                delegation.voter_pubkey,
-                0,
-                delegation.stake,
-                &state_address,
-                self.duplication_flag.key,
-            )?;
+        let validator_active_balance =
+            if validator_index == self.state.validator_system.validator_count() {
+                if self.state.validator_system.auto_add_validator_enabled == 0 {
+                    return err!(MarinadeError::AutoAddValidatorIsNotEnabled);
+                }
+                check_owner_program(
+                    &self.duplication_flag,
+                    &system_program::ID,
+                    "duplication_flag",
+                )?;
+                if !self.rent.is_exempt(self.rent_payer.lamports(), 0) {
+                    return Err(Error::from(ProgramError::InsufficientFunds)
+                        .with_source(source!())
+                        .with_account_name("rent_payer")
+                        .with_values((self.rent_payer.lamports(), self.rent.minimum_balance(0))));
+                }
+                // Add extra validator with 0 score
+                let state_address = *self.state.to_account_info().key;
+                self.state.validator_system.add_with_balance(
+                    &mut self.validator_list.data.as_ref().borrow_mut(),
+                    delegation.voter_pubkey,
+                    0,
+                    delegation.stake,
+                    &state_address,
+                    self.duplication_flag.key,
+                )?;
 
-            // Mark validator as added
-            let validator_record = self.state.validator_system.get(
-                &self.validator_list.data.as_ref().borrow(),
-                self.state.validator_system.validator_count() - 1,
-            )?;
-            validator_record.with_duplication_flag_seeds(
-                self.state.to_account_info().key,
-                |seeds| {
-                    invoke_signed(
-                        &system_instruction::create_account(
-                            self.rent_payer.key,
-                            self.duplication_flag.key,
-                            self.rent.minimum_balance(0),
-                            0,
-                            &ID,
-                        ),
-                        &[
-                            self.system_program.to_account_info(),
-                            self.rent_payer.to_account_info(),
-                            self.duplication_flag.to_account_info(),
-                        ],
-                        &[seeds],
-                    )
-                },
-            )?;
-            0
-        } else {
-            let mut validator = self.state.validator_system.get_checked(
-                &self.validator_list.data.as_ref().borrow(),
-                validator_index,
-                &delegation.voter_pubkey,
-            )?;
+                // Mark validator as added
+                let validator_record = self.state.validator_system.get(
+                    &self.validator_list.data.as_ref().borrow(),
+                    self.state.validator_system.validator_count() - 1,
+                )?;
+                validator_record.with_duplication_flag_seeds(
+                    self.state.to_account_info().key,
+                    |seeds| {
+                        invoke_signed(
+                            &system_instruction::create_account(
+                                self.rent_payer.key,
+                                self.duplication_flag.key,
+                                self.rent.minimum_balance(0),
+                                0,
+                                &ID,
+                            ),
+                            &[
+                                self.system_program.to_account_info(),
+                                self.rent_payer.to_account_info(),
+                                self.duplication_flag.to_account_info(),
+                            ],
+                            &[seeds],
+                        )
+                    },
+                )?;
+                0
+            } else {
+                let mut validator = self.state.validator_system.get_checked(
+                    &self.validator_list.data.as_ref().borrow(),
+                    validator_index,
+                    &delegation.voter_pubkey,
+                )?;
 
-            // record balance for event log
-            let current_active_balance = validator.active_balance;
-            // update validator.active_balance
-            validator.active_balance += delegation.stake;
-            self.state.validator_system.set(
-                &mut self.validator_list.data.as_ref().borrow_mut(),
-                validator_index,
-                validator,
-            )?;
-            current_active_balance
-        };
+                // record balance for event log
+                let current_active_balance = validator.active_balance;
+                // update validator.active_balance
+                validator.active_balance += delegation.stake;
+                self.state.validator_system.set(
+                    &mut self.validator_list.data.as_ref().borrow_mut(),
+                    validator_index,
+                    validator,
+                )?;
+                current_active_balance
+            };
 
         {
             let new_staker = Pubkey::create_program_address(
