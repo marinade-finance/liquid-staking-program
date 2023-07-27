@@ -101,7 +101,7 @@ impl<'info> LiquidUnstake<'info> {
             liq_pool_sol_balance.saturating_sub(self.state.rent_exempt_for_token_acc);
 
         // fee is computed based on the liquidity *after* the user takes the sol
-        let user_remove_lamports = self.state.calc_lamports_from_msol_amount(msol_amount)?;
+        let user_remove_lamports = self.state.msol_to_sol(msol_amount)?;
         let liquid_unstake_fee = if user_remove_lamports >= liq_pool_available_sol_balance {
             // user is removing all liquidity
             self.state.liq_pool.lp_max_fee
@@ -118,7 +118,7 @@ impl<'info> LiquidUnstake<'info> {
         // compute how many lamports the msol_amount the user is "selling" (minus fee) is worth
         let working_lamports_value = self
             .state
-            .calc_lamports_from_msol_amount(msol_amount - msol_fee)?;
+            .msol_to_sol(msol_amount - msol_fee)?;
 
         // it can't be more than what's in the LiqPool
         if working_lamports_value + self.state.rent_exempt_for_token_acc

@@ -244,4 +244,26 @@ pub enum MarinadeError {
     #[msg("Invalid pause authority")]
     InvalidPauseAuthority, // 6078
 
+    #[msg("Selected Stake account has not enough funds")]
+    SelectedStakeAccountHasNotEnoughFunds, // 6079
+
+    #[msg("Basis point CENTS overflow")]
+    BasisPointCentsOverflow, // 6080
+
+    #[msg("Withdraw stake account is not enabled")]
+    WithdrawStakeAccountIsNotEnabled, // 6081
+    
+    #[msg("Withdraw stake account fee is too high")]
+    WithdrawStakeAccountFeeIsTooHigh, // 6082
+
+    #[msg("Delayed unstake fee is too high")]
+    DelayedUnstakeFeeIsTooHigh, // 6083
+
+    #[msg("Withdraw stake account value is too low")]
+    WithdrawStakeLamportsIsTooLow, // 6084
+
+    /// when the remainder after a withdraw stake account is less than min_stake
+    #[msg("Stake account remainder too low")]
+    StakeAccountRemainderTooLow, // 6085 
+   
 }

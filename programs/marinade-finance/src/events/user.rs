@@ -35,3 +35,24 @@ pub struct DepositEvent {
     pub total_virtual_staked_lamports: u64,
     pub msol_supply: u64,
 }
+
+#[event]
+pub struct WithdrawStakeAccountEvent {
+    pub state: Pubkey,
+    pub epoch: u64,
+    pub stake: Pubkey,
+    pub last_update_stake_delegation: u64,
+    pub stake_index: u32,
+    pub validator: Pubkey,
+    pub validator_index: u32,
+    pub user_msol_balance: u64,
+    pub user_msol_auth: Pubkey, // owner of the mSOL
+    pub msol_burned: u64,
+    pub split_stake: Pubkey, // output stake account
+    pub beneficiary: Pubkey, // withdraw auth for the output stake account
+    pub split_lamports: u64,
+    pub fee_bp_cents: u32,
+    // MSOL price used
+    pub total_virtual_staked_lamports: u64,
+    pub msol_supply: u64,
+}

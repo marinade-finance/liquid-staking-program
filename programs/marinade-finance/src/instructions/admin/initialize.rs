@@ -6,11 +6,13 @@ use crate::{
     error::MarinadeError,
     events::admin::InitializeEvent,
     require_lte,
-    state::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, Fee},
+    state::{
+        fee::FeeCents, liq_pool::LiqPool, stake_system::StakeSystem,
+        validator_system::ValidatorSystem, Fee,
+    },
     State, ID,
 };
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program_pack::Pack;
+use anchor_lang::{prelude::*, solana_program::program_pack::Pack};
 use anchor_spl::token::{spl_token, Mint, TokenAccount};
 
 #[derive(Accounts)]
@@ -84,7 +86,6 @@ pub struct LiqPoolInitializeData {
 }
 
 impl<'info> Initialize<'info> {
-
     pub fn state(&self) -> &State {
         &self.state
     }
@@ -102,7 +103,7 @@ impl<'info> Initialize<'info> {
         let (authority_address, authority_bump_seed) =
             State::find_msol_mint_authority(self.state_address());
 
-        check_mint_authority(&self.msol_mint, authority_address, "msol_mint")?;
+        check_mint_authority(&self.msol_mint, &authority_address, "msol_mint")?;
         check_mint_empty(&self.msol_mint, "msol_mint")?;
         check_freeze_authority(&self.msol_mint, "msol_mint")?;
         Ok(authority_bump_seed)
@@ -168,6 +169,9 @@ impl<'info> Initialize<'info> {
             emergency_cooling_down: 0,
             pause_authority,
             paused: false,
+            delayed_unstake_fee: FeeCents::from_bp_cents(0),
+            withdraw_stake_account_fee: FeeCents::from_bp_cents(0),
+            withdraw_stake_account_enabled: false,
         });
 
         emit!(InitializeEvent {
@@ -202,7 +206,7 @@ impl<'info> LiqPoolInitialize<'info> {
         let (authority_address, authority_bump_seed) =
             LiqPool::find_lp_mint_authority(parent.state_address());
 
-        check_mint_authority(&parent.liq_pool.lp_mint, authority_address, "lp_mint")?;
+        check_mint_authority(&parent.liq_pool.lp_mint, &authority_address, "lp_mint")?;
         check_mint_empty(&parent.liq_pool.lp_mint, "lp_mint")?;
         check_freeze_authority(&parent.liq_pool.lp_mint, "lp_mint")?;
 
@@ -219,7 +223,7 @@ impl<'info> LiqPoolInitialize<'info> {
     pub fn check_msol_leg(parent: &Initialize) -> Result<u8> {
         check_token_mint(
             &parent.liq_pool.msol_leg,
-            *parent.msol_mint.to_account_info().key,
+            &parent.msol_mint.key(),
             "liq_msol",
         )?;
         let (msol_authority, msol_authority_bump_seed) =

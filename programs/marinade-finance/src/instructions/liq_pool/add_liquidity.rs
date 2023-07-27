@@ -105,7 +105,7 @@ impl<'info> AddLiquidity<'info> {
             .expect("sol_leg_lamports");
         let msol_leg_value = self
             .state
-            .calc_lamports_from_msol_amount(self.liq_pool_msol_leg.amount)?;
+            .msol_to_sol(self.liq_pool_msol_leg.amount)?;
         let total_liq_pool_value = sol_leg_available_balance + msol_leg_value;
         msg!(
             "liq_pool SOL:{}, liq_pool mSOL value:{} liq_pool_value:{}",

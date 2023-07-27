@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::Fee;
+use crate::state::{Fee, fee::FeeCents};
 
 pub mod admin;
 pub mod crank;
@@ -25,6 +25,12 @@ pub struct U32ValueChange {
 pub struct FeeValueChange {
     pub old: Fee,
     pub new: Fee,
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct FeeCentsValueChange {
+    pub old: FeeCents,
+    pub new: FeeCents,
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]

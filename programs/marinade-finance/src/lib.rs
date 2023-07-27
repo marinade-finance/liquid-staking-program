@@ -246,5 +246,17 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts.resume()
     }
-    
+
+    // immediate withdraw of an active stake account - feature can be enabled or disable by the DAO
+    pub fn withdraw_stake_account(
+        ctx: Context<WithdrawStakeAccount>,
+        stake_index: u32,
+        validator_index: u32,
+        msol_amount: u64,
+        beneficiary: Pubkey,
+    ) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts
+            .process(stake_index, validator_index, msol_amount, beneficiary)
+    }
 }

@@ -99,9 +99,11 @@ impl<'info> DeactivateStake<'info> {
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
         // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return err!(MarinadeError::StakeAccountIsEmergencyUnstaking);
-        }
+        require_eq!(
+            stake.is_emergency_unstaking,
+            0,
+            MarinadeError::StakeAccountIsEmergencyUnstaking
+        );
 
         let mut validator = self
             .state
