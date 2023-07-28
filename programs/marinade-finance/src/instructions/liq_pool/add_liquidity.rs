@@ -100,9 +100,7 @@ impl<'info> AddLiquidity<'info> {
 
         // compute current liq-pool total value BEFORE adding user's deposit
         let sol_leg_balance = self.liq_pool_sol_leg_pda.lamports();
-        let sol_leg_available_balance = sol_leg_balance
-            .checked_sub(self.state.rent_exempt_for_token_acc)
-            .expect("sol_leg_lamports");
+        let sol_leg_available_balance = sol_leg_balance - self.state.rent_exempt_for_token_acc;
         let msol_leg_value = self.state.msol_to_sol(self.liq_pool_msol_leg.amount)?;
         let total_liq_pool_value = sol_leg_available_balance + msol_leg_value;
         msg!(

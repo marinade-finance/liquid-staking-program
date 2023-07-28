@@ -149,11 +149,8 @@ impl<'info> UpdateCommon<'info> {
             .get_treasury_msol_balance(&self.treasury_msol_account)
             .is_some();
 
-        let virtual_reserve_balance = self
-            .state
-            .available_reserve_balance
-            .checked_add(self.state.rent_exempt_for_token_acc)
-            .expect("reserve balance overflow");
+        let virtual_reserve_balance =
+            self.state.available_reserve_balance + self.state.rent_exempt_for_token_acc;
 
         // impossible to happen check outside bug
         if self.reserve_pda.lamports() < virtual_reserve_balance {
@@ -505,7 +502,7 @@ impl<'info> UpdateDeactivated<'info> {
             ),
             rent,
         )?;
-        self.state.on_transfer_from_reserve(rent)?;
+        self.state.on_transfer_from_reserve(rent);
 
         if stake.last_update_delegated_lamports != 0 {
             if stake.is_emergency_unstaking == 0 {

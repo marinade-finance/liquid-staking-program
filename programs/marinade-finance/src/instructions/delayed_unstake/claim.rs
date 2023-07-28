@@ -134,7 +134,7 @@ impl<'info> Claim<'info> {
             ),
             lamports,
         )?;
-        self.state.on_transfer_from_reserve(lamports)?;
+        self.state.on_transfer_from_reserve(lamports);
 
         emit!(ClaimEvent {
             state: self.state.key(),

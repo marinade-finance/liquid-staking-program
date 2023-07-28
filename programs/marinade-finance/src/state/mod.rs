@@ -173,27 +173,18 @@ impl State {
     }
 
     pub fn total_cooling_down(&self) -> u64 {
-        self.stake_system
-            .delayed_unstake_cooling_down
-            .checked_add(self.emergency_cooling_down)
-            .expect("Total cooling down overflow")
+        self.stake_system.delayed_unstake_cooling_down + self.emergency_cooling_down
     }
 
     /// total_active_balance + total_cooling_down + available_reserve_balance
     pub fn total_lamports_under_control(&self) -> u64 {
-        self.validator_system
-            .total_active_balance
-            .checked_add(self.total_cooling_down())
-            .expect("Stake balance overflow")
-            .checked_add(self.available_reserve_balance) // reserve_pda.lamports() - self.rent_exempt_for_token_acc
-            .expect("Total SOLs under control overflow")
+        self.validator_system.total_active_balance
+            + self.total_cooling_down()
+            + self.available_reserve_balance // reserve_pda.lamports() - self.rent_exempt_for_token_acc
     }
 
     pub fn check_staking_cap(&self, transfering_lamports: u64) -> Result<()> {
-        let result_amount = self
-            .total_lamports_under_control()
-            .checked_add(transfering_lamports)
-            .ok_or(error!(MarinadeError::CalculationFailure))?;
+        let result_amount = self.total_lamports_under_control() + transfering_lamports;
         require_lte!(
             result_amount,
             self.staking_sol_cap,
@@ -250,32 +241,18 @@ impl State {
     }
 
     pub fn on_transfer_to_reserve(&mut self, amount: u64) {
-        self.available_reserve_balance = self
-            .available_reserve_balance
-            .checked_add(amount)
-            .expect("reserve balance overflow");
+        self.available_reserve_balance += amount
     }
 
-    pub fn on_transfer_from_reserve(&mut self, amount: u64) -> Result<()> {
-        self.available_reserve_balance = self
-            .available_reserve_balance
-            .checked_sub(amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
-        Ok(())
+    pub fn on_transfer_from_reserve(&mut self, amount: u64) {
+        self.available_reserve_balance -= amount
     }
 
     pub fn on_msol_mint(&mut self, amount: u64) {
-        self.msol_supply = self
-            .msol_supply
-            .checked_add(amount)
-            .expect("msol supply overflow");
+        self.msol_supply += amount
     }
 
-    pub fn on_msol_burn(&mut self, amount: u64) -> Result<()> {
-        self.msol_supply = self
-            .msol_supply
-            .checked_sub(amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
-        Ok(())
+    pub fn on_msol_burn(&mut self, amount: u64) {
+        self.msol_supply -= amount
     }
 }

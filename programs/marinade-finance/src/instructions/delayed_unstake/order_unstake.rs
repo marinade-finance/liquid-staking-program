@@ -90,7 +90,7 @@ impl<'info> OrderUnstake<'info> {
             ),
             msol_amount,
         )?;
-        self.state.on_msol_burn(msol_amount)?;
+        self.state.on_msol_burn(msol_amount);
 
         // initialize new_ticket_account
         let created_epoch = self.clock.epoch
