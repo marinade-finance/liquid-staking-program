@@ -37,23 +37,13 @@ impl<'info> SetValidatorScore<'info> {
             &validator_vote,
         )?;
 
-        self.state.validator_system.total_validator_score = self
-            .state
-            .validator_system
-            .total_validator_score
-            .checked_sub(validator.score)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        self.state.validator_system.total_validator_score -= validator.score;
         let score_change = {
             let old = validator.score;
             validator.score = score;
             U32ValueChange { old, new: score }
         };
-        self.state.validator_system.total_validator_score = self
-            .state
-            .validator_system
-            .total_validator_score
-            .checked_add(score)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        self.state.validator_system.total_validator_score += score;
         self.state.validator_system.set(
             &mut self.validator_list.data.borrow_mut(),
             index,

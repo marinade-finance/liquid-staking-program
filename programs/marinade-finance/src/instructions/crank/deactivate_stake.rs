@@ -295,20 +295,12 @@ impl<'info> DeactivateStake<'info> {
                 (split_amount, false)
             };
         // we now consider amount no longer "active" for this specific validator
-        validator.active_balance = validator
-            .active_balance
-            .checked_sub(unstaked_amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        validator.active_balance -= unstaked_amount;
         // Any stake-delta activity must activate stake delta mode
         self.state.stake_system.last_stake_delta_epoch = self.clock.epoch;
         // and in state totals,
         // move from total_active_balance -> total_cooling_down
-        self.state.validator_system.total_active_balance = self
-            .state
-            .validator_system
-            .total_active_balance
-            .checked_sub(unstaked_amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        self.state.validator_system.total_active_balance -= unstaked_amount;
         // record for event and update
         let delayed_unstake_cooling_down = self.state.stake_system.delayed_unstake_cooling_down;
         self.state.stake_system.delayed_unstake_cooling_down += unstaked_amount;

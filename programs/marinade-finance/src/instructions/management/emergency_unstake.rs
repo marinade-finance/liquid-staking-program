@@ -106,23 +106,11 @@ impl<'info> EmergencyUnstake<'info> {
         stake.is_emergency_unstaking = 1;
 
         // we now consider amount no longer "active" for this specific validator
-        validator.active_balance = validator
-            .active_balance
-            .checked_sub(unstake_amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        validator.active_balance -= unstake_amount;
         // and in state totals,
         // move from total_active_balance -> total_cooling_down
-        self.state.validator_system.total_active_balance = self
-            .state
-            .validator_system
-            .total_active_balance
-            .checked_sub(unstake_amount)
-            .ok_or(MarinadeError::CalculationFailure)?;
-        self.state.emergency_cooling_down = self
-            .state
-            .emergency_cooling_down
-            .checked_add(unstake_amount)
-            .expect("Cooling down overflow");
+        self.state.validator_system.total_active_balance -= unstake_amount;
+        self.state.emergency_cooling_down += unstake_amount;
 
         // update stake-list & validator-list
         self.state.stake_system.set(

@@ -143,10 +143,7 @@ impl<'info> MergeStakes<'info> {
 
         require_eq!(
             self.source_stake.to_account_info().lamports(),
-            source_delegation
-                .stake
-                .checked_add(self.source_stake.meta().unwrap().rent_exempt_reserve)
-                .ok_or(MarinadeError::CalculationFailure)?,
+            source_delegation.stake + self.source_stake.meta().unwrap().rent_exempt_reserve,
             MarinadeError::SourceStakeMustBeUpdated
         );
 
@@ -178,28 +175,17 @@ impl<'info> MergeStakes<'info> {
         // reread stake after merging to properly compute extra_delegated
         self.destination_stake.reload()?;
         // extra_delegated = dest.delegation.stake after merge - (dest.last_update_delegated_lamports + source.last_update_delegated_lamports)
-        let extra_delegated = self
-            .destination_stake
-            .delegation()
-            .unwrap()
-            .stake
-            .checked_sub(destination_stake_info.last_update_delegated_lamports)
-            .ok_or(MarinadeError::CalculationFailure)?
-            .checked_sub(source_stake_info.last_update_delegated_lamports)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        let extra_delegated = self.destination_stake.delegation().unwrap().stake
+            - destination_stake_info.last_update_delegated_lamports
+            - source_stake_info.last_update_delegated_lamports;
         // Note: if the merge is invoked with 2 activating accounts, or a new account -> activating account,
         // the source account *rent-lamports* are added to the destination account on top of the delegation (extra-delegated).
         // This is not normal operation for the bot, but this instruction is permissionless so anyone can call any time,
         // and so we should consider the case.
         // In normal cases (the bot merging to active accounts) the *rent-lamports* go to dest account *native lamports*,
         // so the destination account will have double the rent-exempt lamports
-        let returned_stake_rent = self
-            .source_stake
-            .meta()
-            .unwrap()
-            .rent_exempt_reserve
-            .checked_sub(extra_delegated)
-            .ok_or(MarinadeError::CalculationFailure)?;
+        let returned_stake_rent =
+            self.source_stake.meta().unwrap().rent_exempt_reserve - extra_delegated;
         // update validator.active_balance
         validator.active_balance += extra_delegated;
         // store in list
