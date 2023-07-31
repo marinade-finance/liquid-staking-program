@@ -52,7 +52,8 @@ impl TryFrom<f64> for Fee {
 
     fn try_from(n: f64) -> Result<Self> {
         let basis_points_i = (n * 100.0).floor() as i64; // 4.5% => 450 basis_points
-        let basis_points = u32::try_from(basis_points_i)?;
+        let basis_points =
+            u32::try_from(basis_points_i).map_err(|_| MarinadeError::CalculationFailure)?;
         let fee = Fee::from_basis_points(basis_points);
         fee.check()?;
         Ok(fee)
@@ -64,7 +65,7 @@ impl FromStr for Fee {
     type Err = Error; // TODO: better error
 
     fn from_str(s: &str) -> Result<Self> {
-        f64::try_into(s.parse()?)
+        f64::try_into(s.parse().map_err(|_| MarinadeError::CalculationFailure)?)
     }
 }
 
@@ -117,18 +118,18 @@ impl TryFrom<f64> for FeeCents {
 
     fn try_from(n: f64) -> Result<Self> {
         let bp_cents_i = (n * 10000.0).floor() as i64; // 4.5% => 45000 bp_cents
-        let bp_cents = u32::try_from(bp_cents_i)?;
-        let fee = Fee::from_bp_cents(bp_cents);
+        let bp_cents = u32::try_from(bp_cents_i).map_err(|_| MarinadeError::CalculationFailure)?;
+        let fee = FeeCents::from_bp_cents(bp_cents);
         fee.check()?;
         Ok(fee)
     }
 }
 
 #[cfg(feature = "no-entrypoint")]
-impl FromStr for Fee {
+impl FromStr for FeeCents {
     type Err = Error; // TODO: better error
 
     fn from_str(s: &str) -> Result<Self> {
-        f64::try_into(s.parse()?)
+        f64::try_into(s.parse().map_err(|_| MarinadeError::CalculationFailure)?)
     }
 }
