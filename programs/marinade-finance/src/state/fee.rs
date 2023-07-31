@@ -124,3 +124,12 @@ impl TryFrom<f64> for FeeCents {
         Ok(fee)
     }
 }
+
+#[cfg(feature = "no-entrypoint")]
+impl FromStr for FeeCents {
+    type Err = Error; // TODO: better error
+
+    fn from_str(s: &str) -> Result<Self> {
+        f64::try_into(s.parse().map_err(|_| MarinadeError::CalculationFailure)?)
+    }
+}

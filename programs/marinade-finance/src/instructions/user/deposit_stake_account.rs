@@ -86,7 +86,7 @@ pub struct DepositStakeAccount<'info> {
 
 impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 0; // Accepting fresh/redelegated accounts also because those are mergeable anyways
-                                    // fn deposit_stake_account()
+    // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
@@ -113,7 +113,7 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::RequiredActiveStake
         );
 
-        // require the stake is active since current_epoch + WAIT_EPOCHS
+        // require the stake is active since current_epoch + WAIT_EPOCHS 
         require_gte!(
             self.clock.epoch,
             delegation.activation_epoch + Self::WAIT_EPOCHS,
