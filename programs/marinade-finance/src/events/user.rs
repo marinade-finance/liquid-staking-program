@@ -48,6 +48,7 @@ pub struct WithdrawStakeAccountEvent {
     pub user_msol_balance: u64,
     pub user_msol_auth: Pubkey, // owner of the mSOL
     pub msol_burned: u64,
+    pub msol_fees: u64,
     pub split_stake: Pubkey, // output stake account
     pub beneficiary: Pubkey, // withdraw auth for the output stake account
     pub split_lamports: u64,
