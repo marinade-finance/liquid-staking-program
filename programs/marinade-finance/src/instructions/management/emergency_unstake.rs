@@ -1,7 +1,7 @@
 use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    state::{stake_system::StakeSystem, validator_system::ValidatorList},
     State,
 };
 
@@ -17,15 +17,11 @@ pub struct EmergencyUnstake<'info> {
             @ MarinadeError::InvalidValidatorManager
     )]
     pub validator_manager_authority: Signer<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
     /// CHECK: manual account processing
     #[account(
         mut,
@@ -62,10 +58,10 @@ impl<'info> EmergencyUnstake<'info> {
             self.stake_account.to_account_info().key,
         )?;
 
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
+        let mut validator = self.state.validator_system.get(
+            &self.validator_list.to_account_info().data.as_ref().borrow(),
+            validator_index,
+        )?;
 
         // One more level of protection: need to run setScore(0) before this. I don't know is it really a good idea
         require_eq!(
@@ -120,7 +116,12 @@ impl<'info> EmergencyUnstake<'info> {
         )?;
 
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

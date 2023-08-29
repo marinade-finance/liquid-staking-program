@@ -4,11 +4,8 @@ use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
 use crate::events::crank::MergeStakesEvent;
-use crate::{
-    error::MarinadeError,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
-    State,
-};
+use crate::state::validator_system::ValidatorList;
+use crate::{error::MarinadeError, state::stake_system::StakeSystem, State};
 
 #[derive(Accounts)]
 pub struct MergeStakes<'info> {
@@ -26,15 +23,11 @@ pub struct MergeStakes<'info> {
             @ MarinadeError::InvalidStakeListDiscriminator,
     )]
     pub stake_list: UncheckedAccount<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
     #[account(mut)]
     pub destination_stake: Box<Account<'info, StakeAccount>>,
     #[account(mut)]
@@ -78,10 +71,10 @@ impl<'info> MergeStakes<'info> {
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
+        let mut validator = self.state.validator_system.get(
+            &self.validator_list.to_account_info().data.as_ref().borrow(),
+            validator_index,
+        )?;
 
         // record for event
         let validator_active_balance = validator.active_balance;
@@ -190,7 +183,12 @@ impl<'info> MergeStakes<'info> {
         validator.active_balance += extra_delegated;
         // store in list
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

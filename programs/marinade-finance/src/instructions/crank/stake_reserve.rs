@@ -1,7 +1,7 @@
 use crate::{
     error::MarinadeError,
     events::crank::StakeReserveEvent,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    state::{stake_system::StakeSystem, validator_system::ValidatorList},
     State, ID,
 };
 use anchor_lang::solana_program::{
@@ -25,15 +25,11 @@ use std::ops::Deref;
 pub struct StakeReserve<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
     /// CHECK: manual account processing
     #[account(
         mut,
@@ -143,7 +139,7 @@ impl<'info> StakeReserve<'info> {
             .state
             .validator_system
             .get_checked(
-                &self.validator_list.data.as_ref().borrow(),
+                &self.validator_list.to_account_info().data.as_ref().borrow(),
                 validator_index,
                 self.validator_vote.key,
             )
@@ -279,7 +275,12 @@ impl<'info> StakeReserve<'info> {
         // Any stake-delta activity must activate stake delta mode
         self.state.stake_system.last_stake_delta_epoch = self.clock.epoch;
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

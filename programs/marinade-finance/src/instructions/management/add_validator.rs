@@ -2,8 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 
 use crate::events::management::AddValidatorEvent;
-use crate::state::validator_system::ValidatorRecord;
-use crate::{error::MarinadeError, state::validator_system::ValidatorSystem, State};
+use crate::state::validator_system::{ValidatorList, ValidatorRecord};
+use crate::{error::MarinadeError, State};
 
 #[derive(Accounts)]
 pub struct AddValidator<'info> {
@@ -11,15 +11,11 @@ pub struct AddValidator<'info> {
     pub state: Account<'info, State>,
     #[account(address = state.validator_system.manager_authority)]
     pub manager_authority: Signer<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
 
     /// CHECK: todo
     pub validator_vote: UncheckedAccount<'info>,
@@ -58,7 +54,7 @@ impl<'info> AddValidator<'info> {
 
         let state_address = self.state.key();
         self.state.validator_system.add(
-            &mut self.validator_list.data.borrow_mut(),
+            &mut self.validator_list.to_account_info().data.borrow_mut(),
             self.validator_vote.key(),
             score,
             &state_address,

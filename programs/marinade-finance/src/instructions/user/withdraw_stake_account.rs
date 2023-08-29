@@ -2,7 +2,7 @@ use crate::{
     checks::check_token_source_account,
     error::MarinadeError,
     events::user::WithdrawStakeAccountEvent,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    state::{stake_system::StakeSystem, validator_system::ValidatorList},
     State,
 };
 use anchor_lang::{
@@ -38,15 +38,11 @@ pub struct WithdrawStakeAccount<'info> {
     #[account(mut)]
     pub burn_msol_authority: Signer<'info>,
 
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
 
     /// CHECK: manual account processing
     #[account(
@@ -147,10 +143,10 @@ impl<'info> WithdrawStakeAccount<'info> {
             MarinadeError::RequiredActiveStake
         );
 
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
+        let mut validator = self.state.validator_system.get(
+            &self.validator_list.to_account_info().data.as_ref().borrow(),
+            validator_index,
+        )?;
 
         // check currently_staked in this account & validator vote-key
         check_stake_amount_and_validator(
@@ -257,7 +253,12 @@ impl<'info> WithdrawStakeAccount<'info> {
             stake,
         )?;
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

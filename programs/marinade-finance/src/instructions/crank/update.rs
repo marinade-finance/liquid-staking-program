@@ -10,12 +10,10 @@ use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::events::crank::{UpdateActiveEvent, UpdateDeactivatedEvent};
 use crate::events::U64ValueChange;
+use crate::state::validator_system::ValidatorList;
 use crate::{
     error::MarinadeError,
-    state::{
-        stake_system::{StakeRecord, StakeSystem},
-        validator_system::ValidatorSystem,
-    },
+    state::stake_system::{StakeRecord, StakeSystem},
     State,
 };
 
@@ -84,15 +82,11 @@ pub struct UpdateCommon<'info> {
 #[derive(Accounts)]
 pub struct UpdateActive<'info> {
     pub common: UpdateCommon<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = common.state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
 }
 
 impl<'info> Deref for UpdateActive<'info> {
@@ -290,7 +284,7 @@ impl<'info> UpdateActive<'info> {
         })?;
 
         let mut validator = self.state.validator_system.get_checked(
-            &self.validator_list.data.as_ref().borrow(),
+            &self.validator_list.to_account_info().data.as_ref().borrow(),
             validator_index,
             &delegation.voter_pubkey,
         )?;
@@ -379,7 +373,12 @@ impl<'info> UpdateActive<'info> {
 
         //update validator-list
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

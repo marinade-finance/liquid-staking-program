@@ -2,7 +2,7 @@ use crate::{
     error::MarinadeError,
     events::crank::{DeactivateStakeEvent, SplitStakeAccountInfo},
     require_lt,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    state::{stake_system::StakeSystem, validator_system::ValidatorList},
     State,
 };
 use std::convert::TryFrom;
@@ -31,15 +31,11 @@ pub struct DeactivateStake<'info> {
         bump = state.reserve_bump_seed
     )]
     pub reserve_pda: SystemAccount<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
     /// CHECK: manual account processing
     #[account(
         mut,
@@ -105,10 +101,10 @@ impl<'info> DeactivateStake<'info> {
             MarinadeError::StakeAccountIsEmergencyUnstaking
         );
 
-        let mut validator = self
-            .state
-            .validator_system
-            .get(&self.validator_list.data.as_ref().borrow(), validator_index)?;
+        let mut validator = self.state.validator_system.get(
+            &self.validator_list.to_account_info().data.as_ref().borrow(),
+            validator_index,
+        )?;
 
         // check that we're in the last slots of the epoch (stake-delta window)
         require_gte!(
@@ -313,7 +309,12 @@ impl<'info> DeactivateStake<'info> {
         )?;
 
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

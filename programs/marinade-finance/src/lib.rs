@@ -259,4 +259,9 @@ pub mod marinade_finance {
         ctx.accounts
             .process(stake_index, validator_index, msol_amount, beneficiary)
     }
+
+    pub fn realloc_validator_list(ctx: Context<ReallocValidatorList>, capacity: u32) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts.process(capacity)
+    }
 }
