@@ -3,7 +3,7 @@ use crate::{
     error::MarinadeError,
     events::crank::{RedelegateEvent, SplitStakeAccountInfo},
     state::{
-        stake_system::{StakeRecord, StakeSystem},
+        stake_system::{StakeList, StakeRecord, StakeSystem},
         validator_system::ValidatorList,
     },
     State,
@@ -27,15 +27,11 @@ pub struct ReDelegate<'info> {
         address = state.validator_system.validator_list.account,
     )]
     pub validator_list: Account<'info, ValidatorList>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
@@ -130,7 +126,7 @@ impl<'info> ReDelegate<'info> {
         }
 
         let mut stake = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
+            &self.stake_list.to_account_info().data.as_ref().borrow(),
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
@@ -304,7 +300,7 @@ impl<'info> ReDelegate<'info> {
         // add new warming-up re-delegated account to Marinade stake-accounts list
         // warn - the lamports are accounted here, and no longer in the source account
         self.state.stake_system.add(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             &self.redelegate_stake_account.key(),
             redelegate_amount_effective,
             &self.clock,
@@ -318,7 +314,7 @@ impl<'info> ReDelegate<'info> {
 
         // update stake-list & validator-list
         self.state.stake_system.set(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             stake_index,
             stake,
         )?;
@@ -411,7 +407,7 @@ impl<'info> ReDelegate<'info> {
 
         // add the split account as new account to Marinade stake-accounts list
         self.state.stake_system.add(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             &self.split_stake_account.key(),
             0, // this account will be deactivating,
             // all lamports will be moved to the re-delegated account,

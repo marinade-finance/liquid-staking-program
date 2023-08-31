@@ -264,4 +264,9 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts.process(capacity)
     }
+
+    pub fn realloc_stake_list(ctx: Context<ReallocStakeList>, capacity: u32) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts.process(capacity)
+    }
 }

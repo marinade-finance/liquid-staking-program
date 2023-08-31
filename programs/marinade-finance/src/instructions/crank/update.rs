@@ -10,6 +10,7 @@ use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::events::crank::{UpdateActiveEvent, UpdateDeactivatedEvent};
 use crate::events::U64ValueChange;
+use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
 use crate::{
     error::MarinadeError,
@@ -25,15 +26,11 @@ pub struct UpdateCommon<'info> {
         has_one = msol_mint
     )]
     pub state: Box<Account<'info, State>>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
@@ -171,7 +168,7 @@ impl<'info> UpdateCommon<'info> {
         self.state.msol_supply = self.msol_mint.supply;
 
         let stake = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
+            &self.stake_list.to_account_info().data.as_ref().borrow(),
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
@@ -387,7 +384,7 @@ impl<'info> UpdateActive<'info> {
         let msol_price_change = self.update_msol_price()?;
         // save stake record
         self.state.stake_system.set(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             stake_index,
             stake,
         )?;
@@ -521,7 +518,13 @@ impl<'info> UpdateDeactivated<'info> {
 
         //remove deleted stake-account from our list
         self.common.state.stake_system.remove(
-            &mut self.common.stake_list.data.as_ref().borrow_mut(),
+            &mut self
+                .common
+                .stake_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             stake_index,
         )?;
         emit!(UpdateDeactivatedEvent {

@@ -4,6 +4,7 @@ use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
 use crate::events::crank::MergeStakesEvent;
+use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
 use crate::{error::MarinadeError, state::stake_system::StakeSystem, State};
 
@@ -14,15 +15,11 @@ pub struct MergeStakes<'info> {
         has_one = operational_sol_account
     )]
     pub state: Box<Account<'info, State>>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
@@ -82,7 +79,7 @@ impl<'info> MergeStakes<'info> {
         let operational_sol_balance = self.operational_sol_account.lamports();
 
         let mut destination_stake_info = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
+            &self.stake_list.to_account_info().data.as_ref().borrow(),
             destination_stake_index,
             self.destination_stake.to_account_info().key,
         )?;
@@ -113,7 +110,7 @@ impl<'info> MergeStakes<'info> {
 
         // Source stake
         let source_stake_info = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
+            &self.stake_list.to_account_info().data.as_ref().borrow(),
             source_stake_index,
             self.source_stake.to_account_info().key,
         )?;
@@ -198,13 +195,13 @@ impl<'info> MergeStakes<'info> {
         destination_stake_info.last_update_delegated_lamports =
             self.destination_stake.delegation().unwrap().stake;
         self.state.stake_system.set(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             destination_stake_index,
             destination_stake_info,
         )?;
         // Call this last because of index invalidation
         self.state.stake_system.remove(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             source_stake_index,
         )?;
         if returned_stake_rent > 0 {

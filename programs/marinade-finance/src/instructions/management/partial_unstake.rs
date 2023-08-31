@@ -1,7 +1,10 @@
 use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
-    state::{stake_system::StakeSystem, validator_system::ValidatorList},
+    state::{
+        stake_system::{StakeList, StakeSystem},
+        validator_system::ValidatorList,
+    },
     State,
 };
 use std::convert::TryFrom;
@@ -28,15 +31,11 @@ pub struct PartialUnstake<'info> {
         address = state.validator_system.validator_list.account,
     )]
     pub validator_list: Account<'info, ValidatorList>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
     /// CHECK: PDA
@@ -100,7 +99,7 @@ impl<'info> PartialUnstake<'info> {
         )?;
 
         let mut stake = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
+            &self.stake_list.to_account_info().data.as_ref().borrow(),
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
@@ -210,7 +209,7 @@ impl<'info> PartialUnstake<'info> {
 
             // add new account to Marinade stake-accounts list
             self.state.stake_system.add(
-                &mut self.stake_list.data.as_ref().borrow_mut(),
+                &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
                 &self.split_stake_account.key(),
                 unstake_amount,
                 &self.clock,
@@ -272,7 +271,7 @@ impl<'info> PartialUnstake<'info> {
 
         // update stake-list & validator-list
         self.state.stake_system.set(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             stake_index,
             stake,
         )?;

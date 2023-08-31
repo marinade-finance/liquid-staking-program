@@ -265,4 +265,7 @@ pub enum MarinadeError {
     /// when the remainder after a withdraw stake account is less than min_stake
     #[msg("Stake account remainder too low")]
     StakeAccountRemainderTooLow, // 6085 0x17c5
+
+    #[msg("Capacity of the list must be not less than it's current size")]
+    ShrinkingListWithDeletingContents, // 6086 0x17c6
 }

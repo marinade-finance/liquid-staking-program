@@ -98,6 +98,10 @@ impl AccountDeserialize for ValidatorList {
     }
 }
 
+// By implementing an AccountSerialize, Anchor will not try
+// to write the account data at the end of the instruction
+// because the default implementation of the try_serialize is empty
+// The account data is written explicitly in the code
 impl AccountSerialize for ValidatorList {}
 
 impl Owner for ValidatorList {

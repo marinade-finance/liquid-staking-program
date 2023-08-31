@@ -1,10 +1,10 @@
 use anchor_lang::{prelude::*, system_program, Discriminator};
 
-use crate::{error::MarinadeError, state::validator_system::ValidatorList, State, events::admin::ReallocValidatorListEvent};
+use crate::{error::MarinadeError, state::stake_system::StakeList, State, events::admin::ReallocStakeListEvent};
 
 #[derive(Accounts)]
 #[instruction(capacity: u32)]
-pub struct ReallocValidatorList<'info> {
+pub struct ReallocStakeList<'info> {
     #[account(
         mut,
         has_one = admin_authority @ MarinadeError::InvalidAdminAuthority,
@@ -13,13 +13,13 @@ pub struct ReallocValidatorList<'info> {
     pub admin_authority: Signer<'info>,
     #[account(
         mut,
-        address = state.validator_system.validator_list.account,
-        realloc = ValidatorList::DISCRIMINATOR.len() 
-            + (state.validator_system.validator_record_size() * capacity) as usize,
+        address = state.stake_system.stake_list.account,
+        realloc = StakeList::DISCRIMINATOR.len() 
+            + (state.stake_system.stake_record_size() * capacity) as usize,
         realloc::payer = rent_funds,
         realloc::zero = false,
     )]
-    pub validator_list: Account<'info, ValidatorList>,
+    pub stake_list: Account<'info, StakeList>,
 
     #[account(
         mut,
@@ -30,12 +30,12 @@ pub struct ReallocValidatorList<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> ReallocValidatorList<'info> {
+impl<'info> ReallocStakeList<'info> {
     pub fn process(&mut self, capacity: u32) -> Result<()> {
-        require_gte!(capacity, self.state.validator_system.validator_count(), MarinadeError::ShrinkingListWithDeletingContents);
-        emit!(ReallocValidatorListEvent {
+        require_gte!(capacity, self.state.stake_system.stake_count(), MarinadeError::ShrinkingListWithDeletingContents);
+        emit!(ReallocStakeListEvent {
             state: self.state.key(),
-            count: self.state.validator_system.validator_count(),
+            count: self.state.stake_system.stake_count(),
             new_capacity: capacity
         });
         Ok(())

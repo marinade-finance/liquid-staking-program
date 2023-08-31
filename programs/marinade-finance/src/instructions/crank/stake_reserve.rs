@@ -1,7 +1,7 @@
 use crate::{
     error::MarinadeError,
     events::crank::StakeReserveEvent,
-    state::{stake_system::StakeSystem, validator_system::ValidatorList},
+    state::{stake_system::{StakeSystem, StakeList}, validator_system::ValidatorList},
     State, ID,
 };
 use anchor_lang::solana_program::{
@@ -30,15 +30,11 @@ pub struct StakeReserve<'info> {
         address = state.validator_system.validator_list.account,
     )]
     pub validator_list: Account<'info, ValidatorList>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     /// CHECK: CPI
     #[account(mut)]
     pub validator_vote: UncheckedAccount<'info>,
@@ -262,7 +258,7 @@ impl<'info> StakeReserve<'info> {
         )?;
 
         self.state.stake_system.add(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             &self.stake_account.key(),
             stake_target,
             &self.clock,

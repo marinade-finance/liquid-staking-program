@@ -10,6 +10,7 @@ use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 use crate::events::user::DepositStakeAccountEvent;
+use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
 use crate::{
     checks::check_owner_program, error::MarinadeError, require_lte,
@@ -29,15 +30,11 @@ pub struct DepositStakeAccount<'info> {
         address = state.validator_system.validator_list.account,
     )]
     pub validator_list: Account<'info, ValidatorList>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
 
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
@@ -313,7 +310,7 @@ impl<'info> DepositStakeAccount<'info> {
         }
 
         self.state.stake_system.add(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             self.stake_account.to_account_info().key,
             delegation.stake,
             &self.clock,

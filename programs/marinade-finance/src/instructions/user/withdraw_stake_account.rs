@@ -2,7 +2,10 @@ use crate::{
     checks::check_token_source_account,
     error::MarinadeError,
     events::user::WithdrawStakeAccountEvent,
-    state::{stake_system::StakeSystem, validator_system::ValidatorList},
+    state::{
+        stake_system::{StakeList, StakeSystem},
+        validator_system::ValidatorList,
+    },
     State,
 };
 use anchor_lang::{
@@ -44,15 +47,11 @@ pub struct WithdrawStakeAccount<'info> {
     )]
     pub validator_list: Account<'info, ValidatorList>,
 
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     /// CHECK: PDA
     #[account(
         seeds = [
@@ -120,7 +119,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         .map_err(|e| e.with_account_name("burn_msol_from"))?;
 
         let mut stake = self.state.stake_system.get_checked(
-            &self.stake_list.data.as_ref().borrow(),
+            &self.stake_list.to_account_info().data.as_ref().borrow(),
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
@@ -248,7 +247,7 @@ impl<'info> WithdrawStakeAccount<'info> {
 
         // update stake-list & validator-list
         self.state.stake_system.set(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             stake_index,
             stake,
         )?;
