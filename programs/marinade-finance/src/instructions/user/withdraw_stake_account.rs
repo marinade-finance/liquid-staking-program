@@ -169,7 +169,7 @@ impl<'info> WithdrawStakeAccount<'info> {
 
         // compute how many lamport to split
         let split_lamports = {
-            // compute how many lamport the burned mSOL represents
+            // compute how many lamport the withdraw request's mSOL amount represents
             let sol_value = self.state.msol_to_sol(msol_amount)?;
             require_gte!(
                 sol_value,
@@ -180,7 +180,9 @@ impl<'info> WithdrawStakeAccount<'info> {
             // withdraw_stake_account_fee must be >= one epoch staking rewards
             let withdraw_stake_account_fee_lamports =
                 self.state.withdraw_stake_account_fee.apply(sol_value);
-            // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
+            // The mSOL fee value is sending to the treasury but
+            // the corresponding SOL value is not delivering inside the stake to the user
+            // because it is a fee user is paying for running this instruction
             sol_value - withdraw_stake_account_fee_lamports
         };
 
@@ -216,7 +218,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         } else {
             0
         };
-        let msol_burned = msol_amount - msol_fees; // garnteed to not underflow
+        let msol_burned = msol_amount - msol_fees; // guaranteed to not underflow
 
         if msol_fees > 0 {
             transfer(
