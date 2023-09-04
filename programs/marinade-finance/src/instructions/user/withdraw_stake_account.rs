@@ -16,14 +16,18 @@ use anchor_lang::{
 };
 use anchor_spl::{
     stake::{Stake, StakeAccount},
-    token::{burn, Burn, Mint, Token, TokenAccount},
+    token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer},
 };
 
 use crate::checks::check_stake_amount_and_validator;
 
 #[derive(Accounts)]
 pub struct WithdrawStakeAccount<'info> {
-    #[account(mut, has_one = msol_mint)]
+    #[account(
+        mut,
+        has_one = msol_mint,
+        has_one = treasury_msol_account,
+    )]
     pub state: Box<Account<'info, State>>,
 
     #[account(mut)]
@@ -37,6 +41,10 @@ pub struct WithdrawStakeAccount<'info> {
     pub burn_msol_from: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub burn_msol_authority: Signer<'info>,
+
+    /// CHECK: deserialized in code, must be the one in State (State has_one treasury_msol_account)
+    #[account(mut)]
+    pub treasury_msol_account: UncheckedAccount<'info>,
 
     /// CHECK: manual account processing
     #[account(
@@ -161,7 +169,7 @@ impl<'info> WithdrawStakeAccount<'info> {
 
         // compute how many lamport to split
         let split_lamports = {
-            // compute how many lamport the burned mSOL represents
+            // compute how many lamport the withdraw request's mSOL amount represents
             let sol_value = self.state.msol_to_sol(msol_amount)?;
             require_gte!(
                 sol_value,
@@ -172,9 +180,12 @@ impl<'info> WithdrawStakeAccount<'info> {
             // withdraw_stake_account_fee must be >= one epoch staking rewards
             let withdraw_stake_account_fee_lamports =
                 self.state.withdraw_stake_account_fee.apply(sol_value);
-            // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
+            // The mSOL fee value is sending to the treasury but
+            // the corresponding SOL value is not delivering inside the stake to the user
+            // because it is a fee user is paying for running this instruction
             sol_value - withdraw_stake_account_fee_lamports
         };
+
         // check withdraw amount (new stake account) >= self.state.stake_system.min_stake
         require_gte!(
             split_lamports,
@@ -197,19 +208,46 @@ impl<'info> WithdrawStakeAccount<'info> {
             MarinadeError::StakeAccountRemainderTooLow
         );
 
+        let treasury_msol_balance = self
+            .state
+            .get_treasury_msol_balance(&self.treasury_msol_account);
+
+        let msol_fees = if treasury_msol_balance.is_some() {
+            // saturating sub may be needed in case of some weird calculation rounding
+            msol_amount.saturating_sub(self.state.calc_msol_from_lamports(split_lamports)?)
+        } else {
+            0
+        };
+        let msol_burned = msol_amount - msol_fees; // guaranteed to not underflow
+
+        if msol_fees > 0 {
+            transfer(
+                CpiContext::new(
+                    self.token_program.to_account_info(),
+                    Transfer {
+                        from: self.burn_msol_from.to_account_info(),
+                        to: self.treasury_msol_account.to_account_info(),
+                        authority: self.burn_msol_authority.to_account_info(),
+                    },
+                ),
+                msol_fees,
+            )?;
+        }
         // burn mSOL
-        burn(
-            CpiContext::new(
-                self.token_program.to_account_info(),
-                Burn {
-                    mint: self.msol_mint.to_account_info(),
-                    from: self.burn_msol_from.to_account_info(),
-                    authority: self.burn_msol_authority.to_account_info(),
-                },
-            ),
-            msol_amount,
-        )?;
-        self.state.on_msol_burn(msol_amount);
+        if msol_burned > 0 {
+            burn(
+                CpiContext::new(
+                    self.token_program.to_account_info(),
+                    Burn {
+                        mint: self.msol_mint.to_account_info(),
+                        from: self.burn_msol_from.to_account_info(),
+                        authority: self.burn_msol_authority.to_account_info(),
+                    },
+                ),
+                msol_burned,
+            )?;
+            self.state.on_msol_burn(msol_burned);
+        }
 
         // split split_lamports from stake account into out split_stake_account
         msg!(
@@ -315,7 +353,8 @@ impl<'info> WithdrawStakeAccount<'info> {
             user_msol_auth: self.burn_msol_authority.key(),
             beneficiary,
             user_msol_balance,
-            msol_burned: msol_amount,
+            msol_burned,
+            msol_fees,
             split_stake: self.split_stake_account.key(),
             split_lamports,
             fee_bp_cents: self.state.withdraw_stake_account_fee.bp_cents,
