@@ -1,7 +1,10 @@
 use crate::{
     error::MarinadeError,
     events::crank::StakeReserveEvent,
-    state::{stake_system::{StakeSystem, StakeList}, validator_system::ValidatorList},
+    state::{
+        stake_system::{StakeList, StakeSystem},
+        validator_system::ValidatorList,
+    },
     State, ID,
 };
 use anchor_lang::solana_program::{
@@ -188,8 +191,16 @@ impl<'info> StakeReserve<'info> {
         // stake_target = target_validator_balance - validator.balance, at least self.state.min_stake and at most delta_stake
         let stake_target = validator_stake_target
             .saturating_sub(validator_active_balance)
-            .max(self.state.stake_system.min_stake)
             .min(total_stake_delta);
+
+        if stake_target < self.state.stake_system.min_stake {
+            msg!(
+                "Resulting stake {} is lower than min stake allowed {}",
+                stake_target,
+                self.state.stake_system.min_stake
+            );
+            return Ok(()); // Not an error. Don't fail other instructions in tx
+        }
 
         // if what's left after this stake is < state.min_stake, take all the remainder
         let stake_target = if total_stake_delta - stake_target < self.state.stake_system.min_stake {
