@@ -1,7 +1,7 @@
 use crate::{
     error::MarinadeError,
     events::crank::StakeReserveEvent,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
+    state::{stake_system::{StakeSystem, StakeList}, validator_system::ValidatorList},
     State, ID,
 };
 use anchor_lang::solana_program::{
@@ -25,24 +25,16 @@ use std::ops::Deref;
 pub struct StakeReserve<'info> {
     #[account(mut)]
     pub state: Box<Account<'info, State>>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
-    /// CHECK: manual account processing
+    pub validator_list: Account<'info, ValidatorList>,
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
     /// CHECK: CPI
     #[account(mut)]
     pub validator_vote: UncheckedAccount<'info>,
@@ -143,7 +135,7 @@ impl<'info> StakeReserve<'info> {
             .state
             .validator_system
             .get_checked(
-                &self.validator_list.data.as_ref().borrow(),
+                &self.validator_list.to_account_info().data.as_ref().borrow(),
                 validator_index,
                 self.validator_vote.key,
             )
@@ -266,7 +258,7 @@ impl<'info> StakeReserve<'info> {
         )?;
 
         self.state.stake_system.add(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             &self.stake_account.key(),
             stake_target,
             &self.clock,
@@ -279,7 +271,12 @@ impl<'info> StakeReserve<'info> {
         // Any stake-delta activity must activate stake delta mode
         self.state.stake_system.last_stake_delta_epoch = self.clock.epoch;
         self.state.validator_system.set(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             validator_index,
             validator,
         )?;

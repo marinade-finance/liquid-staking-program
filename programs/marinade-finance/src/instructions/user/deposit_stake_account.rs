@@ -10,12 +10,11 @@ use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 use crate::events::user::DepositStakeAccountEvent;
+use crate::state::stake_system::StakeList;
+use crate::state::validator_system::ValidatorList;
 use crate::{
-    checks::check_owner_program,
-    error::MarinadeError,
-    require_lte,
-    state::{stake_system::StakeSystem, validator_system::ValidatorSystem},
-    State, ID,
+    checks::check_owner_program, error::MarinadeError, require_lte,
+    state::stake_system::StakeSystem, State, ID,
 };
 
 #[derive(Accounts)]
@@ -26,24 +25,16 @@ pub struct DepositStakeAccount<'info> {
     )]
     pub state: Box<Account<'info, State>>,
 
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
-    /// CHECK: manual account processing
+    pub validator_list: Account<'info, ValidatorList>,
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        constraint = stake_list.data.borrow().as_ref().get(0..8)
-            == Some(StakeSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidStakeListDiscriminator,
     )]
-    pub stake_list: UncheckedAccount<'info>,
+    pub stake_list: Account<'info, StakeList>,
 
     #[account(mut)]
     pub stake_account: Box<Account<'info, StakeAccount>>,
@@ -86,7 +77,7 @@ pub struct DepositStakeAccount<'info> {
 
 impl<'info> DepositStakeAccount<'info> {
     pub const WAIT_EPOCHS: u64 = 0; // Accepting fresh/redelegated accounts also because those are mergeable anyways
-    // fn deposit_stake_account()
+                                    // fn deposit_stake_account()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
@@ -113,7 +104,7 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::RequiredActiveStake
         );
 
-        // require the stake is active since current_epoch + WAIT_EPOCHS 
+        // require the stake is active since current_epoch + WAIT_EPOCHS
         require_gte!(
             self.clock.epoch,
             delegation.activation_epoch + Self::WAIT_EPOCHS,
@@ -165,7 +156,12 @@ impl<'info> DepositStakeAccount<'info> {
                 // Add extra validator with 0 score
                 let state_address = *self.state.to_account_info().key;
                 self.state.validator_system.add_with_balance(
-                    &mut self.validator_list.data.as_ref().borrow_mut(),
+                    &mut self
+                        .validator_list
+                        .to_account_info()
+                        .data
+                        .as_ref()
+                        .borrow_mut(),
                     delegation.voter_pubkey,
                     0,
                     delegation.stake,
@@ -175,7 +171,7 @@ impl<'info> DepositStakeAccount<'info> {
 
                 // Mark validator as added
                 let validator_record = self.state.validator_system.get(
-                    &self.validator_list.data.as_ref().borrow(),
+                    &self.validator_list.to_account_info().data.as_ref().borrow(),
                     self.state.validator_system.validator_count() - 1,
                 )?;
                 validator_record.with_duplication_flag_seeds(
@@ -201,7 +197,7 @@ impl<'info> DepositStakeAccount<'info> {
                 0
             } else {
                 let mut validator = self.state.validator_system.get_checked(
-                    &self.validator_list.data.as_ref().borrow(),
+                    &self.validator_list.to_account_info().data.as_ref().borrow(),
                     validator_index,
                     &delegation.voter_pubkey,
                 )?;
@@ -211,7 +207,12 @@ impl<'info> DepositStakeAccount<'info> {
                 // update validator.active_balance
                 validator.active_balance += delegation.stake;
                 self.state.validator_system.set(
-                    &mut self.validator_list.data.as_ref().borrow_mut(),
+                    &mut self
+                        .validator_list
+                        .to_account_info()
+                        .data
+                        .as_ref()
+                        .borrow_mut(),
                     validator_index,
                     validator,
                 )?;
@@ -309,7 +310,7 @@ impl<'info> DepositStakeAccount<'info> {
         }
 
         self.state.stake_system.add(
-            &mut self.stake_list.data.as_ref().borrow_mut(),
+            &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
             self.stake_account.to_account_info().key,
             delegation.stake,
             &self.clock,

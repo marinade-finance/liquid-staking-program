@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     error::MarinadeError,
     events::management::RemoveValidatorEvent,
-    state::validator_system::{ValidatorRecord, ValidatorSystem},
+    state::validator_system::{ValidatorList, ValidatorRecord},
     State, ID,
 };
 
@@ -20,15 +20,11 @@ pub struct RemoveValidator<'info> {
             @ MarinadeError::InvalidValidatorManager
     )]
     pub manager_authority: Signer<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
     /// CHECK: manual account processing
     #[account(
         mut,
@@ -52,7 +48,7 @@ impl<'info> RemoveValidator<'info> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
         let validator = self.state.validator_system.get_checked(
-            &self.validator_list.data.borrow(),
+            &self.validator_list.to_account_info().data.borrow(),
             index,
             &validator_vote,
         )?;
@@ -64,7 +60,12 @@ impl<'info> RemoveValidator<'info> {
         );
 
         self.state.validator_system.remove(
-            &mut self.validator_list.data.as_ref().borrow_mut(),
+            &mut self
+                .validator_list
+                .to_account_info()
+                .data
+                .as_ref()
+                .borrow_mut(),
             index,
             validator,
         )?;

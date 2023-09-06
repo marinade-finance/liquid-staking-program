@@ -1,6 +1,6 @@
 use crate::error::MarinadeError;
 use crate::ID;
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, Discriminator};
 use anchor_lang::solana_program::clock::Epoch;
 
 use super::list::List;
@@ -29,6 +29,44 @@ impl StakeRecord {
     }
 }
 
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct StakeList {}
+
+impl Discriminator for StakeList {
+    const DISCRIMINATOR: [u8; 8] = *b"staker__";
+}
+
+impl AccountDeserialize for StakeList {
+    fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self> {
+        *buf = &buf[8..];
+        Ok(Self {})
+    }
+
+    fn try_deserialize(buf: &mut &[u8]) -> Result<Self> {
+        if buf.len() < 8 {
+            return err!(MarinadeError::InvalidStakeListDiscriminator);
+        }
+        if buf[0..8] != Self::DISCRIMINATOR {
+            return err!(MarinadeError::InvalidStakeListDiscriminator);
+        }
+        *buf = &buf[8..];
+        Ok(Self {})
+    }
+}
+
+// By implementing an AccountSerialize, Anchor will not try
+// to write the account data at the end of the instruction
+// because the default implementation of the try_serialize is empty
+// The account data is written explicitly in the code
+impl AccountSerialize for StakeList {}
+
+impl Owner for StakeList {
+    fn owner() -> Pubkey {
+        crate::ID
+    }
+}
+
 #[derive(Clone, AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct StakeSystem {
     pub stake_list: List,
@@ -53,7 +91,6 @@ pub struct StakeSystem {
 impl StakeSystem {
     pub const STAKE_WITHDRAW_SEED: &'static [u8] = b"withdraw";
     pub const STAKE_DEPOSIT_SEED: &'static [u8] = b"deposit";
-    pub const DISCRIMINATOR: &'static [u8; 8] = b"staker__";
     pub const MIN_UPDATE_WINDOW: u64 = 3_000; //min value is 3_000 => half an hour
 
     pub fn bytes_for_list(count: u32, additional_record_space: u32) -> u32 {
@@ -81,7 +118,7 @@ impl StakeSystem {
         additional_record_space: u32,
     ) -> Result<Self> {
         let stake_list = List::new(
-            Self::DISCRIMINATOR,
+            &StakeList::DISCRIMINATOR,
             StakeRecord::default().try_to_vec().unwrap().len() as u32 + additional_record_space,
             stake_list_account,
             stake_list_data,

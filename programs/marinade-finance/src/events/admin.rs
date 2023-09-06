@@ -65,3 +65,17 @@ pub struct EmergencyPauseEvent {
 pub struct ResumeEvent {
     pub state: Pubkey,
 }
+
+#[event]
+pub struct ReallocValidatorListEvent {
+    pub state: Pubkey,
+    pub count: u32,
+    pub new_capacity: u32,
+}
+
+#[event]
+pub struct ReallocStakeListEvent {
+    pub state: Pubkey,
+    pub count: u32,
+    pub new_capacity: u32,
+}

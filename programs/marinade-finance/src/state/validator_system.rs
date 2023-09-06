@@ -1,7 +1,7 @@
 //use std::convert::TryInto;
 
 use crate::{calc::proportional, error::MarinadeError, ID};
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, Discriminator};
 
 use super::list::List;
 
@@ -73,6 +73,43 @@ impl ValidatorRecord {
     }
 }
 
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct ValidatorList {}
+
+impl Discriminator for ValidatorList {
+    const DISCRIMINATOR: [u8; 8] = *b"validatr";
+}
+
+impl AccountDeserialize for ValidatorList {
+    fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self> {
+        *buf = &buf[8..];
+        Ok(Self {})
+    }
+
+    fn try_deserialize(buf: &mut &[u8]) -> Result<Self> {
+        if buf.len() < 8 {
+            return err!(MarinadeError::InvalidValidatorListDiscriminator);
+        }
+        if buf[0..8] != Self::DISCRIMINATOR {
+            return err!(MarinadeError::InvalidValidatorListDiscriminator);
+        }
+        *buf = &buf[8..];
+        Ok(Self {})
+    }
+}
+
+// By implementing an AccountSerialize, Anchor will not try
+// to write the account data at the end of the instruction
+// because the default implementation of the try_serialize is empty
+// The account data is written explicitly in the code
+impl AccountSerialize for ValidatorList {}
+
+impl Owner for ValidatorList {
+    fn owner() -> Pubkey {
+        crate::ID
+    }
+}
+
 #[derive(Clone, AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct ValidatorSystem {
     pub validator_list: List,
@@ -85,8 +122,6 @@ pub struct ValidatorSystem {
 }
 
 impl ValidatorSystem {
-    pub const DISCRIMINATOR: &'static [u8; 8] = b"validatr";
-
     pub fn bytes_for_list(count: u32, additional_record_space: u32) -> u32 {
         List::bytes_for(
             ValidatorRecord::default().try_to_vec().unwrap().len() as u32 + additional_record_space,
@@ -102,7 +137,7 @@ impl ValidatorSystem {
     ) -> Result<Self> {
         Ok(Self {
             validator_list: List::new(
-                Self::DISCRIMINATOR,
+                &ValidatorList::DISCRIMINATOR,
                 ValidatorRecord::default().try_to_vec().unwrap().len() as u32
                     + additional_record_space,
                 validator_list_account,

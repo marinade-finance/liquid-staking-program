@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     error::MarinadeError,
     events::{management::SetValidatorScoreEvent, U32ValueChange},
-    state::validator_system::ValidatorSystem,
+    state::validator_system::ValidatorList,
     State,
 };
 
@@ -16,15 +16,11 @@ pub struct SetValidatorScore<'info> {
             @ MarinadeError::InvalidValidatorManager
     )]
     pub manager_authority: Signer<'info>,
-    /// CHECK: manual account processing
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        constraint = validator_list.data.borrow().as_ref().get(0..8)
-            == Some(ValidatorSystem::DISCRIMINATOR)
-            @ MarinadeError::InvalidValidatorListDiscriminator,
     )]
-    pub validator_list: UncheckedAccount<'info>,
+    pub validator_list: Account<'info, ValidatorList>,
 }
 
 impl<'info> SetValidatorScore<'info> {
@@ -32,7 +28,7 @@ impl<'info> SetValidatorScore<'info> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
         let mut validator = self.state.validator_system.get_checked(
-            &self.validator_list.data.borrow(),
+            &self.validator_list.to_account_info().data.borrow(),
             index,
             &validator_vote,
         )?;
@@ -45,7 +41,7 @@ impl<'info> SetValidatorScore<'info> {
         };
         self.state.validator_system.total_validator_score += score;
         self.state.validator_system.set(
-            &mut self.validator_list.data.borrow_mut(),
+            &mut self.validator_list.to_account_info().data.borrow_mut(),
             index,
             validator,
         )?;
