@@ -1,7 +1,10 @@
 use crate::{
     error::MarinadeError,
     events::crank::StakeReserveEvent,
-    state::{stake_system::{StakeSystem, StakeList}, validator_system::ValidatorList},
+    state::{
+        stake_system::{StakeList, StakeSystem},
+        validator_system::ValidatorList,
+    },
     State, ID,
 };
 use anchor_lang::solana_program::{
@@ -126,6 +129,7 @@ impl<'info> StakeReserve<'info> {
             } else {
                 msg!("Noting to do");
             }
+            // TODO: remove lamports from unused stake account
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
         let total_stake_delta = u64::try_from(stake_delta).expect("Stake delta overflow");
@@ -151,6 +155,7 @@ impl<'info> StakeReserve<'info> {
                     validator.validator_account,
                     self.clock.epoch
                 );
+                // TODO: remove lamports from unused stake account
                 return Ok(()); // Not an error. Don't fail other instructions in tx
             } else {
                 // some extra runs allowed. Use one
@@ -181,22 +186,34 @@ impl<'info> StakeReserve<'info> {
                     validator.validator_account,
                     validator_stake_target
                 );
+            // TODO: remove lamports from unused stake account
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
 
         // compute stake_target
-        // stake_target = target_validator_balance - validator.balance, at least self.state.min_stake and at most delta_stake
+        // stake_target = validator_target - validator_actual_balance, at most total_stake_delta
         let stake_target = validator_stake_target
             .saturating_sub(validator_active_balance)
-            .max(self.state.stake_system.min_stake)
             .min(total_stake_delta);
 
-        // if what's left after this stake is < state.min_stake, take all the remainder
+        // if what's left in stake_delta after this operation is < state.min_stake, take all the remainder from stake_delta
         let stake_target = if total_stake_delta - stake_target < self.state.stake_system.min_stake {
             total_stake_delta
         } else {
             stake_target
         };
+
+        // if the amount to stake is < stake_system.min_stake (e.g. less than 1 SOL)
+        // we don't stake to avoid creating a stake account with less than 1 SOL
+        if stake_target < self.state.stake_system.min_stake {
+            msg!(
+                "Resulting stake {} is lower than min stake allowed {}",
+                stake_target,
+                self.state.stake_system.min_stake
+            );
+            // TODO: remove lamports from unused stake account
+            return Ok(()); // Not an error. Don't fail other instructions in tx
+        }
 
         // transfer SOL from reserve_pda to the stake-account
         sol_log_compute_units();
