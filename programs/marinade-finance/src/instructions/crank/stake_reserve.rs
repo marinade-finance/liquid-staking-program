@@ -193,6 +193,13 @@ impl<'info> StakeReserve<'info> {
             .saturating_sub(validator_active_balance)
             .min(total_stake_delta);
 
+        // if what's left after this stake is < state.min_stake, take all the remainder
+        let stake_target = if total_stake_delta - stake_target < self.state.stake_system.min_stake {
+            total_stake_delta
+        } else {
+            stake_target
+        };
+
         if stake_target < self.state.stake_system.min_stake {
             msg!(
                 "Resulting stake {} is lower than min stake allowed {}",
@@ -201,13 +208,6 @@ impl<'info> StakeReserve<'info> {
             );
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
-
-        // if what's left after this stake is < state.min_stake, take all the remainder
-        let stake_target = if total_stake_delta - stake_target < self.state.stake_system.min_stake {
-            total_stake_delta
-        } else {
-            stake_target
-        };
 
         // transfer SOL from reserve_pda to the stake-account
         sol_log_compute_units();
