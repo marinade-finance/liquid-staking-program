@@ -7,7 +7,7 @@ use crate::{
     },
     State, ID,
 };
-use anchor_lang::solana_program::{
+use anchor_lang::{solana_program::{
     log::sol_log_compute_units,
     program::{invoke, invoke_signed},
     stake::{
@@ -15,14 +15,13 @@ use anchor_lang::solana_program::{
         state::{Authorized, Lockup, StakeState},
     },
     sysvar::stake_history,
-};
+}, system_program};
 use anchor_lang::{
     prelude::*,
     system_program::{transfer, Transfer},
 };
-use anchor_spl::stake::{Stake, StakeAccount};
+use anchor_spl::stake::{Stake, StakeAccount, withdraw, Withdraw};
 use std::convert::TryFrom;
-use std::ops::Deref;
 
 #[derive(Accounts)]
 pub struct StakeReserve<'info> {
@@ -51,12 +50,12 @@ pub struct StakeReserve<'info> {
     )]
     pub reserve_pda: SystemAccount<'info>,
     #[account(
-        mut,
-        // stake account must be uninitialized
-        constraint = StakeAccount::deref(&stake_account) == &StakeState::Uninitialized
-            @ MarinadeError::StakeMustBeUninitialized,
+        init,
+        payer = rent_payer,
+        space = std::mem::size_of::<StakeState>(),
+        owner = stake::program::ID,
     )]
-    pub stake_account: Box<Account<'info, StakeAccount>>,
+    pub stake_account: Account<'info, StakeAccount>,
     /// CHECK: PDA
     #[account(
         seeds = [
@@ -66,6 +65,11 @@ pub struct StakeReserve<'info> {
         bump = state.stake_system.stake_deposit_bump_seed
     )]
     pub stake_deposit_authority: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        owner = system_program::ID
+    )]
+    pub rent_payer: Signer<'info>,
 
     pub clock: Sysvar<'info, Clock>,
     pub epoch_schedule: Sysvar<'info, EpochSchedule>,
@@ -90,11 +94,7 @@ impl<'info> StakeReserve<'info> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
         sol_log_compute_units();
-        require_eq!(
-            self.stake_account.to_account_info().lamports(),
-            self.rent.minimum_balance(std::mem::size_of::<StakeState>()),
-            MarinadeError::InvalidEmptyStakeBalance
-        );
+
         // record for event
         let total_active_balance = self.state.validator_system.total_active_balance;
 
@@ -129,7 +129,7 @@ impl<'info> StakeReserve<'info> {
             } else {
                 msg!("Noting to do");
             }
-            // TODO: remove lamports from unused stake account
+            self.return_unused_stake_account_rent()?;
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
         let total_stake_delta = u64::try_from(stake_delta).expect("Stake delta overflow");
@@ -155,7 +155,7 @@ impl<'info> StakeReserve<'info> {
                     validator.validator_account,
                     self.clock.epoch
                 );
-                // TODO: remove lamports from unused stake account
+                self.return_unused_stake_account_rent()?;
                 return Ok(()); // Not an error. Don't fail other instructions in tx
             } else {
                 // some extra runs allowed. Use one
@@ -186,7 +186,7 @@ impl<'info> StakeReserve<'info> {
                     validator.validator_account,
                     validator_stake_target
                 );
-            // TODO: remove lamports from unused stake account
+            self.return_unused_stake_account_rent()?;
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
 
@@ -211,7 +211,7 @@ impl<'info> StakeReserve<'info> {
                 stake_target,
                 self.state.stake_system.min_stake
             );
-            // TODO: remove lamports from unused stake account
+            self.return_unused_stake_account_rent()?;
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
 
@@ -316,5 +316,25 @@ impl<'info> StakeReserve<'info> {
             total_stake_delta,
         });
         Ok(())
+    }
+
+    pub fn return_unused_stake_account_rent(
+        &self,
+    ) -> Result<()> {
+        // Return back the rent reserve of unused stake account in case of early return
+        withdraw(
+            CpiContext::new(
+                self.stake_program.to_account_info(),
+                Withdraw {
+                    stake: self.stake_account.to_account_info(),
+                    withdrawer: self.stake_account.to_account_info(),
+                    to: self.rent_payer.to_account_info(),
+                    clock: self.clock.to_account_info(),
+                    stake_history: self.stake_history.to_account_info(),
+                },
+            ),
+            self.stake_account.to_account_info().lamports(),
+            None,
+        )
     }
 }
