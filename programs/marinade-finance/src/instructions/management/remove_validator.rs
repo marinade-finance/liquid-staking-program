@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, system_program};
 
 use crate::{
     error::MarinadeError,
@@ -75,6 +75,8 @@ impl<'info> RemoveValidator<'info> {
         let rent_return = self.duplication_flag.lamports();
         **self.duplication_flag.try_borrow_mut_lamports()? = 0;
         **self.operational_sol_account.try_borrow_mut_lamports()? += rent_return;
+        // Prevent from reviving in the same tx as an account owned by this program
+        self.duplication_flag.assign(&system_program::ID);
 
         emit!(RemoveValidatorEvent {
             state: self.state.key(),
