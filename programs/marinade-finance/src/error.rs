@@ -165,6 +165,7 @@ pub enum MarinadeError {
     #[msg("Delta stake is negative so we must unstake instead of stake")]
     StakingOnNegativeDelta, // 6052 0x17a4
 
+    // Not used
     #[msg("Invalid empty stake balance")]
     InvalidEmptyStakeBalance, // 6053 0x17a5
 
