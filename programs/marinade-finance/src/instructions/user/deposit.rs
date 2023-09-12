@@ -137,8 +137,10 @@ impl<'info> Deposit<'info> {
                 lamports //100% of the user deposit
             } else {
                 // partially filled
-                // then it's the lamport value of the tokens we're selling
-                self.state.msol_to_sol(msol_swapped)?
+                // then it's the sol-lamport value of the tokens we're selling
+                // +1 lamport (1e-9) to avoid rounding issues below when subtracting
+                // below and combining with minting
+                1 + self.state.msol_to_sol(msol_swapped)?
             };
 
             // transfer mSOL to the user
