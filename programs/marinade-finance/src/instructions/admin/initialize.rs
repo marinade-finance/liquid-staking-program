@@ -129,6 +129,9 @@ impl<'info> Initialize<'info> {
             State::MAX_REWARD_FEE,
             MarinadeError::RewardsFeeIsTooHigh
         );
+        require_keys_neq!(self.state.key(), self.stake_list.key());
+        require_keys_neq!(self.state.key(), self.validator_list.key());
+        require_keys_neq!(self.stake_list.key(), self.validator_list.key());
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);
         self.check_reserve_pda(rent_exempt_for_token_acc)?;
         let msol_mint_authority_bump_seed = self.check_msol_mint()?;
