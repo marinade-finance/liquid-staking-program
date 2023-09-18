@@ -87,8 +87,10 @@ pub enum MarinadeError {
     #[msg("Insufficient Liquidity in the Liquidity Pool")]
     InsufficientLiquidity, // 6026 0x178a
 
-    #[msg("Auto adding a validator is not enabled")]
-    AutoAddValidatorIsNotEnabled, // 6027 0x178b
+    // Not used anymore
+    // #[msg("Auto adding a validator is not enabled")]
+    // AutoAddValidatorIsNotEnabled, // 6027 0x178b
+    NotUsed6027, // 6027 0x178b
 
     #[msg("Invalid admin authority")]
     InvalidAdminAuthority, // 6028 0x178c
@@ -165,9 +167,10 @@ pub enum MarinadeError {
     #[msg("Delta stake is negative so we must unstake instead of stake")]
     StakingOnNegativeDelta, // 6052 0x17a4
 
-    // Not used
-    #[msg("Invalid empty stake balance")]
-    InvalidEmptyStakeBalance, // 6053 0x17a5
+    // Not used anymore
+    // #[msg("Invalid empty stake balance")]
+    // InvalidEmptyStakeBalance, // 6053 0x17a5
+    NotUsed6053, // 6053 0x17a5
 
     #[msg("Stake must be uninitialized")]
     StakeMustBeUninitialized, // 6054 0x17a6

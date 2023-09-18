@@ -117,7 +117,7 @@ pub struct ValidatorSystem {
     pub total_validator_score: u32,
     /// sum of all active lamports staked
     pub total_active_balance: u64,
-    /// allow & auto-add validator when a user deposits a stake-account of a non-listed validator
+    /// DEPRECATED, no longer used
     pub auto_add_validator_enabled: u8,
 }
 
