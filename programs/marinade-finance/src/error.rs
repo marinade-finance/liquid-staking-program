@@ -167,10 +167,8 @@ pub enum MarinadeError {
     #[msg("Delta stake is negative so we must unstake instead of stake")]
     StakingOnNegativeDelta, // 6052 0x17a4
 
-    // Not used anymore
-    // #[msg("Invalid empty stake balance")]
-    // InvalidEmptyStakeBalance, // 6053 0x17a5
-    NotUsed6053, // 6053 0x17a5
+    #[msg("Moving stake during an epoch is capped")]
+    MovingStakeIsCapped, // 6053 0x17a5
 
     #[msg("Stake must be uninitialized")]
     StakeMustBeUninitialized, // 6054 0x17a6

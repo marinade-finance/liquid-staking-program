@@ -175,6 +175,9 @@ impl<'info> Initialize<'info> {
             delayed_unstake_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_enabled: false,
+            last_stake_move_epoch: 0,
+            stake_moved: 0,
+            max_stake_moved_per_epoch: Fee::from_basis_points(10000), // 100% of total_lamports_under_control
         });
 
         emit!(InitializeEvent {

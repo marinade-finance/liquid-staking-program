@@ -18,10 +18,10 @@ pub struct ConfigMarinadeParams {
     pub min_withdraw: Option<u64>,
     pub staking_sol_cap: Option<u64>,
     pub liquidity_sol_cap: Option<u64>,
-    pub auto_add_validator_enabled: Option<bool>,
     pub withdraw_stake_account_enabled: Option<bool>,
     pub delayed_unstake_fee: Option<FeeCents>,
     pub withdraw_stake_account_fee: Option<FeeCents>,
+    pub max_stake_moved_per_epoch: Option<Fee>,
 }
 
 #[derive(Accounts)]
@@ -46,10 +46,10 @@ impl<'info> ConfigMarinade<'info> {
             min_withdraw,
             staking_sol_cap,
             liquidity_sol_cap,
-            auto_add_validator_enabled,
             withdraw_stake_account_enabled,
             delayed_unstake_fee,
             withdraw_stake_account_fee,
+            max_stake_moved_per_epoch,
         }: ConfigMarinadeParams,
     ) -> Result<()> {
         let rewards_fee_change = if let Some(rewards_fee) = rewards_fee {
@@ -153,19 +153,6 @@ impl<'info> ConfigMarinade<'info> {
             None
         };
 
-        let auto_add_validator_enabled_change =
-            if let Some(auto_add_validator_enabled) = auto_add_validator_enabled {
-                let old = self.state.validator_system.auto_add_validator_enabled != 0;
-                self.state.validator_system.auto_add_validator_enabled =
-                    if auto_add_validator_enabled { 1 } else { 0 };
-                Some(BoolValueChange {
-                    old,
-                    new: auto_add_validator_enabled,
-                })
-            } else {
-                None
-            };
-
         let withdraw_stake_account_enabled_change =
             if let Some(withdraw_stake_account_enabled) = withdraw_stake_account_enabled {
                 let old = self.state.withdraw_stake_account_enabled;
@@ -211,6 +198,22 @@ impl<'info> ConfigMarinade<'info> {
                 None
             };
 
+        let max_stake_moved_per_epoch_change =
+            if let Some(max_stake_moved_per_epoch) = max_stake_moved_per_epoch {
+                // Not checking for 100% because probably for some emergency case
+                // we need to move the same stake multiple times,
+                // for example to fix some incident
+                // max_stake_moved_per_epoch.check()?;
+                let old = self.state.max_stake_moved_per_epoch;
+                self.state.max_stake_moved_per_epoch = max_stake_moved_per_epoch;
+                Some(FeeValueChange {
+                    old,
+                    new: max_stake_moved_per_epoch,
+                })
+            } else {
+                None
+            };
+
         emit!(ConfigMarinadeEvent {
             state: self.state.key(),
             rewards_fee_change,
@@ -220,10 +223,10 @@ impl<'info> ConfigMarinade<'info> {
             min_withdraw_change,
             staking_sol_cap_change,
             liquidity_sol_cap_change,
-            auto_add_validator_enabled_change,
             withdraw_stake_account_enabled_change,
             delayed_unstake_fee_change,
             withdraw_stake_account_fee_change,
+            max_stake_moved_per_epoch_change,
         });
 
         Ok(())
