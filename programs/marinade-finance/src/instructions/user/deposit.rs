@@ -180,15 +180,8 @@ impl<'info> Deposit<'info> {
 
         let sol_deposited = lamports - sol_swapped;
         // check if we have more lamports from the user
-        let msol_minted = if sol_deposited > 0 {
+        if sol_deposited > 0 {
             self.state.check_staking_cap(sol_deposited)?;
-
-            //compute how much msol_to_mint
-            //NOTE: it is IMPORTANT to use calc_msol_from_lamports() BEFORE adding the lamports
-            // because on_transfer_to_reserve(sol_deposited) alters price calculation
-            // the same goes for state.on_msol_mint()
-            let msol_to_mint = self.state.calc_msol_from_lamports(sol_deposited)?;
-            msg!("--- msol_to_mint {}", msol_to_mint);
 
             // transfer sol_deposited to reserve
             transfer(
@@ -202,29 +195,28 @@ impl<'info> Deposit<'info> {
                 sol_deposited,
             )?;
             self.state.on_transfer_to_reserve(sol_deposited);
-            if msol_to_mint > 0 {
-                mint_to(
-                    CpiContext::new_with_signer(
-                        self.token_program.to_account_info(),
-                        MintTo {
-                            mint: self.msol_mint.to_account_info(),
-                            to: self.mint_to.to_account_info(),
-                            authority: self.msol_mint_authority.to_account_info(),
-                        },
-                        &[&[
-                            &self.state.key().to_bytes(),
-                            State::MSOL_MINT_AUTHORITY_SEED,
-                            &[self.state.msol_mint_authority_bump_seed],
-                        ]],
-                    ),
-                    msol_to_mint,
-                )?;
-                self.state.on_msol_mint(msol_to_mint);
-            }
-            msol_to_mint
-        } else {
-            0
-        };
+        }
+
+        let msol_minted = user_msol_buy_order - msol_swapped;
+        if msol_minted > 0 {
+            mint_to(
+                CpiContext::new_with_signer(
+                    self.token_program.to_account_info(),
+                    MintTo {
+                        mint: self.msol_mint.to_account_info(),
+                        to: self.mint_to.to_account_info(),
+                        authority: self.msol_mint_authority.to_account_info(),
+                    },
+                    &[&[
+                        &self.state.key().to_bytes(),
+                        State::MSOL_MINT_AUTHORITY_SEED,
+                        &[self.state.msol_mint_authority_bump_seed],
+                    ]],
+                ),
+                msol_minted,
+            )?;
+            self.state.on_msol_mint(msol_minted);
+        }
 
         emit!(DepositEvent {
             state: self.state.key(),
