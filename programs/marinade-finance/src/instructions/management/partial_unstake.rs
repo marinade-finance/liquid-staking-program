@@ -261,6 +261,8 @@ impl<'info> PartialUnstake<'info> {
             // effective unstaked_from_account
             unstake_amount
         };
+        self.state
+            .on_stake_moved(unstaked_from_account, &self.clock)?;
 
         // we now consider amount no longer "active" for this specific validator
         validator.active_balance -= unstaked_from_account;

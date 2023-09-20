@@ -84,6 +84,13 @@ pub struct State {
     // preferred value is one epoch rewards
     pub withdraw_stake_account_fee: FeeCents,
     pub withdraw_stake_account_enabled: bool,
+
+    // Limit moving stakes from one validator to another
+    // by calling redelegate, emergency_unstake and partial_unstake
+    // in case of stolen validator manager key or broken delegation strategy bot
+    pub last_stake_move_epoch: u64, // epoch of the last stake move action
+    pub stake_moved: u64,           // total amount of moved SOL during the epoch #stake_move_epoch
+    pub max_stake_moved_per_epoch: Fee, // % of total_lamports_under_control
 }
 
 impl State {
@@ -254,5 +261,20 @@ impl State {
 
     pub fn on_msol_burn(&mut self, amount: u64) {
         self.msol_supply -= amount
+    }
+
+    pub fn on_stake_moved(&mut self, amount: u64, clock: &Clock) -> Result<()> {
+        if clock.epoch != self.last_stake_move_epoch {
+            self.last_stake_move_epoch = clock.epoch;
+            self.stake_moved = 0;
+        }
+        self.stake_moved += amount;
+        require_lte!(
+            self.stake_moved,
+            self.max_stake_moved_per_epoch
+                .apply(self.total_lamports_under_control()),
+            MarinadeError::MovingStakeIsCapped
+        );
+        Ok(())
     }
 }
