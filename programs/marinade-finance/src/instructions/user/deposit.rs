@@ -178,8 +178,8 @@ impl<'info> Deposit<'info> {
             0
         };
 
+        // check if we have more lamports from the user besides the amount we swapped
         let sol_deposited = lamports - sol_swapped;
-        // check if we have more lamports from the user
         if sol_deposited > 0 {
             self.state.check_staking_cap(sol_deposited)?;
 
@@ -197,6 +197,7 @@ impl<'info> Deposit<'info> {
             self.state.on_transfer_to_reserve(sol_deposited);
         }
 
+        // compute how much mSOL we own the user besides the amount we already swapped
         let msol_minted = user_msol_buy_order - msol_swapped;
         if msol_minted > 0 {
             mint_to(
