@@ -112,6 +112,9 @@ impl State {
     pub const MAX_DELAYED_UNSTAKE_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_WITHDRAW_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
 
+    // min_stake minimum value is MIN_STAKE_MULTIPLIER * rent_exempt_for_token_acc
+    pub const MIN_STAKE_LOWER_LIMIT : u64 = LAMPORTS_PER_SOL / 100;
+
     pub fn serialized_len() -> usize {
         unsafe { MaybeUninit::<Self>::zeroed().assume_init() }
             .try_to_vec()

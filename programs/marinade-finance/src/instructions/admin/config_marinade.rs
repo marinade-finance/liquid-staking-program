@@ -88,7 +88,7 @@ impl<'info> ConfigMarinade<'info> {
         let min_stake_change = if let Some(min_stake) = min_stake {
             require_gte!(
                 min_stake,
-                5 * self.state.rent_exempt_for_token_acc,
+                State::MIN_STAKE_LOWER_LIMIT,
                 MarinadeError::MinStakeIsTooLow
             );
             let old = self.state.stake_system.min_stake;

@@ -132,7 +132,17 @@ impl<'info> Initialize<'info> {
         require_keys_neq!(self.state.key(), self.stake_list.key());
         require_keys_neq!(self.state.key(), self.validator_list.key());
         require_keys_neq!(self.stake_list.key(), self.validator_list.key());
+        require_gte!(
+            slots_for_stake_delta,
+            StakeSystem::MIN_UPDATE_WINDOW,
+            MarinadeError::UpdateWindowIsTooLow
+        );
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);
+        require_gte!(
+            min_stake,
+            State::MIN_STAKE_LOWER_LIMIT,
+            MarinadeError::MinStakeIsTooLow
+        );
         self.check_reserve_pda(rent_exempt_for_token_acc)?;
         let msol_mint_authority_bump_seed = self.check_msol_mint()?;
         self.state.set_inner(State {
