@@ -200,6 +200,7 @@ impl<'info> Deposit<'info> {
         // compute how much mSOL we own the user besides the amount we already swapped
         let msol_minted = user_msol_buy_order - msol_swapped;
         if msol_minted > 0 {
+            msg!("--- msol_to_mint {}", msol_minted);
             mint_to(
                 CpiContext::new_with_signer(
                     self.token_program.to_account_info(),
