@@ -138,7 +138,11 @@ impl<'info> Initialize<'info> {
             MarinadeError::UpdateWindowIsTooLow
         );
         let rent_exempt_for_token_acc = self.rent.minimum_balance(spl_token::state::Account::LEN);
-        require_gte!(min_stake, State::MIN_STAKE_MULTIPLIER * rent_exempt_for_token_acc);
+        require_gte!(
+            min_stake,
+            State::MIN_STAKE_LOWER_LIMIT,
+            MarinadeError::MinStakeIsTooLow
+        );
         self.check_reserve_pda(rent_exempt_for_token_acc)?;
         let msol_mint_authority_bump_seed = self.check_msol_mint()?;
         self.state.set_inner(State {
