@@ -181,7 +181,7 @@ impl ValidatorSystem {
                 ValidatorRecord::new(validator_account, score, state, duplication_flag_address)?,
             )
             .map_err(|e| e.with_account_name("validator_list"))?;
-        self.total_validator_score += score as u32;
+        self.total_validator_score += score;
         Ok(())
     }
 
@@ -200,7 +200,7 @@ impl ValidatorSystem {
         self.validator_list
             .push(validator_list_data, validator)
             .map_err(|e| e.with_account_name("validator_list"))?;
-        self.total_validator_score += score as u32;
+        self.total_validator_score += score;
         Ok(())
     }
 

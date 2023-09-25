@@ -157,11 +157,8 @@ impl<'info> PartialUnstake<'info> {
         let unstaked_from_account = if stake_account_after < self.state.stake_system.min_stake {
             // unstake all if what will remain in the account is < min_stake
             msg!("Deactivate whole stake {}", stake.stake_account);
-            // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
-            // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
 
             // deactivate stake account
-
             deactivate_stake(CpiContext::new_with_signer(
                 self.stake_program.to_account_info(),
                 DeactivateStake {
