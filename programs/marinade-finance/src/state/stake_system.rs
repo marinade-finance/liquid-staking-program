@@ -91,7 +91,7 @@ pub struct StakeSystem {
 impl StakeSystem {
     pub const STAKE_WITHDRAW_SEED: &'static [u8] = b"withdraw";
     pub const STAKE_DEPOSIT_SEED: &'static [u8] = b"deposit";
-    pub const MIN_UPDATE_WINDOW: u64 = 3_000; //min value is 3_000 => half an hour
+    pub const MIN_UPDATE_WINDOW: u64 = 3_000; // min value is 3_000 => 21 minutes approx
 
     pub fn bytes_for_list(count: u32, additional_record_space: u32) -> u32 {
         List::bytes_for(
