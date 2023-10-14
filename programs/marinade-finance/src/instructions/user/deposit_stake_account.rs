@@ -104,7 +104,7 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::RequiredActiveStake
         );
 
-        // require the stake is active since current_epoch + WAIT_EPOCHS
+        // require the stake to be active for at least WAIT_EPOCHS
         require_gte!(
             self.clock.epoch,
             delegation.activation_epoch + Self::WAIT_EPOCHS,
