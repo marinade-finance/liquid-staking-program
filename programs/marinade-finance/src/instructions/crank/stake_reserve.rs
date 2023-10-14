@@ -161,9 +161,6 @@ impl<'info> StakeReserve<'info> {
                 // some extra runs allowed. Use one
                 self.state.stake_system.extra_stake_delta_runs -= 1;
             }
-        } else {
-            // first stake in this epoch
-            validator.last_stake_delta_epoch = self.clock.epoch;
         }
 
         let last_slot = self.epoch_schedule.get_last_slot_in_epoch(self.clock.epoch);
