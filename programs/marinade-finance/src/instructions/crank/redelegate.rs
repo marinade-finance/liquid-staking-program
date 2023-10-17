@@ -269,6 +269,8 @@ impl<'info> ReDelegate<'info> {
                     redelegate_amount_theoretical,
                 )
             };
+        self.state
+            .on_stake_moved(redelegate_amount_effective, &self.clock)?;
 
         // redelegate account to dest validator
         let redelegate_instruction = &stake::instruction::redelegate(

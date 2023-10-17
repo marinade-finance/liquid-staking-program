@@ -77,6 +77,8 @@ impl<'info> EmergencyUnstake<'info> {
         )?;
 
         let unstake_amount = stake.last_update_delegated_lamports;
+        self.state
+            .on_stake_moved(unstake_amount, &self.clock)?;
         msg!("Deactivate whole stake {}", stake.stake_account);
         deactivate_stake(CpiContext::new_with_signer(
             self.stake_program.to_account_info(),
