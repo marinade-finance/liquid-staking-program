@@ -7,20 +7,23 @@ use crate::{
     },
     State, ID,
 };
-use anchor_lang::{solana_program::{
-    log::sol_log_compute_units,
-    program::{invoke, invoke_signed},
-    stake::{
-        self,
-        state::{Authorized, Lockup, StakeState},
-    },
-    sysvar::stake_history,
-}, system_program};
 use anchor_lang::{
     prelude::*,
     system_program::{transfer, Transfer},
 };
-use anchor_spl::stake::{Stake, StakeAccount, withdraw, Withdraw};
+use anchor_lang::{
+    solana_program::{
+        log::sol_log_compute_units,
+        program::{invoke, invoke_signed},
+        stake::{
+            self,
+            state::{Authorized, Lockup, StakeState},
+        },
+        sysvar::stake_history,
+    },
+    system_program,
+};
+use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 use std::convert::TryFrom;
 
 #[derive(Accounts)]
@@ -315,9 +318,7 @@ impl<'info> StakeReserve<'info> {
         Ok(())
     }
 
-    pub fn return_unused_stake_account_rent(
-        &self,
-    ) -> Result<()> {
+    pub fn return_unused_stake_account_rent(&self) -> Result<()> {
         // Return back the rent reserve of unused stake account in case of early return
         withdraw(
             CpiContext::new(

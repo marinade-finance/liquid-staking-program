@@ -1,6 +1,9 @@
 use anchor_lang::{prelude::*, system_program, Discriminator};
 
-use crate::{error::MarinadeError, state::validator_system::ValidatorList, State, events::admin::ReallocValidatorListEvent};
+use crate::{
+    error::MarinadeError, events::admin::ReallocValidatorListEvent,
+    state::validator_system::ValidatorList, State,
+};
 
 #[derive(Accounts)]
 #[instruction(capacity: u32)]
@@ -14,7 +17,7 @@ pub struct ReallocValidatorList<'info> {
     #[account(
         mut,
         address = state.validator_system.validator_list.account,
-        realloc = ValidatorList::DISCRIMINATOR.len() 
+        realloc = ValidatorList::DISCRIMINATOR.len()
             + (state.validator_system.validator_record_size() * capacity) as usize,
         realloc::payer = rent_funds,
         realloc::zero = false,
@@ -32,7 +35,11 @@ pub struct ReallocValidatorList<'info> {
 
 impl<'info> ReallocValidatorList<'info> {
     pub fn process(&mut self, capacity: u32) -> Result<()> {
-        require_gte!(capacity, self.state.validator_system.validator_count(), MarinadeError::ShrinkingListWithDeletingContents);
+        require_gte!(
+            capacity,
+            self.state.validator_system.validator_count(),
+            MarinadeError::ShrinkingListWithDeletingContents
+        );
         emit!(ReallocValidatorListEvent {
             state: self.state.key(),
             count: self.state.validator_system.validator_count(),

@@ -335,9 +335,7 @@ impl<'info> DeactivateStake<'info> {
         Ok(())
     }
 
-    pub fn return_unused_split_stake_account_rent(
-        &self,
-    ) -> Result<()> {
+    pub fn return_unused_split_stake_account_rent(&self) -> Result<()> {
         // Return back the rent reserve of unused split stake account in case of early return
         withdraw(
             CpiContext::new(
@@ -354,5 +352,4 @@ impl<'info> DeactivateStake<'info> {
             None,
         )
     }
-    
 }

@@ -1,6 +1,9 @@
 use anchor_lang::{prelude::*, system_program, Discriminator};
 
-use crate::{error::MarinadeError, state::stake_system::StakeList, State, events::admin::ReallocStakeListEvent};
+use crate::{
+    error::MarinadeError, events::admin::ReallocStakeListEvent, state::stake_system::StakeList,
+    State,
+};
 
 #[derive(Accounts)]
 #[instruction(capacity: u32)]
@@ -14,7 +17,7 @@ pub struct ReallocStakeList<'info> {
     #[account(
         mut,
         address = state.stake_system.stake_list.account,
-        realloc = StakeList::DISCRIMINATOR.len() 
+        realloc = StakeList::DISCRIMINATOR.len()
             + (state.stake_system.stake_record_size() * capacity) as usize,
         realloc::payer = rent_funds,
         realloc::zero = false,
@@ -32,7 +35,11 @@ pub struct ReallocStakeList<'info> {
 
 impl<'info> ReallocStakeList<'info> {
     pub fn process(&mut self, capacity: u32) -> Result<()> {
-        require_gte!(capacity, self.state.stake_system.stake_count(), MarinadeError::ShrinkingListWithDeletingContents);
+        require_gte!(
+            capacity,
+            self.state.stake_system.stake_count(),
+            MarinadeError::ShrinkingListWithDeletingContents
+        );
         emit!(ReallocStakeListEvent {
             state: self.state.key(),
             count: self.state.stake_system.stake_count(),
