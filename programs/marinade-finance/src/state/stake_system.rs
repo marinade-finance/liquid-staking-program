@@ -1,7 +1,7 @@
 use crate::error::MarinadeError;
 use crate::ID;
-use anchor_lang::{prelude::*, Discriminator};
 use anchor_lang::solana_program::clock::Epoch;
+use anchor_lang::{prelude::*, Discriminator};
 
 use super::list::List;
 
@@ -28,7 +28,6 @@ impl StakeRecord {
         }
     }
 }
-
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct StakeList {}

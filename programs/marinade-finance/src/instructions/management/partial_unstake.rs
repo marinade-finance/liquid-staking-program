@@ -138,6 +138,7 @@ impl<'info> PartialUnstake<'info> {
                 validator.active_balance,
                 validator_stake_target
             );
+            self.return_unused_split_stake_account_rent()?;
             return Ok(()); // Not an error. Don't fail other instructions in tx
         }
 
@@ -175,23 +176,8 @@ impl<'info> PartialUnstake<'info> {
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
             stake.is_emergency_unstaking = 1;
-
             // Return back the rent reserve of unused split stake account
-            withdraw(
-                CpiContext::new(
-                    self.stake_program.to_account_info(),
-                    Withdraw {
-                        stake: self.split_stake_account.to_account_info(),
-                        withdrawer: self.split_stake_account.to_account_info(),
-                        to: self.split_stake_rent_payer.to_account_info(),
-                        clock: self.clock.to_account_info(),
-                        stake_history: self.stake_history.to_account_info(),
-                    },
-                ),
-                self.split_stake_account.to_account_info().lamports(),
-                None,
-            )?;
-
+            self.return_unused_split_stake_account_rent()?;
             // effective unstaked_from_account
             stake.last_update_delegated_lamports
         } else {
@@ -286,5 +272,23 @@ impl<'info> PartialUnstake<'info> {
         )?;
 
         Ok(())
+    }
+
+    pub fn return_unused_split_stake_account_rent(&self) -> Result<()> {
+        // Return back the rent reserve of unused split stake account in case of early return
+        withdraw(
+            CpiContext::new(
+                self.stake_program.to_account_info(),
+                Withdraw {
+                    stake: self.split_stake_account.to_account_info(),
+                    withdrawer: self.split_stake_account.to_account_info(),
+                    to: self.split_stake_rent_payer.to_account_info(),
+                    clock: self.clock.to_account_info(),
+                    stake_history: self.stake_history.to_account_info(),
+                },
+            ),
+            self.split_stake_account.to_account_info().lamports(),
+            None,
+        )
     }
 }

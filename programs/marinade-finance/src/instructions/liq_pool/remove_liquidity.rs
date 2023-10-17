@@ -81,8 +81,8 @@ impl<'info> RemoveLiquidity<'info> {
         // Update virtual lp_supply by real one
         let lp_mint_supply = self.lp_mint.supply;
         if lp_mint_supply > self.state.liq_pool.lp_supply {
+            // impossible to happen unless bug
             msg!("Someone minted lp tokens without our permission or bug found");
-            // return an error
         } else {
             // maybe burn
             self.state.liq_pool.lp_supply = lp_mint_supply;
