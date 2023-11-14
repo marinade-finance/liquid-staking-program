@@ -3,6 +3,7 @@
 
 # ignore the build directory for Rust/Anchor
 target
+.anchor
 
 # ignore localnet data
 test-ledger
@@ -19,3 +20,6 @@ keys
 *~
 .#*
 \#*#
+
+# ignore IDE related data
+.idea/
