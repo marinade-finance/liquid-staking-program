@@ -91,6 +91,7 @@ pub struct State {
     pub last_stake_move_epoch: u64, // epoch of the last stake move action
     pub stake_moved: u64,           // total amount of moved SOL during the epoch #stake_move_epoch
     pub max_stake_moved_per_epoch: Fee, // % of total_lamports_under_control
+    pub delinquent_fix_stakes_visited: u32, // u32::MAX means complete upgrade
 }
 
 impl State {

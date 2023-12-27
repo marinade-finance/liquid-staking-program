@@ -93,13 +93,17 @@ impl<'info> EmergencyUnstake<'info> {
             ]],
         ))?;
 
+        require!(
+            stake.is_active,
+            MarinadeError::RequiredActiveStake
+        );
         // check the account is not already in emergency_unstake
-        require_eq!(
-            stake.is_emergency_unstaking,
-            0,
+        require!(
+            !stake.is_emergency_unstaking,
             MarinadeError::StakeAccountIsEmergencyUnstaking
         );
-        stake.is_emergency_unstaking = 1;
+        stake.is_emergency_unstaking = true;
+        stake.is_active = false;
 
         // we now consider amount no longer "active" for this specific validator
         validator.active_balance -= unstake_amount;

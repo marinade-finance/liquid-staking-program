@@ -133,10 +133,13 @@ impl<'info> WithdrawStakeAccount<'info> {
         )?;
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
+        require!(
+            stake.is_active,
+            MarinadeError::RequiredActiveStake
+        );
         // require the stake is not in emergency_unstake
-        require_eq!(
-            stake.is_emergency_unstaking,
-            0,
+        require!(
+            !stake.is_emergency_unstaking,
             MarinadeError::StakeAccountIsEmergencyUnstaking
         );
 

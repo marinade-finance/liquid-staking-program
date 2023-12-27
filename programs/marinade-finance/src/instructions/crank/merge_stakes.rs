@@ -67,6 +67,11 @@ impl<'info> MergeStakes<'info> {
         validator_index: u32,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require_eq!(
+            self.state.delinquent_fix_stakes_visited,
+            u32::MAX,
+            MarinadeError::UpgradingData
+        );
 
         let mut validator = self.state.validator_system.get(
             &self.validator_list.to_account_info().data.as_ref().borrow(),
@@ -91,6 +96,10 @@ impl<'info> MergeStakes<'info> {
             return err!(MarinadeError::DestinationStakeMustBeDelegated)
                 .map_err(|e| e.with_account_name("destination_stake"));
         };
+        require!(
+            destination_stake_info.is_active,
+            MarinadeError::DestinationStakeMustNotBeDeactivating
+        );
         require_eq!(
             destination_delegation.deactivation_epoch,
             std::u64::MAX,
@@ -120,6 +129,11 @@ impl<'info> MergeStakes<'info> {
             return err!(MarinadeError::SourceStakeMustBeDelegated)
                 .map_err(|e| e.with_account_name("source_stake"));
         };
+
+        require!(
+            source_stake_info.is_active,
+            MarinadeError::SourceStakeMustNotBeDeactivating
+        );
         require_eq!(
             source_delegation.deactivation_epoch,
             std::u64::MAX,

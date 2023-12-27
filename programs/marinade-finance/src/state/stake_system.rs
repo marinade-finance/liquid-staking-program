@@ -10,7 +10,8 @@ pub struct StakeRecord {
     pub stake_account: Pubkey,
     pub last_update_delegated_lamports: u64,
     pub last_update_epoch: u64,
-    pub is_emergency_unstaking: u8, // 1 for cooling down after emergency unstake, 0 otherwise
+    pub is_emergency_unstaking: bool,
+    pub is_active: bool,
 }
 
 impl StakeRecord {
@@ -18,13 +19,15 @@ impl StakeRecord {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
-        is_emergency_unstaking: u8,
+        is_emergency_unstaking: bool,
+        is_active: bool,
     ) -> Self {
         Self {
             stake_account: *stake_account,
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
             is_emergency_unstaking,
+            is_active
         }
     }
 }
@@ -158,7 +161,8 @@ impl StakeSystem {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
-        is_emergency_unstaking: u8,
+        is_emergency_unstaking: bool,
+        is_active: bool,
     ) -> Result<()> {
         self.stake_list
             .push(
@@ -168,6 +172,7 @@ impl StakeSystem {
                     delegated_lamports,
                     clock,
                     is_emergency_unstaking,
+                    is_active,
                 ),
             )
             .map_err(|e| e.with_account_name("stake_list"))?;

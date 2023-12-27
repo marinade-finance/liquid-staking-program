@@ -279,7 +279,8 @@ impl<'info> StakeReserve<'info> {
             &self.stake_account.key(),
             stake_target,
             &self.clock,
-            0, // is_emergency_unstaking? no
+            false, // is_emergency_unstaking? no
+            true, // is_active? yes
         )?;
 
         // update validator record and store in list

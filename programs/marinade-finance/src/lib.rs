@@ -179,9 +179,13 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts.process(stake_index, validator_index)
     }
-    pub fn update_deactivated(ctx: Context<UpdateDeactivated>, stake_index: u32) -> Result<()> {
+    pub fn update_deactivated(
+        ctx: Context<UpdateDeactivated>,
+        stake_index: u32,
+        validator_index: u32,
+    ) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts.process(stake_index)
+        ctx.accounts.process(stake_index, validator_index)
     }
 
     pub fn deactivate_stake(

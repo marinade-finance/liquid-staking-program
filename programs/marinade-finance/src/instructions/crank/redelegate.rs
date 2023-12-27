@@ -132,10 +132,13 @@ impl<'info> ReDelegate<'info> {
         )?;
         let last_update_delegation = stake.last_update_delegated_lamports;
 
+        require!(
+            stake.is_active,
+            MarinadeError::RequiredActiveStake
+        );
         // check the account is not already in emergency_unstake
-        require_eq!(
-            stake.is_emergency_unstaking,
-            0,
+        require!(
+            !stake.is_emergency_unstaking,
             MarinadeError::StakeAccountIsEmergencyUnstaking
         );
 
@@ -244,7 +247,7 @@ impl<'info> ReDelegate<'info> {
                 self.return_rent_unused_stake_account(self.split_stake_account.to_account_info())?;
 
                 // TODO: deprecate "is_emergency_unstaking"
-                stake.is_emergency_unstaking = 0;
+                stake.is_emergency_unstaking = false;
                 // all lamports will be moved to the re-delegated account
                 let amount_to_redelegate_whole_account = stake.last_update_delegated_lamports;
                 // this account will enter redelegate-deactivating mode, all lamports will be sent to the other account
@@ -306,7 +309,8 @@ impl<'info> ReDelegate<'info> {
             &self.redelegate_stake_account.key(),
             redelegate_amount_effective,
             &self.clock,
-            0, // is_emergency_unstaking
+            false, // is_emergency_unstaking
+            true, // is_active
         )?;
 
         // we now consider amount no longer "active" for this specific validator
@@ -417,7 +421,8 @@ impl<'info> ReDelegate<'info> {
             // After completing deactivation, whatever is there minus rent is considered last rewards for the account
             &self.clock,
             // TODO: deprecate "is_emergency_unstaking"
-            0,
+            false,
+            true, // is_active
         )?;
 
         // split stake account

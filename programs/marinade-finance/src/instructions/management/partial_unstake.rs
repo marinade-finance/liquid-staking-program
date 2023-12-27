@@ -104,10 +104,15 @@ impl<'info> PartialUnstake<'info> {
             self.stake_account.to_account_info().key,
         )?;
 
+        require!(
+            stake.is_active,
+            MarinadeError::RequiredActiveStake
+        );
         // check the account is not already in emergency_unstake
-        if stake.is_emergency_unstaking != 0 {
-            return err!(MarinadeError::StakeAccountIsEmergencyUnstaking);
-        }
+        require!(
+            !stake.is_emergency_unstaking,
+            MarinadeError::StakeAccountIsEmergencyUnstaking
+        );
 
         // check amount currently_staked in this account
         // and that the account is delegated to the validator_index sent
@@ -175,7 +180,8 @@ impl<'info> PartialUnstake<'info> {
             ))?;
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
-            stake.is_emergency_unstaking = 1;
+            stake.is_emergency_unstaking = true;
+            stake.is_active = false;
             // Return back the rent reserve of unused split stake account
             self.return_unused_split_stake_account_rent()?;
             // effective unstaked_from_account
@@ -196,7 +202,8 @@ impl<'info> PartialUnstake<'info> {
                 &self.split_stake_account.key(),
                 unstake_amount,
                 &self.clock,
-                1, // is_emergency_unstaking
+                true, // is_emergency_unstaking
+                false, // is_active
             )?;
 
             // split & deactivate stake account
