@@ -254,6 +254,7 @@ impl<'info> ReDelegate<'info> {
                 // so we set last_update_delegated_lamports = 0 because all lamports are gone
                 // after completing deactivation, whatever is there minus rent is considered last rewards for the account
                 stake.last_update_delegated_lamports = 0;
+                stake.is_active = false;
 
                 // account to redelegate is the whole source account
                 (
@@ -422,7 +423,7 @@ impl<'info> ReDelegate<'info> {
             &self.clock,
             // TODO: deprecate "is_emergency_unstaking"
             false,
-            true, // is_active
+            false, // is_active
         )?;
 
         // split stake account
