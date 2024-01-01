@@ -57,6 +57,16 @@ impl<'info> EmergencyUnstake<'info> {
             self.stake_account.to_account_info().key,
         )?;
 
+        require!(
+            stake.is_active,
+            MarinadeError::RequiredActiveStake
+        );
+        // check the account is not already in emergency_unstake
+        require!(
+            !stake.is_emergency_unstaking,
+            MarinadeError::StakeAccountIsEmergencyUnstaking
+        );
+
         let mut validator = self.state.validator_system.get(
             &self.validator_list.to_account_info().data.as_ref().borrow(),
             validator_index,
@@ -93,15 +103,6 @@ impl<'info> EmergencyUnstake<'info> {
             ]],
         ))?;
 
-        require!(
-            stake.is_active,
-            MarinadeError::RequiredActiveStake
-        );
-        // check the account is not already in emergency_unstake
-        require!(
-            !stake.is_emergency_unstaking,
-            MarinadeError::StakeAccountIsEmergencyUnstaking
-        );
         stake.is_emergency_unstaking = true;
         stake.is_active = false;
 
