@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::error::MarinadeError;
 use crate::ID;
 use anchor_lang::solana_program::clock::Epoch;
@@ -5,13 +7,36 @@ use anchor_lang::{prelude::*, Discriminator};
 
 use super::list::List;
 
+#[derive(Clone, Copy, Debug, PartialEq, AnchorSerialize, AnchorDeserialize)]
+pub enum StakeStatus {
+    Unknown,
+    Active,
+    Deactivating,
+}
+
+impl Default for StakeStatus {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+impl Display for StakeStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StakeStatus::Unknown => write!(f, "Unknown"),
+            StakeStatus::Active => write!(f, "Active"),
+            StakeStatus::Deactivating => write!(f, "Deactivating"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub struct StakeRecord {
     pub stake_account: Pubkey,
     pub last_update_delegated_lamports: u64,
     pub last_update_epoch: u64,
     pub is_emergency_unstaking: bool,
-    pub is_active: bool,
+    pub status: StakeStatus,
 }
 
 impl StakeRecord {
@@ -27,7 +52,11 @@ impl StakeRecord {
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
             is_emergency_unstaking,
-            is_active
+            status: if is_active {
+                StakeStatus::Active
+            } else {
+                StakeStatus::Deactivating
+            },
         }
     }
 }

@@ -273,4 +273,9 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts.process(capacity)
     }
+
+    pub fn finalize_delinquent_upgrade(ctx: Context<FinalizeDelinquentUpgrade>, max_validators: u32) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts.process(max_validators)
+    }
 }

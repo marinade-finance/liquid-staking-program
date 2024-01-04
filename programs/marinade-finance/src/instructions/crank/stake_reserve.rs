@@ -95,8 +95,7 @@ impl<'info> StakeReserve<'info> {
     /// pub fn stake_reserve()
     pub fn process(&mut self, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
-
-        sol_log_compute_units();
+        require!(self.state.delinquent_upgrader.is_done(), MarinadeError::DelinquentUpgraderIsNotDone);
 
         // record for event
         let total_active_balance = self.state.validator_system.total_active_balance;

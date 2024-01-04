@@ -4,7 +4,7 @@ use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
 use crate::events::crank::MergeStakesEvent;
-use crate::state::stake_system::StakeList;
+use crate::state::stake_system::{StakeList, StakeStatus};
 use crate::state::validator_system::ValidatorList;
 use crate::{error::MarinadeError, state::stake_system::StakeSystem, State};
 
@@ -67,10 +67,9 @@ impl<'info> MergeStakes<'info> {
         validator_index: u32,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
-        require_eq!(
-            self.state.delinquent_fix_stakes_visited,
-            u32::MAX,
-            MarinadeError::UpgradingData
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
         );
 
         let mut validator = self.state.validator_system.get(
@@ -96,8 +95,9 @@ impl<'info> MergeStakes<'info> {
             return err!(MarinadeError::DestinationStakeMustBeDelegated)
                 .map_err(|e| e.with_account_name("destination_stake"));
         };
-        require!(
-            destination_stake_info.is_active,
+        require_eq!(
+            destination_stake_info.status,
+            StakeStatus::Active,
             MarinadeError::DestinationStakeMustNotBeDeactivating
         );
         require_eq!(
@@ -130,8 +130,9 @@ impl<'info> MergeStakes<'info> {
                 .map_err(|e| e.with_account_name("source_stake"));
         };
 
-        require!(
-            source_stake_info.is_active,
+        require_eq!(
+            source_stake_info.status,
+            StakeStatus::Active,
             MarinadeError::SourceStakeMustNotBeDeactivating
         );
         require_eq!(

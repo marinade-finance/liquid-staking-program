@@ -3,7 +3,7 @@ use crate::{
     error::MarinadeError,
     events::crank::{RedelegateEvent, SplitStakeAccountInfo},
     state::{
-        stake_system::{StakeList, StakeRecord, StakeSystem},
+        stake_system::{StakeList, StakeRecord, StakeSystem, StakeStatus},
         validator_system::ValidatorList,
     },
     State,
@@ -132,8 +132,8 @@ impl<'info> ReDelegate<'info> {
         )?;
         let last_update_delegation = stake.last_update_delegated_lamports;
 
-        require!(
-            stake.is_active,
+        require_eq!(
+            stake.status, StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
         // check the account is not already in emergency_unstake
@@ -254,7 +254,7 @@ impl<'info> ReDelegate<'info> {
                 // so we set last_update_delegated_lamports = 0 because all lamports are gone
                 // after completing deactivation, whatever is there minus rent is considered last rewards for the account
                 stake.last_update_delegated_lamports = 0;
-                stake.is_active = false;
+                stake.status = StakeStatus::Deactivating;
 
                 // account to redelegate is the whole source account
                 (

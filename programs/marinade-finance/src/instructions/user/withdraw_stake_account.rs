@@ -3,7 +3,7 @@ use crate::{
     error::MarinadeError,
     events::user::WithdrawStakeAccountEvent,
     state::{
-        stake_system::{StakeList, StakeSystem},
+        stake_system::{StakeList, StakeStatus, StakeSystem},
         validator_system::ValidatorList,
     },
     State,
@@ -113,6 +113,11 @@ impl<'info> WithdrawStakeAccount<'info> {
             self.state.withdraw_stake_account_enabled,
             MarinadeError::WithdrawStakeAccountIsNotEnabled
         );
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
+
         // record  for event
         let user_msol_balance = self.burn_msol_from.amount;
         // save msol price source
@@ -133,8 +138,9 @@ impl<'info> WithdrawStakeAccount<'info> {
         )?;
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
-        require!(
-            stake.is_active,
+        require_eq!(
+            stake.status,
+            StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
         // require the stake is not in emergency_unstake

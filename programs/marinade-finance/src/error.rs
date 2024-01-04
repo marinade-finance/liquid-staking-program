@@ -271,6 +271,9 @@ pub enum MarinadeError {
     #[msg("Capacity of the list must be not less than it's current size")]
     ShrinkingListWithDeletingContents, // 6086 0x17c6
 
-    #[msg("Restricted while data upgrading")]
-    UpgradingData, // 6087 0x17c7
+    #[msg("Upgrading invariant violation")]
+    UpgradingInvariantViolation, // 6087 0x17c7
+
+    #[msg("Delinquent upgrader is not done")]
+    DelinquentUpgraderIsNotDone, // 6088 0x17c8
 }

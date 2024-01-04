@@ -2,7 +2,7 @@ use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
     state::{
-        stake_system::{StakeList, StakeSystem},
+        stake_system::{StakeList, StakeStatus, StakeSystem},
         validator_system::ValidatorList,
     },
     State,
@@ -87,6 +87,10 @@ impl<'info> PartialUnstake<'info> {
         desired_unstake_amount: u64,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
 
         assert!(
             desired_unstake_amount >= self.state.stake_system.min_stake,
@@ -104,8 +108,9 @@ impl<'info> PartialUnstake<'info> {
             self.stake_account.to_account_info().key,
         )?;
 
-        require!(
-            stake.is_active,
+        require_eq!(
+            stake.status,
+            StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
         // check the account is not already in emergency_unstake
@@ -181,7 +186,7 @@ impl<'info> PartialUnstake<'info> {
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
             stake.is_emergency_unstaking = true;
-            stake.is_active = false;
+            stake.status = StakeStatus::Deactivating;
             // Return back the rent reserve of unused split stake account
             self.return_unused_split_stake_account_rent()?;
             // effective unstaked_from_account
@@ -202,7 +207,7 @@ impl<'info> PartialUnstake<'info> {
                 &self.split_stake_account.key(),
                 unstake_amount,
                 &self.clock,
-                true, // is_emergency_unstaking
+                true,  // is_emergency_unstaking
                 false, // is_active
             )?;
 
