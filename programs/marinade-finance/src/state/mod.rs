@@ -9,7 +9,7 @@ use anchor_lang::{
 use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
-use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem};
+use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, delinquent_upgrader::DelinquentUpgraderState};
 
 pub mod delayed_unstake_ticket;
 pub mod fee;
@@ -17,6 +17,7 @@ pub mod liq_pool;
 pub mod list;
 pub mod stake_system;
 pub mod validator_system;
+pub mod delinquent_upgrader;
 
 pub use fee::Fee;
 pub use fee::FeeCents;
@@ -91,6 +92,7 @@ pub struct State {
     pub last_stake_move_epoch: u64, // epoch of the last stake move action
     pub stake_moved: u64,           // total amount of moved SOL during the epoch #stake_move_epoch
     pub max_stake_moved_per_epoch: Fee, // % of total_lamports_under_control
+    pub delinquent_upgrader: DelinquentUpgraderState,
 }
 
 impl State {

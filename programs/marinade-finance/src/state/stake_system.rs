@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::error::MarinadeError;
 use crate::ID;
 use anchor_lang::solana_program::clock::Epoch;
@@ -5,12 +7,41 @@ use anchor_lang::{prelude::*, Discriminator};
 
 use super::list::List;
 
+#[derive(Clone, Copy, Debug, PartialEq, AnchorSerialize, AnchorDeserialize)]
+pub enum StakeStatus {
+    Unknown,
+    Active,
+    Deactivating,
+}
+
+impl Default for StakeStatus {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+impl Display for StakeStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StakeStatus::Unknown => write!(f, "Unknown"),
+            StakeStatus::Active => write!(f, "Active"),
+            StakeStatus::Deactivating => write!(f, "Deactivating"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub struct StakeRecord {
     pub stake_account: Pubkey,
     pub last_update_delegated_lamports: u64,
     pub last_update_epoch: u64,
-    pub is_emergency_unstaking: u8, // 1 for cooling down after emergency unstake, 0 otherwise
+    pub is_emergency_unstaking: bool,
+    // We need to store OUR own record of the active status of the account, because 
+    // the solana stake program CAN DEACTIVATE stake accounts WITHOUT the owner signature if the validator becomes delinquent for too long
+    // This means that an external program can change the native state of a stake account we control.
+    // With this we can compare our "remembered" status here against current stake_account.data.delegation.deactivation_epoch 
+    // and identify stake accounts that were forcefully deactivated by an external program and update our internal accounting
+    pub last_update_status: StakeStatus,
 }
 
 impl StakeRecord {
@@ -18,13 +49,19 @@ impl StakeRecord {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
-        is_emergency_unstaking: u8,
+        is_emergency_unstaking: bool,
+        is_active: bool,
     ) -> Self {
         Self {
             stake_account: *stake_account,
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
             is_emergency_unstaking,
+            last_update_status: if is_active {
+                StakeStatus::Active
+            } else {
+                StakeStatus::Deactivating
+            },
         }
     }
 }
@@ -158,7 +195,8 @@ impl StakeSystem {
         stake_account: &Pubkey,
         delegated_lamports: u64,
         clock: &Clock,
-        is_emergency_unstaking: u8,
+        is_emergency_unstaking: bool,
+        is_active: bool,
     ) -> Result<()> {
         self.stake_list
             .push(
@@ -168,6 +206,7 @@ impl StakeSystem {
                     delegated_lamports,
                     clock,
                     is_emergency_unstaking,
+                    is_active,
                 ),
             )
             .map_err(|e| e.with_account_name("stake_list"))?;
