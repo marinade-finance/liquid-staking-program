@@ -95,7 +95,7 @@ impl<'info> DeactivateStake<'info> {
 
         require!(self.state.delinquent_upgrader.is_done(), MarinadeError::DelinquentUpgraderIsNotDone);
         require_eq!(
-            stake.status, StakeStatus::Active,
+            stake.last_update_status, StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
         // check the account is not already in emergency_unstake
@@ -195,7 +195,7 @@ impl<'info> DeactivateStake<'info> {
                     ]],
                 ))?;
 
-                stake.status = StakeStatus::Deactivating;
+                stake.last_update_status = StakeStatus::Deactivating;
 
                 // Return back the rent reserve of unused split stake account
                 self.return_unused_split_stake_account_rent()?;

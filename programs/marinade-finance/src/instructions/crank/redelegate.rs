@@ -133,7 +133,7 @@ impl<'info> ReDelegate<'info> {
         let last_update_delegation = stake.last_update_delegated_lamports;
 
         require_eq!(
-            stake.status, StakeStatus::Active,
+            stake.last_update_status, StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
         // check the account is not already in emergency_unstake
@@ -254,7 +254,7 @@ impl<'info> ReDelegate<'info> {
                 // so we set last_update_delegated_lamports = 0 because all lamports are gone
                 // after completing deactivation, whatever is there minus rent is considered last rewards for the account
                 stake.last_update_delegated_lamports = 0;
-                stake.status = StakeStatus::Deactivating;
+                stake.last_update_status = StakeStatus::Deactivating;
 
                 // account to redelegate is the whole source account
                 (
