@@ -36,7 +36,12 @@ pub struct StakeRecord {
     pub last_update_delegated_lamports: u64,
     pub last_update_epoch: u64,
     pub is_emergency_unstaking: bool,
-    pub status: StakeStatus,
+    // We need to store OUR own record of the active status of the account, because 
+    // the solana stake program CAN DEACTIVATE stake accounts WITHOUT the owner signature if the validator becomes delinquent for too long
+    // This means that an external program can change the native state of a stake account we control.
+    // With this we can compare our "remembered" status here against current stake_account.data.delegation.deactivation_epoch 
+    // and identify stake accounts that were forcefully deactivated by an external program and update our internal accounting
+    pub last_update_status: StakeStatus,
 }
 
 impl StakeRecord {
@@ -52,7 +57,7 @@ impl StakeRecord {
             last_update_delegated_lamports: delegated_lamports,
             last_update_epoch: clock.epoch,
             is_emergency_unstaking,
-            status: if is_active {
+            last_update_status: if is_active {
                 StakeStatus::Active
             } else {
                 StakeStatus::Deactivating

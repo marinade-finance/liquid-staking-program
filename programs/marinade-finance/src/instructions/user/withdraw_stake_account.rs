@@ -139,7 +139,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
         require_eq!(
-            stake.status,
+            stake.last_update_status,
             StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );

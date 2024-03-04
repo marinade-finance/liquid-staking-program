@@ -109,7 +109,7 @@ impl<'info> PartialUnstake<'info> {
         )?;
 
         require_eq!(
-            stake.status,
+            stake.last_update_status,
             StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
@@ -186,7 +186,7 @@ impl<'info> PartialUnstake<'info> {
 
             // mark as emergency_unstaking, so the SOL will be re-staked ASAP
             stake.is_emergency_unstaking = true;
-            stake.status = StakeStatus::Deactivating;
+            stake.last_update_status = StakeStatus::Deactivating;
             // Return back the rent reserve of unused split stake account
             self.return_unused_split_stake_account_rent()?;
             // effective unstaked_from_account

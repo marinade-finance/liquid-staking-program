@@ -96,7 +96,7 @@ impl<'info> MergeStakes<'info> {
                 .map_err(|e| e.with_account_name("destination_stake"));
         };
         require_eq!(
-            destination_stake_info.status,
+            destination_stake_info.last_update_status,
             StakeStatus::Active,
             MarinadeError::DestinationStakeMustNotBeDeactivating
         );
@@ -131,7 +131,7 @@ impl<'info> MergeStakes<'info> {
         };
 
         require_eq!(
-            source_stake_info.status,
+            source_stake_info.last_update_status,
             StakeStatus::Active,
             MarinadeError::SourceStakeMustNotBeDeactivating
         );

@@ -331,7 +331,7 @@ impl<'info> UpdateActive<'info> {
         );
         // No fix for now
         require_neq!(
-            stake.status,
+            stake.last_update_status,
             StakeStatus::Deactivating,
             MarinadeError::RequiredActiveStake
         );
@@ -460,13 +460,15 @@ impl<'info> UpdateActive<'info> {
         Ok(())
     }
 
+    // helper fn to upgrade the data from Unknown to Active and advance the iteration
+    // this is done only on the first loop after program upgrade (first staged of delinquent stake iterator)
     fn delinquent_upgrade(
         &mut self,
         stake: &mut StakeRecord,
         validator: &mut ValidatorRecord,
     ) -> Result<()> {
-        if stake.status == StakeStatus::Unknown {
-            stake.status = StakeStatus::Active;
+        if stake.last_update_status == StakeStatus::Unknown {
+            stake.last_update_status = StakeStatus::Active;
             let actual_total_active_balance = self.state.validator_system.total_active_balance;
             match &mut self.state.delinquent_upgrader {
                 DelinquentUpgraderState::IteratingStakes {
@@ -495,6 +497,8 @@ impl<'info> UpdateActive<'info> {
         Ok(())
     }
 
+    // IF the DelinquentUpgrader loop is running (iterating)
+    // keep the numbers in line
     fn delinquent_upgrade_on_rewards(
         &mut self,
         validator: &mut ValidatorRecord,
@@ -511,6 +515,8 @@ impl<'info> UpdateActive<'info> {
         Ok(())
     }
 
+    // IF the DelinquentUpgrader loop is running (iterating)
+    // keep the numbers in line
     fn delinquent_upgrade_on_slash(
         &mut self,
         validator: &mut ValidatorRecord,
@@ -555,8 +561,8 @@ impl<'info> UpdateDeactivated<'info> {
             std::u64::MAX,
             MarinadeError::RequiredDeactivatingStake
         );
-        if stake.status == StakeStatus::Active {
-            // Detected deactivation of deliquent stake-account
+        if stake.last_update_status == StakeStatus::Active {
+            // Detected deactivation of delinquent stake-account
             // applying emergency unstake procedure before processing the stake deletion
             require!(
                 !stake.is_emergency_unstaking,
@@ -641,7 +647,7 @@ impl<'info> UpdateDeactivated<'info> {
         if stake.last_update_delegated_lamports != 0 {
             if self.state.delinquent_upgrader.is_iterating_stakes()
             {
-                let delinquent = if !stake.is_emergency_unstaking {
+                let delinquent_amount = if !stake.is_emergency_unstaking {
                     let available = self
                         .state
                         .stake_system
@@ -662,12 +668,12 @@ impl<'info> UpdateDeactivated<'info> {
                     ..
                 } = &mut self.state.delinquent_upgrader
                 {
-                    *total_delinquent_balance += delinquent;
+                    *total_delinquent_balance += delinquent_amount;
                 } else {
                     unreachable!()
                 }
                 // keeping the mSOL price invariant
-                self.state.validator_system.total_active_balance -= delinquent;
+                self.state.validator_system.total_active_balance -= delinquent_amount;
             } else {
                 if !stake.is_emergency_unstaking {
                     // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)

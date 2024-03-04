@@ -62,7 +62,7 @@ impl<'info> EmergencyUnstake<'info> {
         )?;
 
         require_eq!(
-            stake.status,
+            stake.last_update_status,
             StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
@@ -109,7 +109,7 @@ impl<'info> EmergencyUnstake<'info> {
         ))?;
 
         stake.is_emergency_unstaking = true;
-        stake.status = StakeStatus::Deactivating;
+        stake.last_update_status = StakeStatus::Deactivating;
 
         // we now consider amount no longer "active" for this specific validator
         validator.active_balance -= unstake_amount;
