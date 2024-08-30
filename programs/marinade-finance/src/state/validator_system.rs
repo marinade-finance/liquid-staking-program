@@ -15,6 +15,7 @@ pub struct ValidatorRecord {
     pub score: u32,
     pub last_stake_delta_epoch: u64,
     pub duplication_flag_bump_seed: u8,
+    pub delinquent_upgrader_active_balance: u64,
 }
 
 impl ValidatorRecord {
@@ -69,6 +70,7 @@ impl ValidatorRecord {
             score,
             last_stake_delta_epoch: std::u64::MAX, // never
             duplication_flag_bump_seed,
+            delinquent_upgrader_active_balance: 0,
         })
     }
 }

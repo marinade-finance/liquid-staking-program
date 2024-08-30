@@ -10,8 +10,10 @@ use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::events::crank::{UpdateActiveEvent, UpdateDeactivatedEvent};
 use crate::events::U64ValueChange;
-use crate::state::stake_system::StakeList;
-use crate::state::validator_system::ValidatorList;
+use crate::require_lte;
+use crate::state::delinquent_upgrader::DelinquentUpgraderState;
+use crate::state::stake_system::{StakeList, StakeStatus};
+use crate::state::validator_system::{ValidatorList, ValidatorRecord};
 use crate::{
     error::MarinadeError,
     state::stake_system::{StakeRecord, StakeSystem},
@@ -74,16 +76,17 @@ pub struct UpdateCommon<'info> {
 
     pub stake_program: Program<'info, Stake>,
     pub token_program: Program<'info, Token>,
+
+    #[account(
+        mut,
+        address = state.validator_system.validator_list.account,
+    )]
+    pub validator_list: Account<'info, ValidatorList>,
 }
 
 #[derive(Accounts)]
 pub struct UpdateActive<'info> {
     pub common: UpdateCommon<'info>,
-    #[account(
-        mut,
-        address = common.state.validator_system.validator_list.account,
-    )]
-    pub validator_list: Account<'info, ValidatorList>,
 }
 
 impl<'info> Deref for UpdateActive<'info> {
@@ -130,11 +133,12 @@ impl<'info> DerefMut for UpdateDeactivated<'info> {
 
 struct BeginOutput {
     stake: StakeRecord,
+    validator: ValidatorRecord,
     is_treasury_msol_ready_for_transfer: bool,
 }
 
 impl<'info> UpdateCommon<'info> {
-    fn begin(&mut self, stake_index: u32) -> Result<BeginOutput> {
+    fn begin(&mut self, stake_index: u32, validator_index: u32) -> Result<BeginOutput> {
         let is_treasury_msol_ready_for_transfer = self
             .state
             .get_treasury_msol_balance(&self.treasury_msol_account)
@@ -176,9 +180,19 @@ impl<'info> UpdateCommon<'info> {
             msg!("Double update for stake {}", stake.stake_account);
             return Ok(()); // Not error. Maybe parallel update artifact
         }*/
+        let validator = self.state.validator_system.get_checked(
+            &self.validator_list.to_account_info().data.as_ref().borrow(),
+            validator_index,
+            &self
+                .stake_account
+                .delegation()
+                .ok_or(error!(MarinadeError::StakeNotDelegated))?
+                .voter_pubkey,
+        )?;
 
         Ok(BeginOutput {
             stake,
+            validator,
             is_treasury_msol_ready_for_transfer,
         })
     }
@@ -256,6 +270,30 @@ impl<'info> UpdateCommon<'info> {
         self.mint_to_treasury(fee_as_msol_amount)?;
         Ok(fee_as_msol_amount)
     }
+
+    fn check_delinquent_upgrade_state_progression(&mut self) -> Result<()> {
+        match self.state.delinquent_upgrader {
+            DelinquentUpgraderState::IteratingStakes {
+                visited_count,
+                total_active_balance,
+                total_delinquent_balance,
+            } => {
+                if visited_count == self.state.stake_system.stake_count() {
+                    require_eq!(
+                        total_active_balance,
+                        self.state.validator_system.total_active_balance,
+                        MarinadeError::UpgradingInvariantViolation,
+                    );
+                    self.state.delinquent_upgrader = DelinquentUpgraderState::IteratingValidators {
+                        visited_count: 0,
+                        delinquent_balance_left: total_delinquent_balance,
+                    }
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
 }
 
 impl<'info> UpdateActive<'info> {
@@ -273,18 +311,14 @@ impl<'info> UpdateActive<'info> {
         let msol_supply = self.state.msol_supply;
         let BeginOutput {
             mut stake,
+            mut validator,
             is_treasury_msol_ready_for_transfer,
-        } = self.begin(stake_index)?;
+        } = self.begin(stake_index, validator_index)?;
 
         let delegation = self.stake_account.delegation().ok_or_else(|| {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
         })?;
 
-        let mut validator = self.state.validator_system.get_checked(
-            &self.validator_list.to_account_info().data.as_ref().borrow(),
-            validator_index,
-            &delegation.voter_pubkey,
-        )?;
         // record for event
         let validator_active_balance = validator.active_balance;
         let total_active_balance = self.state.validator_system.total_active_balance;
@@ -295,6 +329,14 @@ impl<'info> UpdateActive<'info> {
             std::u64::MAX,
             MarinadeError::RequiredActiveStake
         );
+        // No fix for now
+        require_neq!(
+            stake.last_update_status,
+            StakeStatus::Deactivating,
+            MarinadeError::RequiredActiveStake
+        );
+
+        self.delinquent_upgrade(&mut stake, &mut validator)?;
 
         // current lamports amount, to compare with previous
         let delegated_lamports = delegation.stake;
@@ -341,15 +383,16 @@ impl<'info> UpdateActive<'info> {
                 validator.active_balance += rewards;
                 // validator_system.total_active_balance is updated with re-delegated rewards (this impacts price-calculation)
                 self.state.validator_system.total_active_balance += rewards;
+                self.delinquent_upgrade_on_rewards(&mut validator, rewards)?;
                 delegation_growth_msol_fees
             } else {
                 //slashed
                 let slashed = stake.last_update_delegated_lamports - delegated_lamports;
                 msg!("slashed {}", slashed);
                 //validator balance is updated with slashed
-                validator.active_balance = validator.active_balance.saturating_sub(slashed);
-                self.state.validator_system.total_active_balance =
-                    total_active_balance.saturating_sub(slashed);
+                validator.active_balance -= slashed;
+                self.state.validator_system.total_active_balance -= slashed;
+                self.delinquent_upgrade_on_slash(&mut validator, slashed)?;
                 if is_treasury_msol_ready_for_transfer {
                     Some(0)
                 } else {
@@ -368,7 +411,7 @@ impl<'info> UpdateActive<'info> {
             }
         };
 
-        //update validator-list
+        // update validator-list
         self.state.validator_system.set(
             &mut self
                 .validator_list
@@ -393,6 +436,9 @@ impl<'info> UpdateActive<'info> {
             self.state.available_reserve_balance + self.state.rent_exempt_for_token_acc,
             self.reserve_pda.lamports()
         );
+
+        self.check_delinquent_upgrade_state_progression()?;
+
         emit!(UpdateActiveEvent {
             state: self.state.key(),
             epoch: self.clock.epoch,
@@ -413,6 +459,79 @@ impl<'info> UpdateActive<'info> {
         });
         Ok(())
     }
+
+    // helper fn to upgrade the data from Unknown to Active and advance the iteration
+    // this is done only on the first loop after program upgrade (first staged of delinquent stake iterator)
+    fn delinquent_upgrade(
+        &mut self,
+        stake: &mut StakeRecord,
+        validator: &mut ValidatorRecord,
+    ) -> Result<()> {
+        if stake.last_update_status == StakeStatus::Unknown {
+            stake.last_update_status = StakeStatus::Active;
+            let actual_total_active_balance = self.state.validator_system.total_active_balance;
+            match &mut self.state.delinquent_upgrader {
+                DelinquentUpgraderState::IteratingStakes {
+                    visited_count,
+                    total_active_balance,
+                    ..
+                } => {
+                    *visited_count += 1;
+                    *total_active_balance += stake.last_update_delegated_lamports;
+                    require_lte!(
+                        *total_active_balance,
+                        actual_total_active_balance,
+                        MarinadeError::UpgradingInvariantViolation
+                    );
+                    validator.delinquent_upgrader_active_balance +=
+                        stake.last_update_delegated_lamports;
+                    require_lte!(
+                        validator.delinquent_upgrader_active_balance,
+                        validator.active_balance,
+                        MarinadeError::UpgradingInvariantViolation
+                    );
+                }
+                _ => return err!(MarinadeError::UpgradingInvariantViolation),
+            }
+        }
+        Ok(())
+    }
+
+    // IF the DelinquentUpgrader loop is running (iterating)
+    // keep the numbers in line
+    fn delinquent_upgrade_on_rewards(
+        &mut self,
+        validator: &mut ValidatorRecord,
+        rewards: u64,
+    ) -> Result<()> {
+        if let DelinquentUpgraderState::IteratingStakes {
+            total_active_balance,
+            ..
+        } = &mut self.state.delinquent_upgrader
+        {
+            validator.delinquent_upgrader_active_balance += rewards;
+            *total_active_balance += rewards;
+        }
+        Ok(())
+    }
+
+    // IF the DelinquentUpgrader loop is running (iterating)
+    // keep the numbers in line
+    fn delinquent_upgrade_on_slash(
+        &mut self,
+        validator: &mut ValidatorRecord,
+        slashed: u64,
+    ) -> Result<()> {
+        if let DelinquentUpgraderState::IteratingStakes {
+            total_active_balance,
+            ..
+        } = &mut self.state.delinquent_upgrader
+        {
+            validator.delinquent_upgrader_active_balance -= slashed;
+            *total_active_balance -= slashed;
+        }
+        Ok(())
+    }
 }
 
 impl<'info> UpdateDeactivated<'info> {
@@ -421,16 +540,17 @@ impl<'info> UpdateDeactivated<'info> {
     /// update mSOL price accordingly
     /// Optional Future Expansion: Partial: If the stake-account is a fully-deactivated stake account ready to withdraw,
     /// (cool-down period is complete) delete-withdraw the stake-account, send SOL to reserve-account
-    pub fn process(&mut self, stake_index: u32) -> Result<()> {
+    pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
 
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
         let operational_sol_balance = self.operational_sol_account.lamports();
         let BeginOutput {
-            stake,
+            mut stake,
+            mut validator,
             is_treasury_msol_ready_for_transfer,
-        } = self.begin(stake_index)?;
+        } = self.begin(stake_index, validator_index)?;
 
         let delegation = self.stake_account.delegation().ok_or_else(|| {
             error!(MarinadeError::RequiredDelegatedStake).with_account_name("stake_account")
@@ -441,6 +561,30 @@ impl<'info> UpdateDeactivated<'info> {
             std::u64::MAX,
             MarinadeError::RequiredDeactivatingStake
         );
+        if stake.last_update_status == StakeStatus::Active {
+            // Detected deactivation of delinquent stake-account
+            // applying emergency unstake procedure before processing the stake deletion
+            require!(
+                !stake.is_emergency_unstaking,
+                MarinadeError::StakeAccountIsEmergencyUnstaking
+            );
+            stake.is_emergency_unstaking = true;
+            self.state.emergency_cooling_down += stake.last_update_delegated_lamports;
+            self.state.validator_system.total_active_balance -=
+                stake.last_update_delegated_lamports;
+            validator.active_balance -= stake.last_update_delegated_lamports;
+            // update validator-list
+            self.state.validator_system.set(
+                &mut self
+                    .validator_list
+                    .to_account_info()
+                    .data
+                    .as_ref()
+                    .borrow_mut(),
+                validator_index,
+                validator,
+            )?;
+        }
 
         // Jun-2023 In order to support Solana new redelegate instruction, we need to ignore stake_account.delegation().stake
         // this is because in the case of a redelegated-Deactivating account, the field stake_account.delegation().stake
@@ -501,13 +645,44 @@ impl<'info> UpdateDeactivated<'info> {
         self.state.on_transfer_from_reserve(rent);
 
         if stake.last_update_delegated_lamports != 0 {
-            if stake.is_emergency_unstaking == 0 {
-                // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)
-                self.state.stake_system.delayed_unstake_cooling_down -=
-                    stake.last_update_delegated_lamports;
+            if self.state.delinquent_upgrader.is_iterating_stakes()
+            {
+                let delinquent_amount = if !stake.is_emergency_unstaking {
+                    let available = self
+                        .state
+                        .stake_system
+                        .delayed_unstake_cooling_down
+                        .min(stake.last_update_delegated_lamports);
+                    self.state.stake_system.delayed_unstake_cooling_down -= available;
+                    stake.last_update_delegated_lamports - available
+                } else {
+                    let available = self
+                        .state
+                        .emergency_cooling_down
+                        .min(stake.last_update_delegated_lamports);
+                    self.state.emergency_cooling_down -= available;
+                    stake.last_update_delegated_lamports - available
+                };
+                if let DelinquentUpgraderState::IteratingStakes {
+                    total_delinquent_balance,
+                    ..
+                } = &mut self.state.delinquent_upgrader
+                {
+                    *total_delinquent_balance += delinquent_amount;
+                } else {
+                    unreachable!()
+                }
+                // keeping the mSOL price invariant
+                self.state.validator_system.total_active_balance -= delinquent_amount;
             } else {
-                // remove from emergency_cooling_down (amount is now in the reserve, is no longer cooling-down)
-                self.state.emergency_cooling_down -= stake.last_update_delegated_lamports;
+                if !stake.is_emergency_unstaking {
+                    // remove from delayed_unstake_cooling_down (amount is now in the reserve, is no longer cooling-down)
+                    self.state.stake_system.delayed_unstake_cooling_down -=
+                        stake.last_update_delegated_lamports;
+                } else {
+                    // remove from emergency_cooling_down (amount is now in the reserve, is no longer cooling-down)
+                    self.state.emergency_cooling_down -= stake.last_update_delegated_lamports;
+                }
             }
         }
 
@@ -527,6 +702,8 @@ impl<'info> UpdateDeactivated<'info> {
                 .borrow_mut(),
             stake_index,
         )?;
+        self.check_delinquent_upgrade_state_progression()?;
+
         emit!(UpdateDeactivatedEvent {
             state: self.state.key(),
             epoch: self.clock.epoch,

@@ -3,7 +3,7 @@ use crate::{
     events::crank::{DeactivateStakeEvent, SplitStakeAccountInfo},
     require_lt,
     state::{
-        stake_system::{StakeList, StakeSystem},
+        stake_system::{StakeList, StakeSystem, StakeStatus},
         validator_system::ValidatorList,
     },
     State,
@@ -93,10 +93,14 @@ impl<'info> DeactivateStake<'info> {
         )?;
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
-        // check the account is not already in emergency_unstake
+        require!(self.state.delinquent_upgrader.is_done(), MarinadeError::DelinquentUpgraderIsNotDone);
         require_eq!(
-            stake.is_emergency_unstaking,
-            0,
+            stake.last_update_status, StakeStatus::Active,
+            MarinadeError::RequiredActiveStake
+        );
+        // check the account is not already in emergency_unstake
+        require!(
+            !stake.is_emergency_unstaking,
             MarinadeError::StakeAccountIsEmergencyUnstaking
         );
 
@@ -191,6 +195,8 @@ impl<'info> DeactivateStake<'info> {
                     ]],
                 ))?;
 
+                stake.last_update_status = StakeStatus::Deactivating;
+
                 // Return back the rent reserve of unused split stake account
                 self.return_unused_split_stake_account_rent()?;
 
@@ -234,7 +240,8 @@ impl<'info> DeactivateStake<'info> {
                     &self.split_stake_account.key(),
                     split_amount,
                     &self.clock,
-                    0, // is_emergency_unstaking? no
+                    false, // is_emergency_unstaking? no
+                    false, // is_active? no
                 )?;
 
                 let split_instruction = stake::instruction::split(

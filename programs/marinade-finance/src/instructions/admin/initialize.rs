@@ -8,7 +8,7 @@ use crate::{
     require_lte,
     state::{
         fee::FeeCents, liq_pool::LiqPool, stake_system::StakeSystem,
-        validator_system::ValidatorSystem, Fee,
+        validator_system::ValidatorSystem, Fee, delinquent_upgrader::DelinquentUpgraderState,
     },
     State, ID,
 };
@@ -188,6 +188,7 @@ impl<'info> Initialize<'info> {
             last_stake_move_epoch: 0,
             stake_moved: 0,
             max_stake_moved_per_epoch: Fee::from_basis_points(10000), // 100% of total_lamports_under_control
+            delinquent_upgrader: DelinquentUpgraderState::Done,
         });
 
         emit!(InitializeEvent {
