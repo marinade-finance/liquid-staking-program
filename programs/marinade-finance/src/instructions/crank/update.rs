@@ -306,6 +306,11 @@ impl<'info> UpdateActive<'info> {
     // fn update_active()
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        // It is violating the invariants if the delinquent upgrader is currently iterating validators
+        require!(
+            !self.state.delinquent_upgrader.is_iterating_validators(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
 
         let total_virtual_staked_lamports = self.state.total_virtual_staked_lamports();
         let msol_supply = self.state.msol_supply;
