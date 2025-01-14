@@ -228,17 +228,6 @@ pub mod marinade_finance {
             .process(destination_stake_index, source_stake_index, validator_index)
     }
 
-    pub fn redelegate(
-        ctx: Context<ReDelegate>,
-        stake_index: u32,
-        source_validator_index: u32,
-        dest_validator_index: u32,
-    ) -> Result<()> {
-        check_context(&ctx)?;
-        ctx.accounts
-            .process(stake_index, source_validator_index, dest_validator_index)
-    }
-
     // emergency pauses the contract
     pub fn pause(ctx: Context<EmergencyPause>) -> Result<()> {
         check_context(&ctx)?;
