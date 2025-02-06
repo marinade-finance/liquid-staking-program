@@ -249,7 +249,7 @@ impl<'info> UpdateCommon<'info> {
     // returns fees in msol
     pub fn mint_protocol_fees(&mut self, lamports_incoming: u64) -> Result<u64> {
         // apply x% protocol fee on staking rewards (do this before updating validators' balance, so it's 1% at old, lower, price)
-        let protocol_rewards_fee = self.state.reward_fee.apply(lamports_incoming);
+        let protocol_rewards_fee = self.state.reward_fee.apply(lamports_incoming as u128);
         msg!("protocol_rewards_fee {}", protocol_rewards_fee);
         // compute mSOL amount for protocol_rewards_fee
         let fee_as_msol_amount = self.state.calc_msol_from_lamports(protocol_rewards_fee)?;

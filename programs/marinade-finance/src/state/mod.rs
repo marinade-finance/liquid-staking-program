@@ -187,43 +187,43 @@ impl State {
     }
 
     /// total_active_balance + total_cooling_down + available_reserve_balance
-    pub fn total_lamports_under_control(&self) -> u64 {
-        self.validator_system.total_active_balance
-            + self.total_cooling_down()
-            + self.available_reserve_balance // reserve_pda.lamports() - self.rent_exempt_for_token_acc
+    pub fn total_lamports_under_control(&self) -> u128 {
+        self.validator_system.total_active_balance as u128
+            + self.total_cooling_down() as u128
+            + self.available_reserve_balance as u128 // reserve_pda.lamports() - self.rent_exempt_for_token_acc
     }
 
     pub fn check_staking_cap(&self, transfering_lamports: u64) -> Result<()> {
-        let result_amount = self.total_lamports_under_control() + transfering_lamports;
+        let result_amount = self.total_lamports_under_control() + transfering_lamports as u128;
         require_lte!(
             result_amount,
-            self.staking_sol_cap,
+            self.staking_sol_cap as u128,
             MarinadeError::StakingIsCapped
         );
         Ok(())
     }
 
-    pub fn total_virtual_staked_lamports(&self) -> u64 {
+    pub fn total_virtual_staked_lamports(&self) -> u128 {
         // if we get slashed it may be negative but we must use 0 instead
         self.total_lamports_under_control()
-            .saturating_sub(self.circulating_ticket_balance) //tickets created -> cooling down lamports or lamports already in reserve and not claimed yet
+            .saturating_sub(self.circulating_ticket_balance as u128) //tickets created -> cooling down lamports or lamports already in reserve and not claimed yet
     }
 
     /// calculate the amount of msol tokens corresponding to certain lamport amount
     pub fn calc_msol_from_lamports(&self, stake_lamports: u64) -> Result<u64> {
         shares_from_value(
-            stake_lamports,
+            stake_lamports as u128,
             self.total_virtual_staked_lamports(),
-            self.msol_supply,
+            self.msol_supply as u128,
         )
     }
     /// calculate lamports value from some msol_amount
     /// result_lamports = msol_amount * msol_price
     pub fn msol_to_sol(&self, msol_amount: u64) -> Result<u64> {
         value_from_shares(
-            msol_amount,
+            msol_amount as u128,
             self.total_virtual_staked_lamports(),
-            self.msol_supply,
+            self.msol_supply as u128,
         )
     }
 

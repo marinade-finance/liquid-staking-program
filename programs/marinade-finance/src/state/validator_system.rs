@@ -268,9 +268,9 @@ impl ValidatorSystem {
             return Ok(0);
         }
         proportional(
-            total_stake_target,
-            validator.score as u64,
-            self.total_validator_score as u64,
+            total_stake_target as u128,
+            validator.score as u128,
+            self.total_validator_score as u128,
         )
     }
 }

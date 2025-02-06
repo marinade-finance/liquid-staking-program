@@ -14,7 +14,7 @@ pub struct DepositStakeAccountEvent {
     pub user_msol_balance: u64,
     pub msol_minted: u64,
     // MSOL price used
-    pub total_virtual_staked_lamports: u64,
+    pub total_virtual_staked_lamports: u128,
     pub msol_supply: u64,
 }
 
@@ -32,7 +32,7 @@ pub struct DepositEvent {
     pub sol_deposited: u64,
     pub msol_minted: u64,
     // MSOL price used
-    pub total_virtual_staked_lamports: u64,
+    pub total_virtual_staked_lamports: u128,
     pub msol_supply: u64,
 }
 
@@ -54,6 +54,6 @@ pub struct WithdrawStakeAccountEvent {
     pub split_lamports: u64,
     pub fee_bp_cents: u32,
     // MSOL price used
-    pub total_virtual_staked_lamports: u64,
+    pub total_virtual_staked_lamports: u128,
     pub msol_supply: u64,
 }

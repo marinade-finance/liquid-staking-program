@@ -90,14 +90,14 @@ impl<'info> RemoveLiquidity<'info> {
         msg!("mSOL-SOL-LP total supply:{}", lp_mint_supply);
 
         let sol_out_amount = proportional(
-            tokens,
-            sol_leg_balance - self.state.rent_exempt_for_token_acc,
-            self.state.liq_pool.lp_supply, // Use virtual amount
+            tokens as u128,
+            (sol_leg_balance - self.state.rent_exempt_for_token_acc) as u128,
+            self.state.liq_pool.lp_supply as u128, // Use virtual amount
         )?;
         let msol_out_amount = proportional(
-            tokens,
-            msol_leg_balance,
-            self.state.liq_pool.lp_supply, // Use virtual amount
+            tokens as u128,
+            msol_leg_balance as u128,
+            self.state.liq_pool.lp_supply as u128, // Use virtual amount
         )?;
 
         require_gte!(

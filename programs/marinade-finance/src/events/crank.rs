@@ -105,7 +105,7 @@ pub struct UpdateActiveEvent {
     pub msol_price_change: U64ValueChange,
     pub reward_fee_used: Fee,
     // MSOL price used
-    pub total_virtual_staked_lamports: u64,
+    pub total_virtual_staked_lamports: u128,
     pub msol_supply: u64,
 }
 
@@ -122,6 +122,6 @@ pub struct UpdateDeactivatedEvent {
     pub reward_fee_used: Fee,
     pub operational_sol_balance: u64,
     // MSOL price used
-    pub total_virtual_staked_lamports: u64,
+    pub total_virtual_staked_lamports: u128,
     pub msol_supply: u64,
 }
