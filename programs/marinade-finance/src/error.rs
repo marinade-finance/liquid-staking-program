@@ -276,4 +276,10 @@ pub enum MarinadeError {
 
     #[msg("Delinquent upgrader is not done")]
     DelinquentUpgraderIsNotDone, // 6088 0x17c8
+
+    #[msg("Canonical stake account for this validator already exists")]
+    CanonicalStakeAccountAlreadyCreated, // 6089 0x17c9
+
+    #[msg("Invalid canonical stake account address")]
+    InvalidCanonicalStakeAccountAddress, // 6090 0x17ca
 }

@@ -100,6 +100,7 @@ impl State {
     /// Suffix for reserve account seed
     pub const RESERVE_SEED: &'static [u8] = b"reserve";
     pub const MSOL_MINT_AUTHORITY_SEED: &'static [u8] = b"st_mint";
+    pub const CANONICAL_STAKE_SEED: &'static [u8] = b"canonical_stake";
 
     // Account seeds for simplification of creation (optional)
     pub const STAKE_LIST_SEED: &'static str = "stake_list";
@@ -134,6 +135,10 @@ impl State {
 
     pub fn find_reserve_address(state: &Pubkey) -> (Pubkey, u8) {
         Pubkey::find_program_address(&[&state.to_bytes()[..32], Self::RESERVE_SEED], &ID)
+    }
+
+    pub fn find_canonical_stake_address(state: &Pubkey, validator: &Pubkey) -> (Pubkey, u8) {
+        Pubkey::find_program_address(&[state.as_ref(), validator.as_ref(), Self::CANONICAL_STAKE_SEED], &ID)
     }
 
     pub fn default_stake_list_address(state: &Pubkey) -> Pubkey {
