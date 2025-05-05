@@ -275,7 +275,9 @@ impl<'info> DepositStakeAccount<'info> {
             true, // is_active? yes
         )?;
 
-        let msol_to_mint = self.state.calc_msol_from_lamports(delegation.stake)?;
+        let sol_fees = self.state.deposit_stake_account_fee.apply(delegation.stake);
+        let deposit_stake_minus_fee = delegation.stake.saturating_sub(sol_fees);
+        let msol_to_mint = self.state.calc_msol_from_lamports(deposit_stake_minus_fee)?;
 
         mint_to(
             CpiContext::new_with_signer(
@@ -313,7 +315,8 @@ impl<'info> DepositStakeAccount<'info> {
             user_msol_balance,
             msol_minted: msol_to_mint,
             total_virtual_staked_lamports,
-            msol_supply
+            msol_supply,
+            sol_fees,
         });
         Ok(())
     }

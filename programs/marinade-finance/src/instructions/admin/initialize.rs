@@ -184,6 +184,8 @@ impl<'info> Initialize<'info> {
             paused: false,
             delayed_unstake_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_fee: FeeCents::from_bp_cents(0),
+            deposit_sol_fee: FeeCents::from_bp_cents(0),
+            deposit_stake_account_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_enabled: false,
             last_stake_move_epoch: 0,
             stake_moved: 0,

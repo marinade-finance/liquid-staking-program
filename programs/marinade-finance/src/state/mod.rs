@@ -93,6 +93,9 @@ pub struct State {
     pub stake_moved: u64,           // total amount of moved SOL during the epoch #stake_move_epoch
     pub max_stake_moved_per_epoch: Fee, // % of total_lamports_under_control
     pub delinquent_upgrader: DelinquentUpgraderState,
+
+    pub deposit_sol_fee: FeeCents,
+    pub deposit_stake_account_fee: FeeCents,
 }
 
 impl State {
@@ -114,6 +117,10 @@ impl State {
     // set a max fee to protect users
     pub const MAX_DELAYED_UNSTAKE_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_WITHDRAW_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
+                                                                                        //
+    // TODO: Check these limits
+    pub const MAX_DEPOSIT_SOL_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
+    pub const MAX_DEPOSIT_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
 
     // min_stake minimum value is MIN_STAKE_MULTIPLIER * rent_exempt_for_token_acc
     pub const MIN_STAKE_LOWER_LIMIT: u64 = LAMPORTS_PER_SOL / 100;
