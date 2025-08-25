@@ -32,7 +32,7 @@ impl DelinquentUpgraderState {
     pub fn is_iterating_validators(&self) -> bool {
         matches!(self, Self::IteratingValidators { .. })
     }
-    
+
     pub fn is_done(&self) -> bool {
         matches!(self, Self::Done)
     }

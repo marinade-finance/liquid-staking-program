@@ -9,15 +9,18 @@ use anchor_lang::{
 use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
-use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem, delinquent_upgrader::DelinquentUpgraderState};
+use self::{
+    delinquent_upgrader::DelinquentUpgraderState, liq_pool::LiqPool, stake_system::StakeSystem,
+    validator_system::ValidatorSystem,
+};
 
 pub mod delayed_unstake_ticket;
+pub mod delinquent_upgrader;
 pub mod fee;
 pub mod liq_pool;
 pub mod list;
 pub mod stake_system;
 pub mod validator_system;
-pub mod delinquent_upgrader;
 
 pub use fee::Fee;
 pub use fee::FeeCents;
@@ -118,7 +121,7 @@ impl State {
     pub const MAX_DELAYED_UNSTAKE_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_WITHDRAW_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
                                                                                         //
-    // TODO: Check these limits
+                                                                                        // TODO: Check these limits
     pub const MAX_DEPOSIT_SOL_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_DEPOSIT_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
 
@@ -145,7 +148,14 @@ impl State {
     }
 
     pub fn find_canonical_stake_address(state: &Pubkey, validator: &Pubkey) -> (Pubkey, u8) {
-        Pubkey::find_program_address(&[state.as_ref(), validator.as_ref(), Self::CANONICAL_STAKE_SEED], &ID)
+        Pubkey::find_program_address(
+            &[
+                state.as_ref(),
+                validator.as_ref(),
+                Self::CANONICAL_STAKE_SEED,
+            ],
+            &ID,
+        )
     }
 
     pub fn default_stake_list_address(state: &Pubkey) -> Pubkey {

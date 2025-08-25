@@ -234,19 +234,7 @@ pub mod marinade_finance {
         validator_index: u32,
     ) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts
-            .process(source_stake_index, validator_index)
-    }
-
-    pub fn redelegate(
-        ctx: Context<ReDelegate>,
-        stake_index: u32,
-        source_validator_index: u32,
-        dest_validator_index: u32,
-    ) -> Result<()> {
-        check_context(&ctx)?;
-        ctx.accounts
-            .process(stake_index, source_validator_index, dest_validator_index)
+        ctx.accounts.process(source_stake_index, validator_index)
     }
 
     // emergency pauses the contract
@@ -284,7 +272,10 @@ pub mod marinade_finance {
         ctx.accounts.process(capacity)
     }
 
-    pub fn finalize_delinquent_upgrade(ctx: Context<FinalizeDelinquentUpgrade>, max_validators: u32) -> Result<()> {
+    pub fn finalize_delinquent_upgrade(
+        ctx: Context<FinalizeDelinquentUpgrade>,
+        max_validators: u32,
+    ) -> Result<()> {
         check_context(&ctx)?;
         ctx.accounts.process(max_validators)
     }

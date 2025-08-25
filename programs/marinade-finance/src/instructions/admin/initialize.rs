@@ -7,8 +7,8 @@ use crate::{
     events::admin::InitializeEvent,
     require_lte,
     state::{
-        fee::FeeCents, liq_pool::LiqPool, stake_system::StakeSystem,
-        validator_system::ValidatorSystem, Fee, delinquent_upgrader::DelinquentUpgraderState,
+        delinquent_upgrader::DelinquentUpgraderState, fee::FeeCents, liq_pool::LiqPool,
+        stake_system::StakeSystem, validator_system::ValidatorSystem, Fee,
     },
     State, ID,
 };

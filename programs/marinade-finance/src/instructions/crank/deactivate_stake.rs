@@ -3,7 +3,7 @@ use crate::{
     events::crank::{DeactivateStakeEvent, SplitStakeAccountInfo},
     require_lt,
     state::{
-        stake_system::{StakeList, StakeSystem, StakeStatus},
+        stake_system::{StakeList, StakeStatus, StakeSystem},
         validator_system::ValidatorList,
     },
     State,
@@ -93,9 +93,13 @@ impl<'info> DeactivateStake<'info> {
         )?;
         let last_update_stake_delegation = stake.last_update_delegated_lamports;
 
-        require!(self.state.delinquent_upgrader.is_done(), MarinadeError::DelinquentUpgraderIsNotDone);
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
         require_eq!(
-            stake.last_update_status, StakeStatus::Active,
+            stake.last_update_status,
+            StakeStatus::Active,
             MarinadeError::RequiredActiveStake
         );
         // check the account is not already in emergency_unstake

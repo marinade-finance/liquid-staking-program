@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer, Transfer};
 use anchor_lang::solana_program::sysvar::stake_history;
 use anchor_lang::solana_program::{program::invoke_signed, stake};
+use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::stake::{Stake, StakeAccount};
 
 use crate::events::crank::CreateCanonicalStakeEvent;
@@ -63,12 +63,12 @@ pub struct CreateCanonicalStake<'info> {
 }
 
 impl<'info> CreateCanonicalStake<'info> {
-    pub fn process(
-        &mut self,
-        source_stake_index: u32,
-        validator_index: u32,
-    ) -> Result<()> {
+    pub fn process(&mut self, source_stake_index: u32, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
 
         let validator = self.state.validator_system.get(
             &self.validator_list.to_account_info().data.as_ref().borrow(),
@@ -88,7 +88,8 @@ impl<'info> CreateCanonicalStake<'info> {
         );
 
         // check derivation
-        let (canonical_stake_account, bump) = State::find_canonical_stake_address(&self.state.key(), &validator.validator_account);
+        let (canonical_stake_account, bump) =
+            State::find_canonical_stake_address(&self.state.key(), &validator.validator_account);
         require_keys_eq!(
             *self.canonical_stake.key,
             canonical_stake_account,
@@ -197,7 +198,8 @@ impl<'info> CreateCanonicalStake<'info> {
             &self.canonical_stake.key(),
             source_delegation.stake,
             &self.clock,
-            0, // is_emergency_unstaking
+            false, // is_emergency_unstaking? no
+            true,  // is_active? yes
         )?;
 
         // Call this last because of index invalidation
@@ -221,4 +223,3 @@ impl<'info> CreateCanonicalStake<'info> {
         Ok(())
     }
 }
-

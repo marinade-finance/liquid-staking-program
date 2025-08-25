@@ -264,7 +264,7 @@ pub enum MarinadeError {
     #[msg("Withdraw stake account value is too low")]
     WithdrawStakeLamportsIsTooLow, // 6084 0x17c4
 
-    /// when the remainder after a withdraw stake account is less than min_stake
+    /// when the remainder after a withdrawal stake account is less than min_stake
     #[msg("Stake account remainder too low")]
     StakeAccountRemainderTooLow, // 6085 0x17c5
 

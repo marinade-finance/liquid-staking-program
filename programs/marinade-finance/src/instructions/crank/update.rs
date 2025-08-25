@@ -650,8 +650,7 @@ impl<'info> UpdateDeactivated<'info> {
         self.state.on_transfer_from_reserve(rent);
 
         if stake.last_update_delegated_lamports != 0 {
-            if self.state.delinquent_upgrader.is_iterating_stakes()
-            {
+            if self.state.delinquent_upgrader.is_iterating_stakes() {
                 let delinquent_amount = if !stake.is_emergency_unstaking {
                     let available = self
                         .state

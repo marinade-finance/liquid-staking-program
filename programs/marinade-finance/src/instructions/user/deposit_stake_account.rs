@@ -162,7 +162,7 @@ impl<'info> DepositStakeAccount<'info> {
             }
             DelinquentUpgraderState::Done => {
                 // Invariants are not needed anymore and fields are already zeroed
-            },
+            }
         }
 
         self.state.validator_system.set(
@@ -272,12 +272,14 @@ impl<'info> DepositStakeAccount<'info> {
             delegation.stake,
             &self.clock,
             false, // is_emergency_unstaking? no
-            true, // is_active? yes
+            true,  // is_active? yes
         )?;
 
         let sol_fees = self.state.deposit_stake_account_fee.apply(delegation.stake);
         let deposit_stake_minus_fee = delegation.stake.saturating_sub(sol_fees);
-        let msol_to_mint = self.state.calc_msol_from_lamports(deposit_stake_minus_fee)?;
+        let msol_to_mint = self
+            .state
+            .calc_msol_from_lamports(deposit_stake_minus_fee)?;
 
         mint_to(
             CpiContext::new_with_signer(

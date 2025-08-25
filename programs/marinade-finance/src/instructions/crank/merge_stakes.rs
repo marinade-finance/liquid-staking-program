@@ -84,7 +84,8 @@ impl<'info> MergeStakes<'info> {
         let operational_sol_balance = self.operational_sol_account.lamports();
 
         // canonical stake
-        let (canonical_stake_account, _) = State::find_canonical_stake_address(&self.state.key(), &validator.validator_account);
+        let (canonical_stake_account, _) =
+            State::find_canonical_stake_address(&self.state.key(), &validator.validator_account);
         require_keys_eq!(
             self.destination_stake.key(),
             canonical_stake_account,
