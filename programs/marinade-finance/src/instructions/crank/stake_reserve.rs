@@ -237,6 +237,7 @@ impl<'info> StakeReserve<'info> {
 
         sol_log_compute_units();
         msg!("Initialize stake");
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke(
             &stake::instruction::initialize(
                 &self.stake_account.key(),
@@ -252,6 +253,7 @@ impl<'info> StakeReserve<'info> {
 
         sol_log_compute_units();
         msg!("Delegate stake");
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             &stake::instruction::delegate_stake(
                 &self.stake_account.key(),
@@ -321,6 +323,7 @@ impl<'info> StakeReserve<'info> {
     pub fn return_unused_stake_account_rent(&self) -> Result<()> {
         // Return back the rent reserve of unused stake account in case of early return
         withdraw(
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             CpiContext::new(
                 self.stake_program.to_account_info(),
                 Withdraw {

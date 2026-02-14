@@ -177,6 +177,7 @@ impl<'info> DeactivateStake<'info> {
                 // Do not check and set validator.last_stake_delta_epoch here because it is possible to run
                 // multiple deactivate whole stake commands per epoch. Thats why limitation is applicable only for partial deactivation
 
+                require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
                 solana_deactivate_stake(CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
                     SolanaDeactivateStake {
@@ -246,6 +247,7 @@ impl<'info> DeactivateStake<'info> {
                 .last()
                 .unwrap()
                 .clone();
+                require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
                 invoke_signed(
                     &split_instruction,
                     &[
@@ -261,6 +263,7 @@ impl<'info> DeactivateStake<'info> {
                     ]],
                 )?;
 
+                require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
                 solana_deactivate_stake(CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
                     SolanaDeactivateStake {
@@ -338,6 +341,7 @@ impl<'info> DeactivateStake<'info> {
     pub fn return_unused_split_stake_account_rent(&self) -> Result<()> {
         // Return back the rent reserve of unused split stake account in case of early return
         withdraw(
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             CpiContext::new(
                 self.stake_program.to_account_info(),
                 Withdraw {

@@ -160,6 +160,7 @@ impl<'info> PartialUnstake<'info> {
             msg!("Deactivate whole stake {}", stake.stake_account);
 
             // deactivate stake account
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             deactivate_stake(CpiContext::new_with_signer(
                 self.stake_program.to_account_info(),
                 DeactivateStake {
@@ -209,6 +210,7 @@ impl<'info> PartialUnstake<'info> {
             .last()
             .unwrap()
             .clone();
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             invoke_signed(
                 &split_instruction,
                 &[
@@ -224,6 +226,7 @@ impl<'info> PartialUnstake<'info> {
                 ]],
             )?;
 
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             deactivate_stake(CpiContext::new_with_signer(
                 self.stake_program.to_account_info(),
                 DeactivateStake {
@@ -277,6 +280,7 @@ impl<'info> PartialUnstake<'info> {
     pub fn return_unused_split_stake_account_rent(&self) -> Result<()> {
         // Return back the rent reserve of unused split stake account in case of early return
         withdraw(
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             CpiContext::new(
                 self.stake_program.to_account_info(),
                 Withdraw {

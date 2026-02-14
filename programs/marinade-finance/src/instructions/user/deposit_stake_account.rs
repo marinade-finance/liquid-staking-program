@@ -170,6 +170,7 @@ impl<'info> DepositStakeAccount<'info> {
 
             // Clean old lockup
             if lockup.custodian != Pubkey::default() {
+                require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
                 invoke(
                     &stake::instruction::set_lockup(
                         &self.stake_account.key(),
@@ -188,6 +189,7 @@ impl<'info> DepositStakeAccount<'info> {
                 )?;
             }
 
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             invoke(
                 &stake::instruction::authorize(
                     self.stake_account.to_account_info().key,
@@ -223,6 +225,7 @@ impl<'info> DepositStakeAccount<'info> {
                 MarinadeError::RedepositingMarinadeStake
             );
 
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             invoke(
                 &stake::instruction::authorize(
                     self.stake_account.to_account_info().key,

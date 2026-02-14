@@ -283,6 +283,7 @@ impl<'info> ReDelegate<'info> {
         .unwrap()
         .clone();
 
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             redelegate_instruction,
             &[
@@ -379,6 +380,7 @@ impl<'info> ReDelegate<'info> {
     ) -> Result<()> {
         // Return back the rent reserve of unused stake account (split or redelegate reserve)
         withdraw(
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             CpiContext::new(
                 self.stake_program.to_account_info(),
                 Withdraw {
@@ -430,6 +432,7 @@ impl<'info> ReDelegate<'info> {
         .last()
         .unwrap()
         .clone();
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             &split_instruction,
             &[

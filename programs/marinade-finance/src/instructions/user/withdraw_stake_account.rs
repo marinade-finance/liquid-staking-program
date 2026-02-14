@@ -261,6 +261,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         .last()
         .unwrap()
         .clone();
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             &split_instruction,
             &[
@@ -301,6 +302,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         )?;
 
         // assign user staker and as withdrawer (owner) for the new split_stake_account
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,
@@ -321,6 +323,7 @@ impl<'info> WithdrawStakeAccount<'info> {
                 &[self.state.stake_system.stake_withdraw_bump_seed],
             ]],
         )?;
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             &stake::instruction::authorize(
                 self.split_stake_account.to_account_info().key,

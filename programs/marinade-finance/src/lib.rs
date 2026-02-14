@@ -161,7 +161,7 @@ pub mod marinade_finance {
         ctx.accounts.process(msol_amount)
     }
 
-    pub fn claim(ctx: Context<Claim>) -> Result<()> {
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
         check_context(&ctx)?;
         ctx.accounts.process()
     }
@@ -171,7 +171,7 @@ pub mod marinade_finance {
         ctx.accounts.process(validator_index)
     }
 
-    pub fn update_active(
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
         ctx: Context<UpdateActive>,
         stake_index: u32,
         validator_index: u32,
@@ -179,7 +179,7 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts.process(stake_index, validator_index)
     }
-    pub fn update_deactivated(ctx: Context<UpdateDeactivated>, stake_index: u32) -> Result<()> {
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
         check_context(&ctx)?;
         ctx.accounts.process(stake_index)
     }
@@ -248,7 +248,7 @@ pub mod marinade_finance {
     }
 
     // immediate withdraw of an active stake account - feature can be enabled or disable by the DAO
-    pub fn withdraw_stake_account(
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
         ctx: Context<WithdrawStakeAccount>,
         stake_index: u32,
         validator_index: u32,

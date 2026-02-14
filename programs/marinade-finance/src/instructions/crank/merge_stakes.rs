@@ -142,6 +142,7 @@ impl<'info> MergeStakes<'info> {
             validator.validator_account,
             MarinadeError::InvalidSourceStakeDelegation
         );
+        require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
         invoke_signed(
             &stake::instruction::merge(
                 self.destination_stake.to_account_info().key,
@@ -207,6 +208,7 @@ impl<'info> MergeStakes<'info> {
         if returned_stake_rent > 0 {
             // withdraw the rent-exempt lamports part of merged stake to operational_sol_account for the future recreation of this slot's account
             withdraw(
+                require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
                 CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
                     Withdraw {

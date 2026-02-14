@@ -187,6 +187,7 @@ impl<'info> UpdateCommon<'info> {
         if amount > 0 {
             // Move unstaked + rewards for restaking
             withdraw(
+                require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
                 CpiContext::new_with_signer(
                     self.stake_program.to_account_info(),
                     Withdraw {
