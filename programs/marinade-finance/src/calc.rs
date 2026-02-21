@@ -1,8 +1,6 @@
 //! Common calculations
 
-use crate::error::MarinadeError;
-use anchor_lang::prelude::{error, Result};
-use std::convert::TryFrom;
+use anchor_lang::prelude::Result;
 
 /// calculate amount*numerator/denominator
 /// as value  = shares * share_price where share_price=total_value/total_shares
@@ -12,8 +10,7 @@ pub fn proportional(amount: u64, numerator: u64, denominator: u64) -> Result<u64
     if denominator == 0 {
         return Ok(amount);
     }
-    u64::try_from((amount as u128) * (numerator as u128) / (denominator as u128))
-        .map_err(|_| error!(MarinadeError::CalculationFailure))
+    Ok((amount * numerator) / denominator)
 }
 
 #[inline] //alias for proportional
