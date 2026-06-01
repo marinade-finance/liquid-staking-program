@@ -140,7 +140,7 @@ impl<'info> DepositStakeAccount<'info> {
         let validator_active_balance = validator.active_balance;
         // update validator.active_balance
         validator.active_balance += delegation.stake;
-        // Maintain delinquent_upgrader invatiants
+        // Maintain delinquent_upgrader invariants
         match &mut self.state.delinquent_upgrader {
             DelinquentUpgraderState::IteratingStakes {
                 visited_count,
