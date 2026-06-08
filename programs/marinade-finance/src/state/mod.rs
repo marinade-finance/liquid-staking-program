@@ -120,8 +120,7 @@ impl State {
     // set a max fee to protect users
     pub const MAX_DELAYED_UNSTAKE_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_WITHDRAW_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
-                                                                                        //
-                                                                                        // TODO: Check these limits
+
     pub const MAX_DEPOSIT_SOL_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_DEPOSIT_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
 
