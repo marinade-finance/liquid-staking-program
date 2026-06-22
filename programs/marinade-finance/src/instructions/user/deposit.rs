@@ -117,7 +117,9 @@ impl<'info> Deposit<'info> {
         let msol_supply = self.state.msol_supply;
 
         //compute how many mSOL to sell/mint for the user, base on how many lamports being deposited
-        let user_msol_buy_order = self.state.calc_msol_from_lamports(lamports)?;
+        let sol_fees = self.state.deposit_sol_fee.apply(lamports);
+        let lamports_minus_fee = lamports.saturating_sub(sol_fees);
+        let user_msol_buy_order = self.state.calc_msol_from_lamports(lamports_minus_fee)?;
         msg!("--- user_m_sol_buy_order {}", user_msol_buy_order);
 
         //First we try to "sell" mSOL to the user from the LiqPool.
@@ -233,7 +235,8 @@ impl<'info> Deposit<'info> {
             sol_deposited,
             msol_minted,
             total_virtual_staked_lamports,
-            msol_supply
+            msol_supply,
+            sol_fees,
         });
 
         Ok(())

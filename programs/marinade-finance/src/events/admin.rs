@@ -39,6 +39,8 @@ pub struct ConfigMarinadeEvent {
     pub delayed_unstake_fee_change: Option<FeeCentsValueChange>,
     pub withdraw_stake_account_fee_change: Option<FeeCentsValueChange>,
     pub max_stake_moved_per_epoch_change: Option<FeeValueChange>,
+    pub deposit_sol_fee_change: Option<FeeCentsValueChange>,
+    pub deposit_stake_account_fee_change: Option<FeeCentsValueChange>,
 }
 
 // TODO: ConfigValidatorSystemEvent?

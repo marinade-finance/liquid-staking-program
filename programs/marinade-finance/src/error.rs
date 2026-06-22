@@ -264,10 +264,28 @@ pub enum MarinadeError {
     #[msg("Withdraw stake account value is too low")]
     WithdrawStakeLamportsIsTooLow, // 6084 0x17c4
 
-    /// when the remainder after a withdraw stake account is less than min_stake
+    /// when the remainder after a withdrawal stake account is less than min_stake
     #[msg("Stake account remainder too low")]
     StakeAccountRemainderTooLow, // 6085 0x17c5
 
     #[msg("Capacity of the list must be not less than it's current size")]
     ShrinkingListWithDeletingContents, // 6086 0x17c6
+
+    #[msg("Upgrading invariant violation")]
+    UpgradingInvariantViolation, // 6087 0x17c7
+
+    #[msg("Delinquent upgrader is not done")]
+    DelinquentUpgraderIsNotDone, // 6088 0x17c8
+
+    #[msg("Canonical stake account for this validator already exists")]
+    CanonicalStakeAccountAlreadyCreated, // 6089 0x17c9
+
+    #[msg("Invalid canonical stake account address")]
+    InvalidCanonicalStakeAccountAddress, // 6090 0x17ca
+
+    #[msg("Deposit stake account fee is too high")]
+    DepositStakeAccountFeeIsTooHigh, // 6091 0x17cb
+
+    #[msg("Deposit SOL fee is too high")]
+    DepositSolFeeIsTooHigh, // 6092 0x17cc
 }

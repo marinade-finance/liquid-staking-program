@@ -16,6 +16,7 @@ pub struct DepositStakeAccountEvent {
     // MSOL price used
     pub total_virtual_staked_lamports: u64,
     pub msol_supply: u64,
+    pub sol_fees: u64,
 }
 
 #[event]
@@ -34,6 +35,7 @@ pub struct DepositEvent {
     // MSOL price used
     pub total_virtual_staked_lamports: u64,
     pub msol_supply: u64,
+    pub sol_fees: u64,
 }
 
 #[event]

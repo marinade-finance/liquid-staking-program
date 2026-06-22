@@ -22,6 +22,8 @@ pub struct ConfigMarinadeParams {
     pub delayed_unstake_fee: Option<FeeCents>,
     pub withdraw_stake_account_fee: Option<FeeCents>,
     pub max_stake_moved_per_epoch: Option<Fee>,
+    pub deposit_sol_fee: Option<FeeCents>,
+    pub deposit_stake_account_fee: Option<FeeCents>,
 }
 
 #[derive(Accounts)]
@@ -50,6 +52,8 @@ impl<'info> ConfigMarinade<'info> {
             delayed_unstake_fee,
             withdraw_stake_account_fee,
             max_stake_moved_per_epoch,
+            deposit_sol_fee,
+            deposit_stake_account_fee,
         }: ConfigMarinadeParams,
     ) -> Result<()> {
         let rewards_fee_change = if let Some(rewards_fee) = rewards_fee {
@@ -198,6 +202,39 @@ impl<'info> ConfigMarinade<'info> {
                 None
             };
 
+        let deposit_sol_fee_change = if let Some(deposit_sol_fee) = deposit_sol_fee {
+            require_lte!(
+                deposit_sol_fee,
+                State::MAX_DEPOSIT_SOL_FEE,
+                MarinadeError::DepositSolFeeIsTooHigh
+            );
+            let old = self.state.deposit_sol_fee;
+            self.state.deposit_sol_fee = deposit_sol_fee;
+            Some(FeeCentsValueChange {
+                old,
+                new: deposit_sol_fee,
+            })
+        } else {
+            None
+        };
+
+        let deposit_stake_account_fee_change =
+            if let Some(deposit_stake_account_fee) = deposit_stake_account_fee {
+                require_lte!(
+                    deposit_stake_account_fee,
+                    State::MAX_DEPOSIT_STAKE_ACCOUNT_FEE,
+                    MarinadeError::DepositStakeAccountFeeIsTooHigh
+                );
+                let old = self.state.deposit_stake_account_fee;
+                self.state.deposit_stake_account_fee = deposit_stake_account_fee;
+                Some(FeeCentsValueChange {
+                    old,
+                    new: deposit_stake_account_fee,
+                })
+            } else {
+                None
+            };
+
         let max_stake_moved_per_epoch_change =
             if let Some(max_stake_moved_per_epoch) = max_stake_moved_per_epoch {
                 // Not checking for 100% because probably for some emergency case
@@ -227,6 +264,8 @@ impl<'info> ConfigMarinade<'info> {
             delayed_unstake_fee_change,
             withdraw_stake_account_fee_change,
             max_stake_moved_per_epoch_change,
+            deposit_sol_fee_change,
+            deposit_stake_account_fee_change,
         });
 
         Ok(())

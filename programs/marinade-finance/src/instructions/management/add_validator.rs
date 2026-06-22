@@ -49,6 +49,10 @@ pub struct AddValidator<'info> {
 impl<'info> AddValidator<'info> {
     pub fn process(&mut self, score: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
 
         msg!("Add validator {}", self.validator_vote.key);
 
