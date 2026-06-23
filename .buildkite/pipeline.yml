@@ -1,0 +1,10 @@
+steps:
+  - label: ":anchor: anchor verify (mainnet)"
+    key: anchor-verify
+    timeout_in_minutes: 90
+    agents:
+      queue: "snapshots"
+    # Verify against the deployed program id from Anchor.toml.
+    # To verify a staged upgrade buffer instead, pass it as an argument:
+    #   command: .buildkite/verify.sh CmXrmxgrnHAYSGWcLWDXYnRKEQB2jcw5t3RRM1hRo7at
+    command: .buildkite/verify.sh
