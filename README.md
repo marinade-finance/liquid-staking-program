@@ -4,6 +4,8 @@ Marinade-finance liquid staking program for the Solana blockchain
 # Deployments
 Branch `mainnet` contains the version deployed on mainnet, keep it up to date with every deployment.
 
+Even though the audited and deployed commit hashes might differ, it is critical that the program source is identical.
+
 ## 2026-06-26 (TODO) (v2.1.0): fix delinquent stakes and introduce deposit fees
 
 commit: [`0f031c4`](https://github.com/marinade-finance/liquid-staking-program/pull/84)
