@@ -7,8 +7,8 @@ use crate::{
     events::admin::InitializeEvent,
     require_lte,
     state::{
-        fee::FeeCents, liq_pool::LiqPool, stake_system::StakeSystem,
-        validator_system::ValidatorSystem, Fee,
+        delinquent_upgrader::DelinquentUpgraderState, fee::FeeCents, liq_pool::LiqPool,
+        stake_system::StakeSystem, validator_system::ValidatorSystem, Fee,
     },
     State, ID,
 };
@@ -184,10 +184,13 @@ impl<'info> Initialize<'info> {
             paused: false,
             delayed_unstake_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_fee: FeeCents::from_bp_cents(0),
+            deposit_sol_fee: FeeCents::from_bp_cents(0),
+            deposit_stake_account_fee: FeeCents::from_bp_cents(0),
             withdraw_stake_account_enabled: false,
             last_stake_move_epoch: 0,
             stake_moved: 0,
             max_stake_moved_per_epoch: Fee::from_basis_points(10000), // 100% of total_lamports_under_control
+            delinquent_upgrader: DelinquentUpgraderState::Done,
         });
 
         emit!(InitializeEvent {

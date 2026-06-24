@@ -49,6 +49,21 @@ pub struct MergeStakesEvent {
 }
 
 #[event]
+pub struct CreateCanonicalStakeEvent {
+    pub state: Pubkey,
+    pub epoch: u64,
+    pub canonical_stake_account: Pubkey,
+    pub source_stake_index: u32,
+    pub source_stake_account: Pubkey,
+    pub last_update_source_stake_delegation: u64,
+    pub validator_index: u32,
+    pub validator_vote: Pubkey,
+    pub validator_active_balance: u64,
+    pub total_active_balance: u64,
+    pub operational_sol_balance: u64,
+}
+
+#[event]
 pub struct RedelegateEvent {
     pub state: Pubkey,
     pub epoch: u64,

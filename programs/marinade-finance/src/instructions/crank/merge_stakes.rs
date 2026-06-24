@@ -4,7 +4,7 @@ use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
 use crate::events::crank::MergeStakesEvent;
-use crate::state::stake_system::StakeList;
+use crate::state::stake_system::{StakeList, StakeStatus};
 use crate::state::validator_system::ValidatorList;
 use crate::{error::MarinadeError, state::stake_system::StakeSystem, State};
 
@@ -25,6 +25,7 @@ pub struct MergeStakes<'info> {
         address = state.validator_system.validator_list.account,
     )]
     pub validator_list: Account<'info, ValidatorList>,
+    /// CHECK: PDA, canonical stake
     #[account(mut)]
     pub destination_stake: Box<Account<'info, StakeAccount>>,
     #[account(mut)]
@@ -62,11 +63,15 @@ pub struct MergeStakes<'info> {
 impl<'info> MergeStakes<'info> {
     pub fn process(
         &mut self,
-        destination_stake_index: u32,
+        canonical_stake_index: u32,
         source_stake_index: u32,
         validator_index: u32,
     ) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
 
         let mut validator = self.state.validator_system.get(
             &self.validator_list.to_account_info().data.as_ref().borrow(),
@@ -78,32 +83,44 @@ impl<'info> MergeStakes<'info> {
         let total_active_balance = self.state.validator_system.total_active_balance;
         let operational_sol_balance = self.operational_sol_account.lamports();
 
-        let mut destination_stake_info = self.state.stake_system.get_checked(
+        // canonical stake
+        let (canonical_stake_account, _) =
+            State::find_canonical_stake_address(&self.state.key(), &validator.validator_account);
+        require_keys_eq!(
+            self.destination_stake.key(),
+            canonical_stake_account,
+            MarinadeError::InvalidCanonicalStakeAccountAddress
+        );
+        let mut canonical_stake_info = self.state.stake_system.get_checked(
             &self.stake_list.to_account_info().data.as_ref().borrow(),
-            destination_stake_index,
+            canonical_stake_index,
             self.destination_stake.to_account_info().key,
         )?;
-        let last_update_destination_stake_delegation =
-            destination_stake_info.last_update_delegated_lamports;
-        let destination_delegation = if let Some(delegation) = self.destination_stake.delegation() {
+        let last_update_canonical_stake_delegation =
+            canonical_stake_info.last_update_delegated_lamports;
+        let canonical_delegation = if let Some(delegation) = self.destination_stake.delegation() {
             delegation
         } else {
             return err!(MarinadeError::DestinationStakeMustBeDelegated)
                 .map_err(|e| e.with_account_name("destination_stake"));
         };
         require_eq!(
-            destination_delegation.deactivation_epoch,
+            canonical_stake_info.last_update_status,
+            StakeStatus::Active,
+            MarinadeError::DestinationStakeMustNotBeDeactivating
+        );
+        require_eq!(
+            canonical_delegation.deactivation_epoch,
             std::u64::MAX,
             MarinadeError::DestinationStakeMustNotBeDeactivating
         );
         require_eq!(
-            destination_stake_info.last_update_delegated_lamports,
-            destination_delegation.stake,
+            canonical_stake_info.last_update_delegated_lamports,
+            canonical_delegation.stake,
             MarinadeError::DestinationStakeMustBeUpdated
         );
-
         require_keys_eq!(
-            destination_delegation.voter_pubkey,
+            canonical_delegation.voter_pubkey,
             validator.validator_account,
             MarinadeError::InvalidDestinationStakeDelegation
         );
@@ -120,6 +137,12 @@ impl<'info> MergeStakes<'info> {
             return err!(MarinadeError::SourceStakeMustBeDelegated)
                 .map_err(|e| e.with_account_name("source_stake"));
         };
+
+        require_eq!(
+            source_stake_info.last_update_status,
+            StakeStatus::Active,
+            MarinadeError::SourceStakeMustNotBeDeactivating
+        );
         require_eq!(
             source_delegation.deactivation_epoch,
             std::u64::MAX,
@@ -166,7 +189,7 @@ impl<'info> MergeStakes<'info> {
         self.destination_stake.reload()?;
         // extra_delegated = dest.delegation.stake after merge - (dest.last_update_delegated_lamports + source.last_update_delegated_lamports)
         let extra_delegated = self.destination_stake.delegation().unwrap().stake
-            - destination_stake_info.last_update_delegated_lamports
+            - canonical_stake_info.last_update_delegated_lamports
             - source_stake_info.last_update_delegated_lamports;
         // Note: if the merge is invoked with 2 activating accounts, or a new account -> activating account,
         // the source account *rent-lamports* are added to the destination account on top of the delegation (extra-delegated).
@@ -192,12 +215,12 @@ impl<'info> MergeStakes<'info> {
         // update also total_active_balance
         self.state.validator_system.total_active_balance += extra_delegated;
 
-        destination_stake_info.last_update_delegated_lamports =
+        canonical_stake_info.last_update_delegated_lamports =
             self.destination_stake.delegation().unwrap().stake;
         self.state.stake_system.set(
             &mut self.stake_list.to_account_info().data.as_ref().borrow_mut(),
-            destination_stake_index,
-            destination_stake_info,
+            canonical_stake_index,
+            canonical_stake_info,
         )?;
         // Call this last because of index invalidation
         self.state.stake_system.remove(
@@ -229,9 +252,9 @@ impl<'info> MergeStakes<'info> {
         emit!(MergeStakesEvent {
             state: self.state.key(),
             epoch: self.clock.epoch,
-            destination_stake_index,
-            destination_stake_account: destination_stake_info.stake_account,
-            last_update_destination_stake_delegation,
+            destination_stake_index: canonical_stake_index,
+            destination_stake_account: canonical_stake_info.stake_account,
+            last_update_destination_stake_delegation: last_update_canonical_stake_delegation,
             source_stake_index,
             source_stake_account: source_stake_info.stake_account,
             last_update_source_stake_delegation: source_stake_info.last_update_delegated_lamports,

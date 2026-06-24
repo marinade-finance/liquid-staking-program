@@ -2,7 +2,7 @@ use crate::{
     checks::check_stake_amount_and_validator,
     error::MarinadeError,
     state::{
-        stake_system::{StakeList, StakeSystem},
+        stake_system::{StakeList, StakeStatus, StakeSystem},
         validator_system::ValidatorList,
     },
     State,
@@ -50,12 +50,27 @@ pub struct EmergencyUnstake<'info> {
 impl<'info> EmergencyUnstake<'info> {
     pub fn process(&mut self, stake_index: u32, validator_index: u32) -> Result<()> {
         require!(!self.state.paused, MarinadeError::ProgramIsPaused);
+        require!(
+            self.state.delinquent_upgrader.is_done(),
+            MarinadeError::DelinquentUpgraderIsNotDone
+        );
 
         let mut stake = self.state.stake_system.get_checked(
             &self.stake_list.to_account_info().data.as_ref().borrow(),
             stake_index,
             self.stake_account.to_account_info().key,
         )?;
+
+        require_eq!(
+            stake.last_update_status,
+            StakeStatus::Active,
+            MarinadeError::RequiredActiveStake
+        );
+        // check the account is not already in emergency_unstake
+        require!(
+            !stake.is_emergency_unstaking,
+            MarinadeError::StakeAccountIsEmergencyUnstaking
+        );
 
         let mut validator = self.state.validator_system.get(
             &self.validator_list.to_account_info().data.as_ref().borrow(),
@@ -93,13 +108,8 @@ impl<'info> EmergencyUnstake<'info> {
             ]],
         ))?;
 
-        // check the account is not already in emergency_unstake
-        require_eq!(
-            stake.is_emergency_unstaking,
-            0,
-            MarinadeError::StakeAccountIsEmergencyUnstaking
-        );
-        stake.is_emergency_unstaking = 1;
+        stake.is_emergency_unstaking = true;
+        stake.last_update_status = StakeStatus::Deactivating;
 
         // we now consider amount no longer "active" for this specific validator
         validator.active_balance -= unstake_amount;

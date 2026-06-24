@@ -23,11 +23,11 @@ declare_id!("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD");
 security_txt! {
     name: "Marinade Liquid Staking",
     project_url: "https://marinade.finance",
-    contacts: "link:https://docs.marinade.finance/marinade-dao,link:https://discord.com/invite/6EtUf4Euu6",
+    contacts: "link:https://docs.marinade.finance/marinade-dao",
     policy: "https://docs.marinade.finance/marinade-protocol/security",
     preferred_languages: "en",
     source_code: "https://github.com/marinade-finance/liquid-staking-program",
-    source_release: "v2.0",
+    source_release: "v2.1.0",
     auditors: "https://docs.marinade.finance/marinade-protocol/security/audits"
 }
 
@@ -179,9 +179,13 @@ pub mod marinade_finance {
         check_context(&ctx)?;
         ctx.accounts.process(stake_index, validator_index)
     }
-    pub fn update_deactivated(ctx: Context<UpdateDeactivated>, stake_index: u32) -> Result<()> {
+    pub fn update_deactivated(
+        ctx: Context<UpdateDeactivated>,
+        stake_index: u32,
+        validator_index: u32,
+    ) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts.process(stake_index)
+        ctx.accounts.process(stake_index, validator_index)
     }
 
     pub fn deactivate_stake(
@@ -224,15 +228,13 @@ pub mod marinade_finance {
             .process(destination_stake_index, source_stake_index, validator_index)
     }
 
-    pub fn redelegate(
-        ctx: Context<ReDelegate>,
-        stake_index: u32,
-        source_validator_index: u32,
-        dest_validator_index: u32,
+    pub fn create_canonical_stake(
+        ctx: Context<CreateCanonicalStake>,
+        source_stake_index: u32,
+        validator_index: u32,
     ) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts
-            .process(stake_index, source_validator_index, dest_validator_index)
+        ctx.accounts.process(source_stake_index, validator_index)
     }
 
     // emergency pauses the contract
@@ -268,5 +270,13 @@ pub mod marinade_finance {
     pub fn realloc_stake_list(ctx: Context<ReallocStakeList>, capacity: u32) -> Result<()> {
         check_context(&ctx)?;
         ctx.accounts.process(capacity)
+    }
+
+    pub fn finalize_delinquent_upgrade(
+        ctx: Context<FinalizeDelinquentUpgrade>,
+        max_validators: u32,
+    ) -> Result<()> {
+        check_context(&ctx)?;
+        ctx.accounts.process(max_validators)
     }
 }

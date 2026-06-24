@@ -7,6 +7,7 @@ use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 use crate::events::user::DepositStakeAccountEvent;
+use crate::state::delinquent_upgrader::DelinquentUpgraderState;
 use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
 use crate::{error::MarinadeError, require_lte, state::stake_system::StakeSystem, State, ID};
@@ -139,6 +140,31 @@ impl<'info> DepositStakeAccount<'info> {
         let validator_active_balance = validator.active_balance;
         // update validator.active_balance
         validator.active_balance += delegation.stake;
+        // Maintain delinquent_upgrader invariants
+        match &mut self.state.delinquent_upgrader {
+            DelinquentUpgraderState::IteratingStakes {
+                visited_count,
+                total_active_balance,
+                ..
+            } => {
+                // It will be added as processed already
+                *visited_count += 1;
+                *total_active_balance += delegation.stake;
+                validator.delinquent_upgrader_active_balance += delegation.stake;
+            }
+            DelinquentUpgraderState::IteratingValidators { visited_count, .. } => {
+                if validator_index >= *visited_count {
+                    // Maintain delinquent_upgrader_active_balance property
+                    // because it will be used in the further finalize_delinquent_upgrade call
+                    validator.delinquent_upgrader_active_balance += delegation.stake;
+                }
+                // otherwise the field is already zeroed
+            }
+            DelinquentUpgraderState::Done => {
+                // Invariants are not needed anymore and fields are already zeroed
+            }
+        }
+
         self.state.validator_system.set(
             &mut self
                 .validator_list
@@ -245,10 +271,15 @@ impl<'info> DepositStakeAccount<'info> {
             self.stake_account.to_account_info().key,
             delegation.stake,
             &self.clock,
-            0, // is_emergency_unstaking? no
+            false, // is_emergency_unstaking? no
+            true,  // is_active? yes
         )?;
 
-        let msol_to_mint = self.state.calc_msol_from_lamports(delegation.stake)?;
+        let sol_fees = self.state.deposit_stake_account_fee.apply(delegation.stake);
+        let deposit_stake_minus_fee = delegation.stake.saturating_sub(sol_fees);
+        let msol_to_mint = self
+            .state
+            .calc_msol_from_lamports(deposit_stake_minus_fee)?;
 
         mint_to(
             CpiContext::new_with_signer(
@@ -286,7 +317,8 @@ impl<'info> DepositStakeAccount<'info> {
             user_msol_balance,
             msol_minted: msol_to_mint,
             total_virtual_staked_lamports,
-            msol_supply
+            msol_supply,
+            sol_fees,
         });
         Ok(())
     }

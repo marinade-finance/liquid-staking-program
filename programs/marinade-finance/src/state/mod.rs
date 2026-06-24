@@ -9,9 +9,13 @@ use anchor_lang::{
 use anchor_spl::token::spl_token;
 use std::mem::MaybeUninit;
 
-use self::{liq_pool::LiqPool, stake_system::StakeSystem, validator_system::ValidatorSystem};
+use self::{
+    delinquent_upgrader::DelinquentUpgraderState, liq_pool::LiqPool, stake_system::StakeSystem,
+    validator_system::ValidatorSystem,
+};
 
 pub mod delayed_unstake_ticket;
+pub mod delinquent_upgrader;
 pub mod fee;
 pub mod liq_pool;
 pub mod list;
@@ -91,6 +95,10 @@ pub struct State {
     pub last_stake_move_epoch: u64, // epoch of the last stake move action
     pub stake_moved: u64,           // total amount of moved SOL during the epoch #stake_move_epoch
     pub max_stake_moved_per_epoch: Fee, // % of total_lamports_under_control
+    pub delinquent_upgrader: DelinquentUpgraderState,
+
+    pub deposit_sol_fee: FeeCents,
+    pub deposit_stake_account_fee: FeeCents,
 }
 
 impl State {
@@ -98,6 +106,7 @@ impl State {
     /// Suffix for reserve account seed
     pub const RESERVE_SEED: &'static [u8] = b"reserve";
     pub const MSOL_MINT_AUTHORITY_SEED: &'static [u8] = b"st_mint";
+    pub const CANONICAL_STAKE_SEED: &'static [u8] = b"canonical_stake";
 
     // Account seeds for simplification of creation (optional)
     pub const STAKE_LIST_SEED: &'static str = "stake_list";
@@ -111,6 +120,9 @@ impl State {
     // set a max fee to protect users
     pub const MAX_DELAYED_UNSTAKE_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
     pub const MAX_WITHDRAW_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
+
+    pub const MAX_DEPOSIT_SOL_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
+    pub const MAX_DEPOSIT_STAKE_ACCOUNT_FEE: FeeCents = FeeCents::from_bp_cents(2000); // 0.2% max fee
 
     // min_stake minimum value is MIN_STAKE_MULTIPLIER * rent_exempt_for_token_acc
     pub const MIN_STAKE_LOWER_LIMIT: u64 = LAMPORTS_PER_SOL / 100;
@@ -132,6 +144,17 @@ impl State {
 
     pub fn find_reserve_address(state: &Pubkey) -> (Pubkey, u8) {
         Pubkey::find_program_address(&[&state.to_bytes()[..32], Self::RESERVE_SEED], &ID)
+    }
+
+    pub fn find_canonical_stake_address(state: &Pubkey, validator: &Pubkey) -> (Pubkey, u8) {
+        Pubkey::find_program_address(
+            &[
+                state.as_ref(),
+                validator.as_ref(),
+                Self::CANONICAL_STAKE_SEED,
+            ],
+            &ID,
+        )
     }
 
     pub fn default_stake_list_address(state: &Pubkey) -> Pubkey {
