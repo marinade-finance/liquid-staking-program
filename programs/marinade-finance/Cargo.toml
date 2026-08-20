@@ -3,6 +3,7 @@ name = "marinade-finance"
 version = "0.1.0"
 description = "Liquid Staking for the Solana Blockchain - Anchor-based on-chain program"
 edition = "2021"
+publish = false
 
 [lib]
 crate-type = ["cdylib", "lib"]
