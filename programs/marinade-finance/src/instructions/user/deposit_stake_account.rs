@@ -16,6 +16,9 @@ use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
 use crate::{error::MarinadeError, require_lte, state::stake_system::StakeSystem, State, ID};
 
+// stake v5 freezes Meta.rent_exempt_reserve here; owning the value keeps the ceiling off that field
+const LEGACY_STAKE_RENT_EXEMPT_RESERVE: u64 = 2_282_880;
+
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
     #[account(
@@ -120,18 +123,19 @@ impl<'info> DepositStakeAccount<'info> {
         require_eq!(
             self.stake_account.to_account_info().data_len(),
             std::mem::size_of::<StakeState>(),
-            MarinadeError::WrongStakeBalance,
+            MarinadeError::WrongStakeAccountDataLength,
         );
         // the non-delegated part tracks the rent at the last delegate, not the frozen meta field
+        let stake_rent = stake_rent_exempt_reserve()?;
         require_gte!(
             self.stake_account.to_account_info().lamports(),
-            delegation.stake + stake_rent_exempt_reserve()?,
+            delegation.stake + stake_rent,
             MarinadeError::WrongStakeBalance,
         );
         // ceiling: some users send lamports to active stake accounts believing that tops them up
         require_lte!(
             self.stake_account.to_account_info().lamports(),
-            delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve,
+            delegation.stake + stake_rent.max(LEGACY_STAKE_RENT_EXEMPT_RESERVE),
             MarinadeError::WrongStakeBalance,
         );
 

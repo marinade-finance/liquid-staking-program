@@ -155,7 +155,7 @@ impl<'info> MergeStakes<'info> {
             MarinadeError::SourceStakeMustBeUpdated
         );
 
-        // a surplus above live rent would be paid out below to operational_sol_account, not the pool
+        // exact: a surplus could push extra_delegated past stake_rent and underflow returned_stake_rent
         let stake_rent = stake_rent_exempt_reserve()?;
         require_eq!(
             self.source_stake.to_account_info().lamports(),

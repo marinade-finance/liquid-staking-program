@@ -2,7 +2,7 @@
 .DS_Store
 
 # ignore the build directory for Rust/Anchor
-target
+target*/
 .anchor
 
 # ignore localnet data
