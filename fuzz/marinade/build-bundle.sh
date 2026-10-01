@@ -261,7 +261,7 @@ PYSF
     exit 1
   fi
   echo "==> coverage: SourcesOriginalPath '$sources_original' resolves $ok/$total first-party files"
-  coverage_params=$'\n              "SymbolsPathInBundle":   "symbols/marinade_symbols.so",\n              "SourcesPathInBundle":   "srcs",\n              "SourcesOriginalPath":   "'"$sources_original"$'",'
+  coverage_params=$'\n              "symbols_path_in_bundle":   "symbols/marinade_symbols.so",\n              "sources_path_in_bundle":   "srcs",\n              "sources_original_path":   "'"$sources_original"$'",'
   echo "==> coverage: staged $(basename "$symbols") + programs/marinade-finance/src"
   echo "==> coverage: SourcesOriginalPath = ${sources_original:-<empty>}"
 else
@@ -284,25 +284,25 @@ commit="$(git -C "$here" rev-parse HEAD)"
 # matches the rest of the fleet (loopscale, marginfi, shielded-pool).
 cat > "$bundle/manifest.fc.json" <<EOF
 {
-  "Version": 3,
-  "Revision": { "Commit": "$commit" },
-  "Lineages": [
+  "version": 3,
+  "revision": { "commit": "$commit" },
+  "lineages": [
     {
-      "Name": "marinade",
-      "Confs": [
+      "name": "marinade",
+      "confs": [
         {
-          "Name": "invariant_test",
-          "Driver": {
-            "Type": "crucible",
-            "Params": {$coverage_params
-              "BinaryPathInBundle": "bin/invariant_test",
-              "HarnessRunDirInBundle": "run"
+          "name": "invariant_test",
+          "driver": {
+            "type": "crucible",
+            "params": {$coverage_params
+              "binary_path_in_bundle": "bin/invariant_test",
+              "harness_run_dir_in_bundle": "run"
             }
           },
-          "Architecture": { "Name": "amd64" },
-          "Cores": 4,
-          "MemoryKiB": 4194304,
-          "YieldTimeMinutes": 120
+          "architecture": { "name": "amd64" },
+          "cores": 4,
+          "memory_kib": 4194304,
+          "yield_time_minutes": 120
         }
       ]
     }

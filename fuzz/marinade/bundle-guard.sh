@@ -26,6 +26,9 @@
 #           bundle validates and is then never picked up -- it fails as silence.
 #           Non-static linkage is reported loudly but is not fatal, because a
 #           glibc build MAY still run depending on the worker image.
+#   GATE S  every manifest key is snake_case and there is at least one conf. A
+#           PascalCase driver param is silently dropped by FuzzCorp, and these
+#           gates would read nothing from it.
 set -euo pipefail
 
 BUNDLE="${1:?usage: bundle-guard.sh <bundle-dir> [repo-root]}"
@@ -75,6 +78,30 @@ except json.JSONDecodeError as e:
         print(f"  {mark} {i+1:4}| {lines[i]}", file=sys.stderr)
     sys.exit(1)
 
+# ---------------------------------------------------------------- GATE S ----
+# FuzzCorp manifest keys are snake_case (fuzzcorp #1577). The server rejects a
+# PascalCase top level, but driver params are decoded leniently, so a PascalCase
+# key there is silently dropped -- and every gate below reads snake_case keys, so
+# a stale manifest would otherwise pass them all with nothing checked.
+OPAQUE = {"env", "extra_env", "checkouts", "manifest_env"}   # user-chosen keys
+def non_snake(v, path):
+    if isinstance(v, dict):
+        for k, x in v.items():
+            if k != k.lower():
+                yield f"{path}.{k}"
+            if k not in OPAQUE:
+                yield from non_snake(x, f"{path}.{k}")
+    elif isinstance(v, list):
+        for i, x in enumerate(v):
+            yield from non_snake(x, f"{path}[{i}]")
+bad = list(non_snake(man, "$"))
+if bad:
+    errors.append("GATE S: manifest has non-snake_case keys (regenerate it, or run\n"
+                  "        `fuzz migrate-manifest`): " + ", ".join(bad[:8])
+                  + (" ..." if len(bad) > 8 else ""))
+elif not any(lin.get("confs") for lin in man.get("lineages") or []):
+    errors.append("GATE S: manifest has no lineages/confs -- nothing would be fuzzed")
+
 # ---------------------------------------------------------------- GATE C ----
 raw = open(mf, encoding="utf-8").read()
 tracked = subprocess.run(["git", "ls-files", "--error-unmatch", mf],
@@ -99,14 +126,14 @@ for m in re.finditer(r'"([^"]*/(?:Users|home)/[^"]*)"', raw):
         notes.append("GATE C: absolute SourcesOriginalPath, generated locally and not committed "
                      "(valid: it matches this machine's DWARF)")
 
-for lin in man.get("Lineages", []):
-    for conf in lin.get("Confs", []):
-        p = conf.get("Driver", {}).get("Params", {})
-        name = lin.get("Name", "?")
-        binp  = p.get("BinaryPathInBundle")
-        symp  = p.get("SymbolsPathInBundle")
-        srcs  = p.get("SourcesPathInBundle")
-        orig  = p.get("SourcesOriginalPath")
+for lin in man.get("lineages", []):
+    for conf in lin.get("confs", []):
+        p = conf.get("driver", {}).get("params", {})
+        name = lin.get("name", "?")
+        binp  = p.get("binary_path_in_bundle")
+        symp  = p.get("symbols_path_in_bundle")
+        srcs  = p.get("sources_path_in_bundle")
+        orig  = p.get("sources_original_path")
 
         # ------------------------------------------------------- GATE A/D ---
         if not binp:
