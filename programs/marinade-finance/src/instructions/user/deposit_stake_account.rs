@@ -125,7 +125,7 @@ impl<'info> DepositStakeAccount<'info> {
 
         let lockup = self.stake_account.lockup().unwrap();
         // Check Lockup
-        if lockup.is_in_force(&self.clock, None) {
+        if lockup.is_in_force(&self.clock, None) || lockup.custodian != Pubkey::default() {
             msg!("Can not deposit stake account with lockup");
             return err!(MarinadeError::StakeAccountWithLockup)
                 .map_err(|e| e.with_account_name("stake_account"));
