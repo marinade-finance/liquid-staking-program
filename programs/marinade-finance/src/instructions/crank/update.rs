@@ -8,6 +8,7 @@ use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
+use crate::checks::stake_rent_exempt_reserve;
 use crate::events::crank::{UpdateActiveEvent, UpdateDeactivatedEvent};
 use crate::events::U64ValueChange;
 use crate::require_lte;
@@ -346,10 +347,9 @@ impl<'info> UpdateActive<'info> {
         // current lamports amount, to compare with previous
         let delegated_lamports = delegation.stake;
 
-        // we don't consider self.stake_account.meta().unwrap().rent_exempt_reserve as part of the stake
         // the reserve lamports are paid by the marinade-program/bot and return to marinade-program/bot once the account is deleted
-        let stake_balance_without_rent = self.stake_account.to_account_info().lamports()
-            - self.stake_account.meta().unwrap().rent_exempt_reserve;
+        let stake_balance_without_rent =
+            self.stake_account.to_account_info().lamports() - stake_rent_exempt_reserve()?;
         // normally extra-lamports in the native stake means MEV rewards
         let extra_lamports = stake_balance_without_rent.saturating_sub(delegated_lamports);
         msg!("Extra lamports in stake balance: {}", extra_lamports);
@@ -604,7 +604,7 @@ impl<'info> UpdateDeactivated<'info> {
         // consider those lamports part of the rewards.
 
         // current lamports amount, to compare with previous
-        let rent = self.stake_account.meta().unwrap().rent_exempt_reserve;
+        let rent = stake_rent_exempt_reserve()?;
         let stake_balance_without_rent = self.stake_account.to_account_info().lamports() - rent;
 
         let msol_fees = if stake_balance_without_rent >= stake.last_update_delegated_lamports {

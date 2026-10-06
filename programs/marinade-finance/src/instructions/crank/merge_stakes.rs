@@ -3,6 +3,7 @@ use anchor_lang::solana_program::sysvar::stake_history;
 use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 
+use crate::checks::stake_rent_exempt_reserve;
 use crate::events::crank::MergeStakesEvent;
 use crate::state::stake_system::{StakeList, StakeStatus};
 use crate::state::validator_system::ValidatorList;
@@ -154,9 +155,11 @@ impl<'info> MergeStakes<'info> {
             MarinadeError::SourceStakeMustBeUpdated
         );
 
+        // exact: a surplus could push extra_delegated past stake_rent and underflow returned_stake_rent
+        let stake_rent = stake_rent_exempt_reserve()?;
         require_eq!(
             self.source_stake.to_account_info().lamports(),
-            source_delegation.stake + self.source_stake.meta().unwrap().rent_exempt_reserve,
+            source_delegation.stake + stake_rent,
             MarinadeError::SourceStakeMustBeUpdated
         );
 
@@ -197,8 +200,7 @@ impl<'info> MergeStakes<'info> {
         // and so we should consider the case.
         // In normal cases (the bot merging to active accounts) the *rent-lamports* go to dest account *native lamports*,
         // so the destination account will have double the rent-exempt lamports
-        let returned_stake_rent =
-            self.source_stake.meta().unwrap().rent_exempt_reserve - extra_delegated;
+        let returned_stake_rent = stake_rent - extra_delegated;
         // update validator.active_balance
         validator.active_balance += extra_delegated;
         // store in list

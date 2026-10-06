@@ -114,6 +114,11 @@ pub fn check_stake_amount_and_validator(
     Ok(())
 }
 
+// the frozen PSEUDO_RENT_EXEMPT_RESERVE in Meta is not what the stake program floors against
+pub fn stake_rent_exempt_reserve() -> Result<u64> {
+    Ok(Rent::get()?.minimum_balance(std::mem::size_of::<StakeState>()))
+}
+
 #[macro_export]
 macro_rules! require_lte {
     ($value1: expr, $value2: expr, $error_code: expr $(,)?) => {

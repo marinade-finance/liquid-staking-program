@@ -1,0 +1,2 @@
+# anchor_lang::error::Error is 160 bytes, so result_large_err fires on every instruction handler
+large-error-threshold = 256

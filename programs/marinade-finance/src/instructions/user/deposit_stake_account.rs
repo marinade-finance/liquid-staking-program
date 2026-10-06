@@ -1,16 +1,23 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::stake::instruction::LockupArgs;
 use anchor_lang::solana_program::{
-    program::invoke, stake, stake::state::StakeAuthorize, system_program,
+    program::invoke,
+    stake,
+    stake::state::{StakeAuthorize, StakeState},
+    system_program,
 };
 use anchor_spl::stake::{Stake, StakeAccount};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
+use crate::checks::stake_rent_exempt_reserve;
 use crate::events::user::DepositStakeAccountEvent;
 use crate::state::delinquent_upgrader::DelinquentUpgraderState;
 use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
 use crate::{error::MarinadeError, require_lte, state::stake_system::StakeSystem, State, ID};
+
+// stake v5 freezes Meta.rent_exempt_reserve here; owning the value keeps the ceiling off that field
+const LEGACY_STAKE_RENT_EXEMPT_RESERVE: u64 = 2_282_880;
 
 #[derive(Accounts)]
 pub struct DepositStakeAccount<'info> {
@@ -112,12 +119,23 @@ impl<'info> DepositStakeAccount<'info> {
             MarinadeError::TooLowDelegationInDepositingStake
         );
 
-        // Check that stake account has the right amount of lamports.
-        // if there's extra the user should withdraw the extra and try again
-        // (some times users send lamports to active stake accounts believing that will top up the account)
+        // another length would strand the account in update_active, whose floor follows data_len
         require_eq!(
+            self.stake_account.to_account_info().data_len(),
+            std::mem::size_of::<StakeState>(),
+            MarinadeError::WrongStakeAccountDataLength,
+        );
+        // the non-delegated part tracks the rent at the last delegate, not the frozen meta field
+        let stake_rent = stake_rent_exempt_reserve()?;
+        require_gte!(
             self.stake_account.to_account_info().lamports(),
-            delegation.stake + self.stake_account.meta().unwrap().rent_exempt_reserve,
+            delegation.stake + stake_rent,
+            MarinadeError::WrongStakeBalance,
+        );
+        // ceiling: some users send lamports to active stake accounts believing that tops them up
+        require_lte!(
+            self.stake_account.to_account_info().lamports(),
+            delegation.stake + stake_rent.max(LEGACY_STAKE_RENT_EXEMPT_RESERVE),
             MarinadeError::WrongStakeBalance,
         );
 

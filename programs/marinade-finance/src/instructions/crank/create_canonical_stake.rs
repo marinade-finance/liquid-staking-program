@@ -4,6 +4,7 @@ use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::stake::{Stake, StakeAccount};
 
+use crate::checks::stake_rent_exempt_reserve;
 use crate::events::crank::CreateCanonicalStakeEvent;
 use crate::state::stake_system::StakeList;
 use crate::state::validator_system::ValidatorList;
@@ -119,9 +120,10 @@ impl<'info> CreateCanonicalStake<'info> {
             MarinadeError::SourceStakeMustBeUpdated
         );
 
-        require_eq!(
+        // no ceiling: a surplus lands in the canonical account and update_active sweeps it with the fee
+        require_gte!(
             self.source_stake.to_account_info().lamports(),
-            source_delegation.stake + self.source_stake.meta().unwrap().rent_exempt_reserve,
+            source_delegation.stake + stake_rent_exempt_reserve()?,
             MarinadeError::SourceStakeMustBeUpdated
         );
 

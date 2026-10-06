@@ -288,4 +288,7 @@ pub enum MarinadeError {
 
     #[msg("Deposit SOL fee is too high")]
     DepositSolFeeIsTooHigh, // 6092 0x17cc
+
+    #[msg("Wrong deposited stake account data length")]
+    WrongStakeAccountDataLength, // 6093 0x17cd
 }
