@@ -111,7 +111,7 @@ impl<'info> AddLiquidity<'info> {
         );
 
         let lp_supply = self.state.liq_pool.lp_supply;
-        let shares_for_user = shares_from_value(lamports, total_liq_pool_value, lp_supply)?;
+        let shares_for_user = shares_from_value(lamports as u128, total_liq_pool_value as u128, lp_supply as u128)?;
 
         msg!("LP for user {}", shares_for_user);
 
