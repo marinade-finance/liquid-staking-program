@@ -70,7 +70,7 @@ impl LiqPool {
         } else {
             Fee {
                 basis_points: self.lp_max_fee.basis_points
-                    - proportional(self.delta() as u64, lamports, self.lp_liquidity_target).unwrap()
+                    - proportional(self.delta() as u128, lamports as u128, self.lp_liquidity_target as u128).unwrap()
                         as u32,
             }
         }

@@ -26,6 +26,6 @@ pub struct OrderUnstakeEvent {
     pub sol_amount: u64,
     pub fee_bp_cents: u32,
     // MSOL price used
-    pub total_virtual_staked_lamports: u64,
+    pub total_virtual_staked_lamports: u128,
     pub msol_supply: u64,
 }

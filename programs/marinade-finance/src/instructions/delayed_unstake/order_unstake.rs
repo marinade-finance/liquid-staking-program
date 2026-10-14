@@ -61,7 +61,7 @@ impl<'info> OrderUnstake<'info> {
         let delay_unstake_fee_lamports = self
             .state
             .delayed_unstake_fee
-            .apply(sol_value_of_msol_burned);
+            .apply(sol_value_of_msol_burned as u128);
         // the fee value will be burned but not delivered, thus increasing mSOL value slightly for all mSOL holders
         let lamports_for_user = sol_value_of_msol_burned - delay_unstake_fee_lamports;
 
