@@ -1,0 +1,4835 @@
+{
+  "address": "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
+  "metadata": {
+    "name": "marinade_finance",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "reserve_pda"
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "msol_mint"
+        },
+        {
+          "name": "operational_sol_account"
+        },
+        {
+          "name": "liq_pool",
+          "accounts": [
+            {
+              "name": "lp_mint"
+            },
+            {
+              "name": "sol_leg_pda"
+            },
+            {
+              "name": "msol_leg"
+            }
+          ]
+        },
+        {
+          "name": "treasury_msol_account"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "rent"
+        }
+      ],
+      "args": [
+        {
+          "name": "data",
+          "type": {
+            "defined": {
+              "name": "InitializeData"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "change_authority",
+      "discriminator": [
+        50,
+        106,
+        66,
+        104,
+        99,
+        118,
+        145,
+        88
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "admin_authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "data",
+          "type": {
+            "defined": {
+              "name": "ChangeAuthorityData"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "add_validator",
+      "discriminator": [
+        250,
+        113,
+        53,
+        54,
+        141,
+        117,
+        215,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "manager_authority",
+          "signer": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "validator_vote"
+        },
+        {
+          "name": "duplication_flag",
+          "docs": [
+            "by initializing this account we mark the validator as added"
+          ],
+          "writable": true
+        },
+        {
+          "name": "rent_payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "rent"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "score",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "remove_validator",
+      "discriminator": [
+        25,
+        96,
+        211,
+        155,
+        161,
+        14,
+        168,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "manager_authority",
+          "signer": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "duplication_flag",
+          "writable": true
+        },
+        {
+          "name": "operational_sol_account",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_vote",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_validator_score",
+      "discriminator": [
+        101,
+        41,
+        206,
+        33,
+        216,
+        111,
+        25,
+        78
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "manager_authority",
+          "signer": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_vote",
+          "type": "pubkey"
+        },
+        {
+          "name": "score",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "config_validator_system",
+      "discriminator": [
+        27,
+        90,
+        97,
+        209,
+        17,
+        115,
+        7,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "manager_authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "extra_runs",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "msol_mint",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_msol_leg",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_msol_leg_authority"
+        },
+        {
+          "name": "reserve_pda",
+          "writable": true
+        },
+        {
+          "name": "transfer_from",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_to",
+          "docs": [
+            "user mSOL Token account to send the mSOL"
+          ],
+          "writable": true
+        },
+        {
+          "name": "msol_mint_authority"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_stake_account",
+      "discriminator": [
+        110,
+        130,
+        115,
+        41,
+        164,
+        102,
+        2,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "stake_account",
+          "writable": true
+        },
+        {
+          "name": "stake_authority",
+          "signer": true
+        },
+        {
+          "name": "duplication_flag",
+          "writable": true
+        },
+        {
+          "name": "rent_payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "msol_mint",
+          "writable": true
+        },
+        {
+          "name": "mint_to",
+          "docs": [
+            "user mSOL Token account to send the mSOL"
+          ],
+          "writable": true
+        },
+        {
+          "name": "msol_mint_authority"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "rent"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "liquid_unstake",
+      "discriminator": [
+        30,
+        30,
+        119,
+        240,
+        191,
+        227,
+        12,
+        16
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "msol_mint",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_msol_leg",
+          "writable": true
+        },
+        {
+          "name": "treasury_msol_account",
+          "writable": true
+        },
+        {
+          "name": "get_msol_from",
+          "writable": true
+        },
+        {
+          "name": "get_msol_from_authority",
+          "signer": true
+        },
+        {
+          "name": "transfer_sol_to",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "msol_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "add_liquidity",
+      "discriminator": [
+        181,
+        157,
+        89,
+        67,
+        143,
+        182,
+        52,
+        72
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "lp_mint",
+          "writable": true
+        },
+        {
+          "name": "lp_mint_authority"
+        },
+        {
+          "name": "liq_pool_msol_leg"
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "writable": true
+        },
+        {
+          "name": "transfer_from",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_to",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "remove_liquidity",
+      "discriminator": [
+        80,
+        85,
+        209,
+        72,
+        24,
+        206,
+        177,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "lp_mint",
+          "writable": true
+        },
+        {
+          "name": "burn_from",
+          "writable": true
+        },
+        {
+          "name": "burn_from_authority",
+          "signer": true
+        },
+        {
+          "name": "transfer_sol_to",
+          "writable": true
+        },
+        {
+          "name": "transfer_msol_to",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_msol_leg",
+          "writable": true
+        },
+        {
+          "name": "liq_pool_msol_leg_authority"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "tokens",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "config_lp",
+      "discriminator": [
+        10,
+        24,
+        168,
+        119,
+        86,
+        48,
+        225,
+        17
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "admin_authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "ConfigLpParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "config_marinade",
+      "discriminator": [
+        67,
+        3,
+        34,
+        114,
+        190,
+        185,
+        17,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "admin_authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "ConfigMarinadeParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "order_unstake",
+      "discriminator": [
+        97,
+        167,
+        144,
+        107,
+        117,
+        190,
+        128,
+        36
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "msol_mint",
+          "writable": true
+        },
+        {
+          "name": "burn_msol_from",
+          "writable": true
+        },
+        {
+          "name": "burn_msol_authority",
+          "signer": true
+        },
+        {
+          "name": "new_ticket_account",
+          "writable": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "rent"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "msol_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim",
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "reserve_pda",
+          "writable": true
+        },
+        {
+          "name": "ticket_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_sol_to",
+          "writable": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "stake_reserve",
+      "discriminator": [
+        87,
+        217,
+        23,
+        179,
+        205,
+        25,
+        113,
+        129
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "validator_vote",
+          "writable": true
+        },
+        {
+          "name": "reserve_pda",
+          "writable": true
+        },
+        {
+          "name": "stake_account",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "rent_payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "epoch_schedule"
+        },
+        {
+          "name": "rent"
+        },
+        {
+          "name": "stake_history"
+        },
+        {
+          "name": "stake_config"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "update_active",
+      "discriminator": [
+        4,
+        67,
+        81,
+        64,
+        136,
+        245,
+        93,
+        152
+      ],
+      "accounts": [
+        {
+          "name": "common",
+          "accounts": [
+            {
+              "name": "state",
+              "writable": true
+            },
+            {
+              "name": "stake_list",
+              "writable": true
+            },
+            {
+              "name": "stake_account",
+              "writable": true
+            },
+            {
+              "name": "stake_withdraw_authority"
+            },
+            {
+              "name": "reserve_pda",
+              "writable": true
+            },
+            {
+              "name": "msol_mint",
+              "writable": true
+            },
+            {
+              "name": "msol_mint_authority"
+            },
+            {
+              "name": "treasury_msol_account",
+              "writable": true
+            },
+            {
+              "name": "clock"
+            },
+            {
+              "name": "stake_history"
+            },
+            {
+              "name": "stake_program"
+            },
+            {
+              "name": "token_program"
+            },
+            {
+              "name": "validator_list",
+              "writable": true
+            }
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "update_deactivated",
+      "discriminator": [
+        16,
+        232,
+        131,
+        115,
+        156,
+        100,
+        239,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "common",
+          "accounts": [
+            {
+              "name": "state",
+              "writable": true
+            },
+            {
+              "name": "stake_list",
+              "writable": true
+            },
+            {
+              "name": "stake_account",
+              "writable": true
+            },
+            {
+              "name": "stake_withdraw_authority"
+            },
+            {
+              "name": "reserve_pda",
+              "writable": true
+            },
+            {
+              "name": "msol_mint",
+              "writable": true
+            },
+            {
+              "name": "msol_mint_authority"
+            },
+            {
+              "name": "treasury_msol_account",
+              "writable": true
+            },
+            {
+              "name": "clock"
+            },
+            {
+              "name": "stake_history"
+            },
+            {
+              "name": "stake_program"
+            },
+            {
+              "name": "token_program"
+            },
+            {
+              "name": "validator_list",
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "operational_sol_account",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "deactivate_stake",
+      "discriminator": [
+        165,
+        158,
+        229,
+        97,
+        168,
+        220,
+        187,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "reserve_pda"
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "stake_account",
+          "writable": true
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "split_stake_account",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "split_stake_rent_payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "rent"
+        },
+        {
+          "name": "epoch_schedule"
+        },
+        {
+          "name": "stake_history"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "emergency_unstake",
+      "discriminator": [
+        123,
+        69,
+        168,
+        195,
+        183,
+        213,
+        199,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "validator_manager_authority",
+          "signer": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "stake_account",
+          "writable": true
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "partial_unstake",
+      "discriminator": [
+        55,
+        241,
+        205,
+        221,
+        45,
+        114,
+        205,
+        163
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "validator_manager_authority",
+          "signer": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "stake_account",
+          "writable": true
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "reserve_pda"
+        },
+        {
+          "name": "split_stake_account",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "split_stake_rent_payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "rent"
+        },
+        {
+          "name": "stake_history"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        },
+        {
+          "name": "desired_unstake_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "merge_stakes",
+      "discriminator": [
+        216,
+        36,
+        141,
+        225,
+        243,
+        78,
+        125,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "destination_stake",
+          "writable": true
+        },
+        {
+          "name": "source_stake",
+          "writable": true
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "stake_withdraw_authority"
+        },
+        {
+          "name": "operational_sol_account",
+          "writable": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "stake_history"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "destination_stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "source_stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "create_canonical_stake",
+      "discriminator": [
+        109,
+        2,
+        136,
+        224,
+        147,
+        51,
+        182,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "canonical_stake",
+          "writable": true
+        },
+        {
+          "name": "source_stake",
+          "writable": true
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "stake_withdraw_authority"
+        },
+        {
+          "name": "operational_sol_account",
+          "writable": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "stake_history"
+        },
+        {
+          "name": "stake_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "source_stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "pause",
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "pause_authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "resume",
+      "discriminator": [
+        1,
+        166,
+        51,
+        170,
+        127,
+        32,
+        141,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "pause_authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw_stake_account",
+      "discriminator": [
+        211,
+        85,
+        184,
+        65,
+        183,
+        177,
+        233,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "msol_mint",
+          "writable": true
+        },
+        {
+          "name": "burn_msol_from",
+          "writable": true
+        },
+        {
+          "name": "burn_msol_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury_msol_account",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "stake_withdraw_authority"
+        },
+        {
+          "name": "stake_deposit_authority"
+        },
+        {
+          "name": "stake_account",
+          "writable": true
+        },
+        {
+          "name": "split_stake_account",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "split_stake_rent_payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "stake_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "stake_index",
+          "type": "u32"
+        },
+        {
+          "name": "validator_index",
+          "type": "u32"
+        },
+        {
+          "name": "msol_amount",
+          "type": "u64"
+        },
+        {
+          "name": "beneficiary",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "realloc_validator_list",
+      "discriminator": [
+        215,
+        59,
+        218,
+        133,
+        93,
+        138,
+        60,
+        123
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "admin_authority",
+          "signer": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        },
+        {
+          "name": "rent_funds",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "capacity",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "realloc_stake_list",
+      "discriminator": [
+        12,
+        36,
+        124,
+        27,
+        128,
+        96,
+        85,
+        199
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "admin_authority",
+          "signer": true
+        },
+        {
+          "name": "stake_list",
+          "writable": true
+        },
+        {
+          "name": "rent_funds",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "capacity",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "finalize_delinquent_upgrade",
+      "discriminator": [
+        173,
+        8,
+        90,
+        193,
+        222,
+        52,
+        169,
+        144
+      ],
+      "accounts": [
+        {
+          "name": "state",
+          "writable": true
+        },
+        {
+          "name": "validator_list",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "max_validators",
+          "type": "u32"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "TicketAccountData",
+      "discriminator": [
+        133,
+        77,
+        18,
+        98,
+        211,
+        1,
+        231,
+        3
+      ]
+    },
+    {
+      "name": "State",
+      "discriminator": [
+        216,
+        146,
+        107,
+        94,
+        104,
+        75,
+        182,
+        177
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ChangeAuthorityEvent",
+      "discriminator": [
+        228,
+        111,
+        35,
+        24,
+        187,
+        78,
+        224,
+        138
+      ]
+    },
+    {
+      "name": "ConfigLpEvent",
+      "discriminator": [
+        159,
+        204,
+        192,
+        138,
+        68,
+        145,
+        224,
+        148
+      ]
+    },
+    {
+      "name": "ConfigMarinadeEvent",
+      "discriminator": [
+        159,
+        164,
+        245,
+        114,
+        94,
+        253,
+        3,
+        9
+      ]
+    },
+    {
+      "name": "InitializeEvent",
+      "discriminator": [
+        206,
+        175,
+        169,
+        208,
+        241,
+        210,
+        35,
+        221
+      ]
+    },
+    {
+      "name": "EmergencyPauseEvent",
+      "discriminator": [
+        159,
+        241,
+        192,
+        232,
+        29,
+        208,
+        51,
+        21
+      ]
+    },
+    {
+      "name": "ResumeEvent",
+      "discriminator": [
+        97,
+        117,
+        183,
+        115,
+        117,
+        224,
+        8,
+        229
+      ]
+    },
+    {
+      "name": "ReallocValidatorListEvent",
+      "discriminator": [
+        70,
+        191,
+        242,
+        164,
+        56,
+        156,
+        130,
+        13
+      ]
+    },
+    {
+      "name": "ReallocStakeListEvent",
+      "discriminator": [
+        193,
+        129,
+        16,
+        243,
+        177,
+        131,
+        248,
+        23
+      ]
+    },
+    {
+      "name": "DeactivateStakeEvent",
+      "discriminator": [
+        2,
+        54,
+        184,
+        218,
+        78,
+        181,
+        163,
+        117
+      ]
+    },
+    {
+      "name": "MergeStakesEvent",
+      "discriminator": [
+        73,
+        156,
+        69,
+        233,
+        32,
+        14,
+        150,
+        65
+      ]
+    },
+    {
+      "name": "CreateCanonicalStakeEvent",
+      "discriminator": [
+        113,
+        120,
+        191,
+        226,
+        195,
+        181,
+        14,
+        106
+      ]
+    },
+    {
+      "name": "RedelegateEvent",
+      "discriminator": [
+        241,
+        75,
+        135,
+        173,
+        204,
+        215,
+        72,
+        67
+      ]
+    },
+    {
+      "name": "StakeReserveEvent",
+      "discriminator": [
+        112,
+        117,
+        149,
+        185,
+        77,
+        119,
+        190,
+        106
+      ]
+    },
+    {
+      "name": "UpdateActiveEvent",
+      "discriminator": [
+        251,
+        18,
+        128,
+        75,
+        208,
+        80,
+        174,
+        140
+      ]
+    },
+    {
+      "name": "UpdateDeactivatedEvent",
+      "discriminator": [
+        252,
+        159,
+        177,
+        147,
+        182,
+        113,
+        186,
+        94
+      ]
+    },
+    {
+      "name": "ClaimEvent",
+      "discriminator": [
+        93,
+        15,
+        70,
+        170,
+        48,
+        140,
+        212,
+        219
+      ]
+    },
+    {
+      "name": "OrderUnstakeEvent",
+      "discriminator": [
+        228,
+        63,
+        155,
+        249,
+        132,
+        160,
+        135,
+        113
+      ]
+    },
+    {
+      "name": "AddLiquidityEvent",
+      "discriminator": [
+        27,
+        178,
+        153,
+        186,
+        47,
+        196,
+        140,
+        45
+      ]
+    },
+    {
+      "name": "LiquidUnstakeEvent",
+      "discriminator": [
+        173,
+        5,
+        147,
+        15,
+        5,
+        14,
+        194,
+        116
+      ]
+    },
+    {
+      "name": "RemoveLiquidityEvent",
+      "discriminator": [
+        141,
+        199,
+        182,
+        123,
+        159,
+        94,
+        215,
+        102
+      ]
+    },
+    {
+      "name": "AddValidatorEvent",
+      "discriminator": [
+        190,
+        231,
+        170,
+        244,
+        14,
+        227,
+        129,
+        66
+      ]
+    },
+    {
+      "name": "RemoveValidatorEvent",
+      "discriminator": [
+        67,
+        164,
+        190,
+        192,
+        156,
+        156,
+        168,
+        210
+      ]
+    },
+    {
+      "name": "SetValidatorScoreEvent",
+      "discriminator": [
+        58,
+        53,
+        237,
+        178,
+        238,
+        153,
+        85,
+        156
+      ]
+    },
+    {
+      "name": "DepositStakeAccountEvent",
+      "discriminator": [
+        231,
+        203,
+        118,
+        96,
+        75,
+        116,
+        70,
+        228
+      ]
+    },
+    {
+      "name": "DepositEvent",
+      "discriminator": [
+        120,
+        248,
+        61,
+        83,
+        31,
+        142,
+        107,
+        144
+      ]
+    },
+    {
+      "name": "WithdrawStakeAccountEvent",
+      "discriminator": [
+        131,
+        238,
+        39,
+        48,
+        30,
+        27,
+        165,
+        28
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "WrongReserveOwner",
+      "msg": "Wrong reserve owner. Must be a system account"
+    },
+    {
+      "code": 6001,
+      "name": "NonEmptyReserveData",
+      "msg": "Reserve must have no data, but has data"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidInitialReserveLamports",
+      "msg": "Invalid initial reserve lamports"
+    },
+    {
+      "code": 6003,
+      "name": "ZeroValidatorChunkSize",
+      "msg": "Zero validator chunk size"
+    },
+    {
+      "code": 6004,
+      "name": "TooBigValidatorChunkSize",
+      "msg": "Too big validator chunk size"
+    },
+    {
+      "code": 6005,
+      "name": "ZeroCreditChunkSize",
+      "msg": "Zero credit chunk size"
+    },
+    {
+      "code": 6006,
+      "name": "TooBigCreditChunkSize",
+      "msg": "Too big credit chunk size"
+    },
+    {
+      "code": 6007,
+      "name": "TooLowCreditFee",
+      "msg": "Too low credit fee"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidMintAuthority",
+      "msg": "Invalid mint authority"
+    },
+    {
+      "code": 6009,
+      "name": "MintHasInitialSupply",
+      "msg": "Non empty initial mint supply"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidOwnerFeeState",
+      "msg": "Invalid owner fee state"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidProgramId",
+      "msg": "Invalid program id. For using program from another account please update id in the code"
+    },
+    {
+      "code": 6012,
+      "name": "UnexpectedAccount",
+      "msg": "Unexpected account"
+    },
+    {
+      "code": 6013,
+      "name": "CalculationFailure",
+      "msg": "Calculation failure"
+    },
+    {
+      "code": 6014,
+      "name": "StakeAccountWithLockup",
+      "msg": "You can't deposit a stake-account with lockup"
+    },
+    {
+      "code": 6015,
+      "name": "MinStakeIsTooLow",
+      "msg": "Min stake is too low"
+    },
+    {
+      "code": 6016,
+      "name": "LpMaxFeeIsTooHigh",
+      "msg": "Lp max fee is too high"
+    },
+    {
+      "code": 6017,
+      "name": "BasisPointsOverflow",
+      "msg": "Basis points overflow"
+    },
+    {
+      "code": 6018,
+      "name": "LpFeesAreWrongWayRound",
+      "msg": "LP min fee > LP max fee"
+    },
+    {
+      "code": 6019,
+      "name": "LiquidityTargetTooLow",
+      "msg": "Liquidity target too low"
+    },
+    {
+      "code": 6020,
+      "name": "TicketNotDue",
+      "msg": "Ticket not due. Wait more epochs"
+    },
+    {
+      "code": 6021,
+      "name": "TicketNotReady",
+      "msg": "Ticket not ready. Wait a few hours and try again"
+    },
+    {
+      "code": 6022,
+      "name": "WrongBeneficiary",
+      "msg": "Wrong Ticket Beneficiary"
+    },
+    {
+      "code": 6023,
+      "name": "StakeAccountNotUpdatedYet",
+      "msg": "Stake Account not updated yet"
+    },
+    {
+      "code": 6024,
+      "name": "StakeNotDelegated",
+      "msg": "Stake Account not delegated"
+    },
+    {
+      "code": 6025,
+      "name": "StakeAccountIsEmergencyUnstaking",
+      "msg": "Stake Account is emergency unstaking"
+    },
+    {
+      "code": 6026,
+      "name": "InsufficientLiquidity",
+      "msg": "Insufficient Liquidity in the Liquidity Pool"
+    },
+    {
+      "code": 6027,
+      "name": "NotUsed6027"
+    },
+    {
+      "code": 6028,
+      "name": "InvalidAdminAuthority",
+      "msg": "Invalid admin authority"
+    },
+    {
+      "code": 6029,
+      "name": "InvalidValidatorManager",
+      "msg": "Invalid validator system manager"
+    },
+    {
+      "code": 6030,
+      "name": "InvalidStakeListDiscriminator",
+      "msg": "Invalid stake list account discriminator"
+    },
+    {
+      "code": 6031,
+      "name": "InvalidValidatorListDiscriminator",
+      "msg": "Invalid validator list account discriminator"
+    },
+    {
+      "code": 6032,
+      "name": "TreasuryCutIsTooHigh",
+      "msg": "Treasury cut is too high"
+    },
+    {
+      "code": 6033,
+      "name": "RewardsFeeIsTooHigh",
+      "msg": "Reward fee is too high"
+    },
+    {
+      "code": 6034,
+      "name": "StakingIsCapped",
+      "msg": "Staking is capped"
+    },
+    {
+      "code": 6035,
+      "name": "LiquidityIsCapped",
+      "msg": "Liquidity is capped"
+    },
+    {
+      "code": 6036,
+      "name": "UpdateWindowIsTooLow",
+      "msg": "Update window is too low"
+    },
+    {
+      "code": 6037,
+      "name": "MinWithdrawIsTooHigh",
+      "msg": "Min withdraw is too high"
+    },
+    {
+      "code": 6038,
+      "name": "WithdrawAmountIsTooLow",
+      "msg": "Withdraw amount is too low"
+    },
+    {
+      "code": 6039,
+      "name": "DepositAmountIsTooLow",
+      "msg": "Deposit amount is too low"
+    },
+    {
+      "code": 6040,
+      "name": "NotEnoughUserFunds",
+      "msg": "Not enough user funds"
+    },
+    {
+      "code": 6041,
+      "name": "WrongTokenOwnerOrDelegate",
+      "msg": "Wrong token owner or delegate"
+    },
+    {
+      "code": 6042,
+      "name": "TooEarlyForStakeDelta",
+      "msg": "Too early for stake delta"
+    },
+    {
+      "code": 6043,
+      "name": "RequiredDelegatedStake",
+      "msg": "Required delegated stake"
+    },
+    {
+      "code": 6044,
+      "name": "RequiredActiveStake",
+      "msg": "Required active stake"
+    },
+    {
+      "code": 6045,
+      "name": "RequiredDeactivatingStake",
+      "msg": "Required deactivating stake"
+    },
+    {
+      "code": 6046,
+      "name": "DepositingNotActivatedStake",
+      "msg": "Depositing not activated stake"
+    },
+    {
+      "code": 6047,
+      "name": "TooLowDelegationInDepositingStake",
+      "msg": "Too low delegation in the depositing stake"
+    },
+    {
+      "code": 6048,
+      "name": "WrongStakeBalance",
+      "msg": "Wrong deposited stake balance"
+    },
+    {
+      "code": 6049,
+      "name": "WrongValidatorAccountOrIndex",
+      "msg": "Wrong validator account or index"
+    },
+    {
+      "code": 6050,
+      "name": "WrongStakeAccountOrIndex",
+      "msg": "Wrong stake account or index"
+    },
+    {
+      "code": 6051,
+      "name": "UnstakingOnPositiveDelta",
+      "msg": "Delta stake is positive so we must stake instead of unstake"
+    },
+    {
+      "code": 6052,
+      "name": "StakingOnNegativeDelta",
+      "msg": "Delta stake is negative so we must unstake instead of stake"
+    },
+    {
+      "code": 6053,
+      "name": "MovingStakeIsCapped",
+      "msg": "Moving stake during an epoch is capped"
+    },
+    {
+      "code": 6054,
+      "name": "StakeMustBeUninitialized",
+      "msg": "Stake must be uninitialized"
+    },
+    {
+      "code": 6055,
+      "name": "DestinationStakeMustBeDelegated",
+      "msg": "Destination stake must be delegated"
+    },
+    {
+      "code": 6056,
+      "name": "DestinationStakeMustNotBeDeactivating",
+      "msg": "Destination stake must not be deactivating"
+    },
+    {
+      "code": 6057,
+      "name": "DestinationStakeMustBeUpdated",
+      "msg": "Destination stake must be updated"
+    },
+    {
+      "code": 6058,
+      "name": "InvalidDestinationStakeDelegation",
+      "msg": "Invalid destination stake delegation"
+    },
+    {
+      "code": 6059,
+      "name": "SourceStakeMustBeDelegated",
+      "msg": "Source stake must be delegated"
+    },
+    {
+      "code": 6060,
+      "name": "SourceStakeMustNotBeDeactivating",
+      "msg": "Source stake must not be deactivating"
+    },
+    {
+      "code": 6061,
+      "name": "SourceStakeMustBeUpdated",
+      "msg": "Source stake must be updated"
+    },
+    {
+      "code": 6062,
+      "name": "InvalidSourceStakeDelegation",
+      "msg": "Invalid source stake delegation"
+    },
+    {
+      "code": 6063,
+      "name": "InvalidDelayedUnstakeTicket",
+      "msg": "Invalid delayed unstake ticket"
+    },
+    {
+      "code": 6064,
+      "name": "ReusingDelayedUnstakeTicket",
+      "msg": "Reusing delayed unstake ticket"
+    },
+    {
+      "code": 6065,
+      "name": "EmergencyUnstakingFromNonZeroScoredValidator",
+      "msg": "Emergency unstaking from non zero scored validator"
+    },
+    {
+      "code": 6066,
+      "name": "WrongValidatorDuplicationFlag",
+      "msg": "Wrong validator duplication flag"
+    },
+    {
+      "code": 6067,
+      "name": "RedepositingMarinadeStake",
+      "msg": "Redepositing marinade stake"
+    },
+    {
+      "code": 6068,
+      "name": "RemovingValidatorWithBalance",
+      "msg": "Removing validator with balance"
+    },
+    {
+      "code": 6069,
+      "name": "RedelegateOverTarget",
+      "msg": "Redelegate will put validator over stake target"
+    },
+    {
+      "code": 6070,
+      "name": "SourceAndDestValidatorsAreTheSame",
+      "msg": "Source and Dest Validators are the same"
+    },
+    {
+      "code": 6071,
+      "name": "UnregisteredMsolMinted",
+      "msg": "Some mSOL tokens was minted outside of marinade contract"
+    },
+    {
+      "code": 6072,
+      "name": "UnregisteredLPMinted",
+      "msg": "Some LP tokens was minted outside of marinade contract"
+    },
+    {
+      "code": 6073,
+      "name": "ListIndexOutOfBounds",
+      "msg": "List index out of bounds"
+    },
+    {
+      "code": 6074,
+      "name": "ListOverflow",
+      "msg": "List overflow"
+    },
+    {
+      "code": 6075,
+      "name": "AlreadyPaused",
+      "msg": "Requested pause and already Paused"
+    },
+    {
+      "code": 6076,
+      "name": "NotPaused",
+      "msg": "Requested resume, but not Paused"
+    },
+    {
+      "code": 6077,
+      "name": "ProgramIsPaused",
+      "msg": "Emergency Pause is Active"
+    },
+    {
+      "code": 6078,
+      "name": "InvalidPauseAuthority",
+      "msg": "Invalid pause authority"
+    },
+    {
+      "code": 6079,
+      "name": "SelectedStakeAccountHasNotEnoughFunds",
+      "msg": "Selected Stake account has not enough funds"
+    },
+    {
+      "code": 6080,
+      "name": "BasisPointCentsOverflow",
+      "msg": "Basis point CENTS overflow"
+    },
+    {
+      "code": 6081,
+      "name": "WithdrawStakeAccountIsNotEnabled",
+      "msg": "Withdraw stake account is not enabled"
+    },
+    {
+      "code": 6082,
+      "name": "WithdrawStakeAccountFeeIsTooHigh",
+      "msg": "Withdraw stake account fee is too high"
+    },
+    {
+      "code": 6083,
+      "name": "DelayedUnstakeFeeIsTooHigh",
+      "msg": "Delayed unstake fee is too high"
+    },
+    {
+      "code": 6084,
+      "name": "WithdrawStakeLamportsIsTooLow",
+      "msg": "Withdraw stake account value is too low"
+    },
+    {
+      "code": 6085,
+      "name": "StakeAccountRemainderTooLow",
+      "msg": "Stake account remainder too low"
+    },
+    {
+      "code": 6086,
+      "name": "ShrinkingListWithDeletingContents",
+      "msg": "Capacity of the list must be not less than it's current size"
+    },
+    {
+      "code": 6087,
+      "name": "UpgradingInvariantViolation",
+      "msg": "Upgrading invariant violation"
+    },
+    {
+      "code": 6088,
+      "name": "DelinquentUpgraderIsNotDone",
+      "msg": "Delinquent upgrader is not done"
+    },
+    {
+      "code": 6089,
+      "name": "CanonicalStakeAccountAlreadyCreated",
+      "msg": "Canonical stake account for this validator already exists"
+    },
+    {
+      "code": 6090,
+      "name": "InvalidCanonicalStakeAccountAddress",
+      "msg": "Invalid canonical stake account address"
+    },
+    {
+      "code": 6091,
+      "name": "DepositStakeAccountFeeIsTooHigh",
+      "msg": "Deposit stake account fee is too high"
+    },
+    {
+      "code": 6092,
+      "name": "DepositSolFeeIsTooHigh",
+      "msg": "Deposit SOL fee is too high"
+    }
+  ],
+  "types": [
+    {
+      "name": "SplitStakeAccountInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "account",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "U64ValueChange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old",
+            "type": "u64"
+          },
+          {
+            "name": "new",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "U32ValueChange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old",
+            "type": "u32"
+          },
+          {
+            "name": "new",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeValueChange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "new",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeCentsValueChange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old",
+            "type": {
+              "defined": {
+                "name": "FeeCents"
+              }
+            }
+          },
+          {
+            "name": "new",
+            "type": {
+              "defined": {
+                "name": "FeeCents"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PubkeyValueChange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old",
+            "type": "pubkey"
+          },
+          {
+            "name": "new",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BoolValueChange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old",
+            "type": "bool"
+          },
+          {
+            "name": "new",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChangeAuthorityData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "validator_manager",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "operational_sol_account",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "treasury_msol_account",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "pause_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigLpParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "min_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Fee"
+                }
+              }
+            }
+          },
+          {
+            "name": "max_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Fee"
+                }
+              }
+            }
+          },
+          {
+            "name": "liquidity_target",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "treasury_cut",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Fee"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigMarinadeParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rewards_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Fee"
+                }
+              }
+            }
+          },
+          {
+            "name": "slots_for_stake_delta",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "min_stake",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "min_deposit",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "min_withdraw",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "staking_sol_cap",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "liquidity_sol_cap",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "withdraw_stake_account_enabled",
+            "type": {
+              "option": "bool"
+            }
+          },
+          {
+            "name": "delayed_unstake_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCents"
+                }
+              }
+            }
+          },
+          {
+            "name": "withdraw_stake_account_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCents"
+                }
+              }
+            }
+          },
+          {
+            "name": "max_stake_moved_per_epoch",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Fee"
+                }
+              }
+            }
+          },
+          {
+            "name": "deposit_sol_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCents"
+                }
+              }
+            }
+          },
+          {
+            "name": "deposit_stake_account_fee",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCents"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_manager_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "min_stake",
+            "type": "u64"
+          },
+          {
+            "name": "rewards_fee",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "liq_pool",
+            "type": {
+              "defined": {
+                "name": "LiqPoolInitializeData"
+              }
+            }
+          },
+          {
+            "name": "additional_stake_record_space",
+            "type": "u32"
+          },
+          {
+            "name": "additional_validator_record_space",
+            "type": "u32"
+          },
+          {
+            "name": "slots_for_stake_delta",
+            "type": "u64"
+          },
+          {
+            "name": "pause_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiqPoolInitializeData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lp_liquidity_target",
+            "type": "u64"
+          },
+          {
+            "name": "lp_max_fee",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "lp_min_fee",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "lp_treasury_cut",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Fee",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basis_points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeCents",
+      "docs": [
+        "FeeCents, same as Fee but / 1_000_000 instead of 10_000",
+        "1 FeeCent = 0.0001%, 10_000 FeeCent = 1%, 1_000_000 FeeCent = 100%"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bp_cents",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiqPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lp_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "lp_mint_authority_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "sol_leg_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "msol_leg_authority_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "msol_leg",
+            "type": "pubkey"
+          },
+          {
+            "name": "lp_liquidity_target",
+            "docs": [
+              "Liquidity target. If the Liquidity reach this amount, the fee reaches lp_min_discount_fee"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lp_max_fee",
+            "docs": [
+              "Liquidity pool max fee"
+            ],
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "lp_min_fee",
+            "docs": [
+              "SOL/mSOL Liquidity pool min fee"
+            ],
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "treasury_cut",
+            "docs": [
+              "Treasury cut"
+            ],
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "lp_supply",
+            "type": "u64"
+          },
+          {
+            "name": "lent_from_sol_leg",
+            "type": "u64"
+          },
+          {
+            "name": "liquidity_sol_cap",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "List",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "account",
+            "type": "pubkey"
+          },
+          {
+            "name": "item_size",
+            "type": "u32"
+          },
+          {
+            "name": "count",
+            "type": "u32"
+          },
+          {
+            "name": "reserved1",
+            "type": "pubkey"
+          },
+          {
+            "name": "reserved2",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_delegated_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "is_emergency_unstaking",
+            "type": "bool"
+          },
+          {
+            "name": "last_update_status",
+            "type": {
+              "defined": {
+                "name": "StakeStatus"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeList",
+      "type": {
+        "kind": "struct"
+      }
+    },
+    {
+      "name": "StakeSystem",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake_list",
+            "type": {
+              "defined": {
+                "name": "List"
+              }
+            }
+          },
+          {
+            "name": "delayed_unstake_cooling_down",
+            "type": "u64"
+          },
+          {
+            "name": "stake_deposit_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "stake_withdraw_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "slots_for_stake_delta",
+            "docs": [
+              "set by admin, how much slots before the end of the epoch, stake-delta can start"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "last_stake_delta_epoch",
+            "docs": [
+              "Marks the start of stake-delta operations, meaning that if somebody starts a delayed-unstake ticket",
+              "after this var is set with epoch_num the ticket will have epoch_created = current_epoch+1",
+              "(the user must wait one more epoch, because their unstake-delta will be execute in this epoch)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_stake",
+            "type": "u64"
+          },
+          {
+            "name": "extra_stake_delta_runs",
+            "docs": [
+              "can be set by validator-manager-auth to allow a second run of stake-delta to stake late stakers in the last minute of the epoch",
+              "so we maximize user's rewards"
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ValidatorRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "validator_account",
+            "docs": [
+              "Validator vote pubkey"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "active_balance",
+            "docs": [
+              "Validator total balance in lamports"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "score",
+            "type": "u32"
+          },
+          {
+            "name": "last_stake_delta_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "duplication_flag_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "delinquent_upgrader_active_balance",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ValidatorList",
+      "type": {
+        "kind": "struct"
+      }
+    },
+    {
+      "name": "ValidatorSystem",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "validator_list",
+            "type": {
+              "defined": {
+                "name": "List"
+              }
+            }
+          },
+          {
+            "name": "manager_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_validator_score",
+            "type": "u32"
+          },
+          {
+            "name": "total_active_balance",
+            "docs": [
+              "sum of all active lamports staked"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "auto_add_validator_enabled",
+            "docs": [
+              "DEPRECATED, no longer used"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DelinquentUpgraderState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "IteratingStakes",
+            "fields": [
+              {
+                "name": "visited_count",
+                "type": "u32"
+              },
+              {
+                "name": "total_active_balance",
+                "type": "u64"
+              },
+              {
+                "name": "total_delinquent_balance",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "IteratingValidators",
+            "fields": [
+              {
+                "name": "visited_count",
+                "type": "u32"
+              },
+              {
+                "name": "delinquent_balance_left",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "Done"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Unknown"
+          },
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Deactivating"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TicketAccountData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "lamports_amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "State",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "msol_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "operational_sol_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_msol_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "reserve_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "msol_mint_authority_bump_seed",
+            "type": "u8"
+          },
+          {
+            "name": "rent_exempt_for_token_acc",
+            "type": "u64"
+          },
+          {
+            "name": "reward_fee",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "stake_system",
+            "type": {
+              "defined": {
+                "name": "StakeSystem"
+              }
+            }
+          },
+          {
+            "name": "validator_system",
+            "type": {
+              "defined": {
+                "name": "ValidatorSystem"
+              }
+            }
+          },
+          {
+            "name": "liq_pool",
+            "type": {
+              "defined": {
+                "name": "LiqPool"
+              }
+            }
+          },
+          {
+            "name": "available_reserve_balance",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          },
+          {
+            "name": "msol_price",
+            "type": "u64"
+          },
+          {
+            "name": "circulating_ticket_count",
+            "docs": [
+              "count tickets for delayed-unstake"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "circulating_ticket_balance",
+            "docs": [
+              "total lamports amount of generated and not claimed yet tickets"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lent_from_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "min_deposit",
+            "type": "u64"
+          },
+          {
+            "name": "min_withdraw",
+            "type": "u64"
+          },
+          {
+            "name": "staking_sol_cap",
+            "type": "u64"
+          },
+          {
+            "name": "emergency_cooling_down",
+            "type": "u64"
+          },
+          {
+            "name": "pause_authority",
+            "docs": [
+              "emergency pause"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "delayed_unstake_fee",
+            "type": {
+              "defined": {
+                "name": "FeeCents"
+              }
+            }
+          },
+          {
+            "name": "withdraw_stake_account_fee",
+            "type": {
+              "defined": {
+                "name": "FeeCents"
+              }
+            }
+          },
+          {
+            "name": "withdraw_stake_account_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "last_stake_move_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake_moved",
+            "type": "u64"
+          },
+          {
+            "name": "max_stake_moved_per_epoch",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "delinquent_upgrader",
+            "type": {
+              "defined": {
+                "name": "DelinquentUpgraderState"
+              }
+            }
+          },
+          {
+            "name": "deposit_sol_fee",
+            "type": {
+              "defined": {
+                "name": "FeeCents"
+              }
+            }
+          },
+          {
+            "name": "deposit_stake_account_fee",
+            "type": {
+              "defined": {
+                "name": "FeeCents"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChangeAuthorityEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "PubkeyValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "validator_manager_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "PubkeyValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "operational_sol_account_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "PubkeyValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "treasury_msol_account_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "PubkeyValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "pause_authority_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "PubkeyValueChange"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigLpEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "min_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "max_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "liquidity_target_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "treasury_cut_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeValueChange"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigMarinadeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "rewards_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "slots_for_stake_delta_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "min_stake_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "min_deposit_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "min_withdraw_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "staking_sol_cap_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "liquidity_sol_cap_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "U64ValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "withdraw_stake_account_enabled_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "BoolValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "delayed_unstake_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCentsValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "withdraw_stake_account_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCentsValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "max_stake_moved_per_epoch_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "deposit_sol_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCentsValueChange"
+                }
+              }
+            }
+          },
+          {
+            "name": "deposit_stake_account_fee_change",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "FeeCentsValueChange"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "params",
+            "type": {
+              "defined": {
+                "name": "InitializeData"
+              }
+            }
+          },
+          {
+            "name": "stake_list",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_list",
+            "type": "pubkey"
+          },
+          {
+            "name": "msol_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operational_sol_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "lp_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "lp_msol_leg",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_msol_account",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EmergencyPauseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResumeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReallocValidatorListEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "count",
+            "type": "u32"
+          },
+          {
+            "name": "new_capacity",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReallocStakeListEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "count",
+            "type": "u32"
+          },
+          {
+            "name": "new_capacity",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DeactivateStakeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_stake_delegation",
+            "type": "u64"
+          },
+          {
+            "name": "split_stake_account",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "SplitStakeAccountInfo"
+                }
+              }
+            }
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_stake_target",
+            "type": "u64"
+          },
+          {
+            "name": "validator_stake_target",
+            "type": "u64"
+          },
+          {
+            "name": "total_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "delayed_unstake_cooling_down",
+            "type": "u64"
+          },
+          {
+            "name": "validator_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_unstake_delta",
+            "type": "u64"
+          },
+          {
+            "name": "unstaked_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MergeStakesEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "destination_stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "destination_stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_destination_stake_delegation",
+            "type": "u64"
+          },
+          {
+            "name": "source_stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "source_stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_source_stake_delegation",
+            "type": "u64"
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "extra_delegated",
+            "type": "u64"
+          },
+          {
+            "name": "returned_stake_rent",
+            "type": "u64"
+          },
+          {
+            "name": "validator_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "operational_sol_balance",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateCanonicalStakeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "canonical_stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "source_stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "source_stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_source_stake_delegation",
+            "type": "u64"
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "operational_sol_balance",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RedelegateEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_delegation",
+            "type": "u64"
+          },
+          {
+            "name": "source_validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "source_validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "source_validator_score",
+            "type": "u32"
+          },
+          {
+            "name": "source_validator_balance",
+            "type": "u64"
+          },
+          {
+            "name": "source_validator_stake_target",
+            "type": "u64"
+          },
+          {
+            "name": "dest_validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "dest_validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "dest_validator_score",
+            "type": "u32"
+          },
+          {
+            "name": "dest_validator_balance",
+            "type": "u64"
+          },
+          {
+            "name": "dest_validator_stake_target",
+            "type": "u64"
+          },
+          {
+            "name": "redelegate_amount",
+            "type": "u64"
+          },
+          {
+            "name": "split_stake_account",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "SplitStakeAccountInfo"
+                }
+              }
+            }
+          },
+          {
+            "name": "redelegate_stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "redelegate_stake_account",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeReserveEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_stake_target",
+            "type": "u64"
+          },
+          {
+            "name": "validator_stake_target",
+            "type": "u64"
+          },
+          {
+            "name": "reserve_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "validator_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_stake_delta",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateActiveEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator_vote",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegation_change",
+            "type": {
+              "defined": {
+                "name": "U64ValueChange"
+              }
+            }
+          },
+          {
+            "name": "delegation_growth_msol_fees",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "extra_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "extra_msol_fees",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "validator_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "msol_price_change",
+            "type": {
+              "defined": {
+                "name": "U64ValueChange"
+              }
+            }
+          },
+          {
+            "name": "reward_fee_used",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateDeactivatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "stake_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "balance_without_rent_exempt",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_delegated_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_fees",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "msol_price_change",
+            "type": {
+              "defined": {
+                "name": "U64ValueChange"
+              }
+            }
+          },
+          {
+            "name": "reward_fee_used",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "operational_sol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "ticket",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "circulating_ticket_balance",
+            "type": "u64"
+          },
+          {
+            "name": "circulating_ticket_count",
+            "type": "u64"
+          },
+          {
+            "name": "reserve_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_balance",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderUnstakeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "ticket_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "ticket",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "circulating_ticket_balance",
+            "type": "u64"
+          },
+          {
+            "name": "circulating_ticket_count",
+            "type": "u64"
+          },
+          {
+            "name": "user_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "burned_msol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee_bp_cents",
+            "type": "u32"
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AddLiquidityEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "sol_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "user_sol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_lp_balance",
+            "type": "u64"
+          },
+          {
+            "name": "sol_leg_balance",
+            "type": "u64"
+          },
+          {
+            "name": "lp_supply",
+            "type": "u64"
+          },
+          {
+            "name": "sol_added_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lp_minted",
+            "type": "u64"
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidUnstakeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "msol_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "liq_pool_sol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "liq_pool_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "treasury_msol_balance",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "user_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_sol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "msol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "msol_fee",
+            "type": "u64"
+          },
+          {
+            "name": "treasury_msol_cut",
+            "type": "u64"
+          },
+          {
+            "name": "sol_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lp_liquidity_target",
+            "type": "u64"
+          },
+          {
+            "name": "lp_max_fee",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "lp_min_fee",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          },
+          {
+            "name": "treasury_cut",
+            "type": {
+              "defined": {
+                "name": "Fee"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RemoveLiquidityEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "sol_leg_balance",
+            "type": "u64"
+          },
+          {
+            "name": "msol_leg_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_lp_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_sol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "lp_mint_supply",
+            "type": "u64"
+          },
+          {
+            "name": "lp_burned",
+            "type": "u64"
+          },
+          {
+            "name": "sol_out_amount",
+            "type": "u64"
+          },
+          {
+            "name": "msol_out_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AddValidatorEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u32"
+          },
+          {
+            "name": "score",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RemoveValidatorEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u32"
+          },
+          {
+            "name": "operational_sol_balance",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetValidatorScoreEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u32"
+          },
+          {
+            "name": "score_change",
+            "type": {
+              "defined": {
+                "name": "U32ValueChange"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositStakeAccountEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegated",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawer",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_active_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "msol_minted",
+            "type": "u64"
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          },
+          {
+            "name": "sol_fees",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "sol_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "user_sol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "sol_leg_balance",
+            "type": "u64"
+          },
+          {
+            "name": "msol_leg_balance",
+            "type": "u64"
+          },
+          {
+            "name": "reserve_balance",
+            "type": "u64"
+          },
+          {
+            "name": "sol_swapped",
+            "type": "u64"
+          },
+          {
+            "name": "msol_swapped",
+            "type": "u64"
+          },
+          {
+            "name": "sol_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "msol_minted",
+            "type": "u64"
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          },
+          {
+            "name": "sol_fees",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawStakeAccountEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_update_stake_delegation",
+            "type": "u64"
+          },
+          {
+            "name": "stake_index",
+            "type": "u32"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
+          },
+          {
+            "name": "validator_index",
+            "type": "u32"
+          },
+          {
+            "name": "user_msol_balance",
+            "type": "u64"
+          },
+          {
+            "name": "user_msol_auth",
+            "type": "pubkey"
+          },
+          {
+            "name": "msol_burned",
+            "type": "u64"
+          },
+          {
+            "name": "msol_fees",
+            "type": "u64"
+          },
+          {
+            "name": "split_stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "split_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "fee_bp_cents",
+            "type": "u32"
+          },
+          {
+            "name": "total_virtual_staked_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "msol_supply",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
