@@ -31,15 +31,19 @@ pub struct Initialize<'info> {
 
     /// CHECK: Manual account data management (fixed item size list)
     #[account(
-        zero,
+        mut,
         owner = ID,
+        rent_exempt = enforce,
+        constraint = stake_list.try_borrow_data()?[..8] == [0u8; 8] @ anchor_lang::error::ErrorCode::ConstraintZero,
     )]
     pub stake_list: UncheckedAccount<'info>,
 
     /// CHECK: Manual account data management (fixed item size list)
     #[account(
-        zero,
+        mut,
         owner = ID,
+        rent_exempt = enforce,
+        constraint = validator_list.try_borrow_data()?[..8] == [0u8; 8] @ anchor_lang::error::ErrorCode::ConstraintZero,
     )]
     pub validator_list: UncheckedAccount<'info>,
 

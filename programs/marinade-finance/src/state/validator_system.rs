@@ -79,7 +79,7 @@ impl ValidatorRecord {
 pub struct ValidatorList {}
 
 impl Discriminator for ValidatorList {
-    const DISCRIMINATOR: [u8; 8] = *b"validatr";
+    const DISCRIMINATOR: &'static [u8] = b"validatr";
 }
 
 impl AccountDeserialize for ValidatorList {
@@ -92,7 +92,7 @@ impl AccountDeserialize for ValidatorList {
         if buf.len() < 8 {
             return err!(MarinadeError::InvalidValidatorListDiscriminator);
         }
-        if buf[0..8] != Self::DISCRIMINATOR {
+        if &buf[0..8] != Self::DISCRIMINATOR {
             return err!(MarinadeError::InvalidValidatorListDiscriminator);
         }
         *buf = &buf[8..];
@@ -139,7 +139,7 @@ impl ValidatorSystem {
     ) -> Result<Self> {
         Ok(Self {
             validator_list: List::new(
-                &ValidatorList::DISCRIMINATOR,
+                ValidatorList::DISCRIMINATOR.try_into().unwrap(),
                 ValidatorRecord::default().try_to_vec().unwrap().len() as u32
                     + additional_record_space,
                 validator_list_account,
