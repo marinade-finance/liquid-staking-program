@@ -6,6 +6,16 @@ Branch `mainnet` contains the version deployed on mainnet, keep it up to date wi
 
 Even though the audited and deployed commit hashes might differ, it is critical that the program source is identical.
 
+## 2026-10-TODO (v2.1.0): derive stake rent from the Rent sysvar (SIMD-0437 rent reduction)
+
+commit: [`d4e2023`](https://github.com/marinade-finance/liquid-staking-program/pull/98)
+
+tx: [TODO](https://solscan.io/tx/TODO)
+
+audits:
+
+* [Neodyme](Docs/audits/2026_10_marinade_rent_reduction_changes.pdf)
+
 ## 2026-07-16 (v2.1.0): fix delinquent stakes and introduce deposit fees
 
 commit: [`0f031c4`](https://github.com/marinade-finance/liquid-staking-program/pull/84)
@@ -38,6 +48,8 @@ audits:
 [Marinade Finance Docs](https://docs.marinade.finance)
 
 [Backend Design](Docs/Backend-Design.md)
+
+[Mainnet Deployment](Docs/DEPLOYMENT.md)
 
 # Integration Testing
 
