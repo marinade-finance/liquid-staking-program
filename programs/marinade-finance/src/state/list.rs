@@ -78,7 +78,7 @@ impl List {
         )
         .map_err(|_| error!(MarinadeError::CalculationFailure))?
         .checked_div(self.item_size())
-        .unwrap_or(std::u32::MAX)) // for zst element (why you are using it in list?)
+        .unwrap_or(u32::MAX)) // for zst element (why you are using it in list?)
     }
 
     pub fn get<I: AnchorDeserialize>(&self, data: &[u8], index: u32) -> Result<I> {
@@ -158,11 +158,11 @@ mod tests {
             list.remove(&mut list_data, remove_index as u32)?;
             assert_eq!(list.len(), COUNT as u32 - 1);
             let expected_set: BTreeSet<u8> = (0..COUNT)
-                .filter(|i| *i as usize != remove_index)
+                .filter(|i| *i != remove_index)
                 .map(|x| (x + 9) as u8)
                 .collect();
             let result_set = (0..list.len())
-                .map(|i| list.get::<u8>(&list_data, i as u32))
+                .map(|i| list.get::<u8>(&list_data, i))
                 .collect::<Result<BTreeSet<u8>>>()?;
 
             assert_eq!(expected_set, result_set);

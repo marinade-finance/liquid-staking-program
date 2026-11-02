@@ -155,7 +155,7 @@ impl<'info> WithdrawStakeAccount<'info> {
         })?;
         require_eq!(
             delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::RequiredActiveStake
         );
 

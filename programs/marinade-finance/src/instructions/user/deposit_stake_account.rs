@@ -101,7 +101,7 @@ impl<'info> DepositStakeAccount<'info> {
         // require stake is active (deactivation_epoch == u64::MAX)
         require_eq!(
             delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::RequiredActiveStake
         );
 
