@@ -78,8 +78,12 @@ impl ValidatorRecord {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct ValidatorList {}
 
+impl ValidatorList {
+    pub const DISCRIMINATOR_BYTES: [u8; 8] = *b"validatr";
+}
+
 impl Discriminator for ValidatorList {
-    const DISCRIMINATOR: &'static [u8] = b"validatr";
+    const DISCRIMINATOR: &'static [u8] = &Self::DISCRIMINATOR_BYTES;
 }
 
 impl AccountDeserialize for ValidatorList {
@@ -139,7 +143,7 @@ impl ValidatorSystem {
     ) -> Result<Self> {
         Ok(Self {
             validator_list: List::new(
-                ValidatorList::DISCRIMINATOR.try_into().unwrap(),
+                &ValidatorList::DISCRIMINATOR_BYTES,
                 ValidatorRecord::default().try_to_vec().unwrap().len() as u32
                     + additional_record_space,
                 validator_list_account,

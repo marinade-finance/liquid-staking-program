@@ -69,8 +69,12 @@ impl StakeRecord {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct StakeList {}
 
+impl StakeList {
+    pub const DISCRIMINATOR_BYTES: [u8; 8] = *b"staker__";
+}
+
 impl Discriminator for StakeList {
-    const DISCRIMINATOR: &'static [u8] = b"staker__";
+    const DISCRIMINATOR: &'static [u8] = &Self::DISCRIMINATOR_BYTES;
 }
 
 impl AccountDeserialize for StakeList {
@@ -154,7 +158,7 @@ impl StakeSystem {
         additional_record_space: u32,
     ) -> Result<Self> {
         let stake_list = List::new(
-            StakeList::DISCRIMINATOR.try_into().unwrap(),
+            &StakeList::DISCRIMINATOR_BYTES,
             StakeRecord::default().try_to_vec().unwrap().len() as u32 + additional_record_space,
             stake_list_account,
             stake_list_data,
