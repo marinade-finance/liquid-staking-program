@@ -1,5 +1,4 @@
 #![cfg_attr(not(debug_assertions), deny(warnings))]
-#![allow(deprecated, unexpected_cfgs)]
 
 use anchor_lang::prelude::*;
 
@@ -32,7 +31,7 @@ security_txt! {
     auditors: "https://docs.marinade.finance/marinade-protocol/security/audits"
 }
 
-fn check_context<T: anchor_lang::Bumps>(ctx: &Context<T>) -> Result<()> {
+fn check_context<T>(ctx: &Context<T>) -> Result<()> {
     if !check_id(ctx.program_id) {
         return err!(MarinadeError::InvalidProgramId);
     }
@@ -61,7 +60,8 @@ pub mod marinade_finance {
 
     pub fn initialize(ctx: Context<Initialize>, data: InitializeData) -> Result<()> {
         check_context(&ctx)?;
-        ctx.accounts.process(data, ctx.bumps.reserve_pda)?;
+        ctx.accounts
+            .process(data, *ctx.bumps.get("reserve_pda").unwrap())?;
         Ok(())
     }
 
