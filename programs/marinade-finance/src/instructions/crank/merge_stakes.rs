@@ -112,7 +112,7 @@ impl<'info> MergeStakes<'info> {
         );
         require_eq!(
             canonical_delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::DestinationStakeMustNotBeDeactivating
         );
         require_eq!(
@@ -146,7 +146,7 @@ impl<'info> MergeStakes<'info> {
         );
         require_eq!(
             source_delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::SourceStakeMustNotBeDeactivating
         );
         require_eq!(

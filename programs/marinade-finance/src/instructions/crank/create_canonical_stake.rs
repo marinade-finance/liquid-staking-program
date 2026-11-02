@@ -111,7 +111,7 @@ impl<'info> CreateCanonicalStake<'info> {
         };
         require_eq!(
             source_delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::SourceStakeMustNotBeDeactivating
         );
         require_eq!(
@@ -188,7 +188,7 @@ impl<'info> CreateCanonicalStake<'info> {
                 self.stake_deposit_authority.to_account_info(),
             ],
             &[&[
-                &self.state.key().as_ref(),
+                self.state.key().as_ref(),
                 StakeSystem::STAKE_DEPOSIT_SEED,
                 &[self.state.stake_system.stake_deposit_bump_seed],
             ]],

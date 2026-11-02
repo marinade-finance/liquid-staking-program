@@ -273,25 +273,23 @@ impl<'info> UpdateCommon<'info> {
     }
 
     fn check_delinquent_upgrade_state_progression(&mut self) -> Result<()> {
-        match self.state.delinquent_upgrader {
-            DelinquentUpgraderState::IteratingStakes {
-                visited_count,
-                total_active_balance,
-                total_delinquent_balance,
-            } => {
-                if visited_count == self.state.stake_system.stake_count() {
-                    require_eq!(
-                        total_active_balance,
-                        self.state.validator_system.total_active_balance,
-                        MarinadeError::UpgradingInvariantViolation,
-                    );
-                    self.state.delinquent_upgrader = DelinquentUpgraderState::IteratingValidators {
-                        visited_count: 0,
-                        delinquent_balance_left: total_delinquent_balance,
-                    }
+        if let DelinquentUpgraderState::IteratingStakes {
+            visited_count,
+            total_active_balance,
+            total_delinquent_balance,
+        } = self.state.delinquent_upgrader
+        {
+            if visited_count == self.state.stake_system.stake_count() {
+                require_eq!(
+                    total_active_balance,
+                    self.state.validator_system.total_active_balance,
+                    MarinadeError::UpgradingInvariantViolation,
+                );
+                self.state.delinquent_upgrader = DelinquentUpgraderState::IteratingValidators {
+                    visited_count: 0,
+                    delinquent_balance_left: total_delinquent_balance,
                 }
             }
-            _ => {}
         }
         Ok(())
     }
@@ -332,7 +330,7 @@ impl<'info> UpdateActive<'info> {
         // require stake is active (deactivation_epoch == u64::MAX)
         require_eq!(
             delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::RequiredActiveStake
         );
         // No fix for now
@@ -563,7 +561,7 @@ impl<'info> UpdateDeactivated<'info> {
         // require deactivated or deactivating (deactivation_epoch != u64::MAX)
         require_neq!(
             delegation.deactivation_epoch,
-            std::u64::MAX,
+            u64::MAX,
             MarinadeError::RequiredDeactivatingStake
         );
         if stake.last_update_status == StakeStatus::Active {

@@ -180,9 +180,9 @@ impl<'info> Initialize<'info> {
             circulating_ticket_count: 0,
             circulating_ticket_balance: 0,
             lent_from_reserve: 0,
-            min_deposit: 1,                 // 1 lamport
-            min_withdraw: 1,                // 1 lamport
-            staking_sol_cap: std::u64::MAX, // Unlimited
+            min_deposit: 1,            // 1 lamport
+            min_withdraw: 1,           // 1 lamport
+            staking_sol_cap: u64::MAX, // Unlimited
             emergency_cooling_down: 0,
             pause_authority,
             paused: false,
@@ -280,7 +280,7 @@ impl<'info> LiqPoolInitialize<'info> {
             treasury_cut: lp_treasury_cut,
             lp_supply: 0,
             lent_from_sol_leg: 0,
-            liquidity_sol_cap: std::u64::MAX,
+            liquidity_sol_cap: u64::MAX,
         };
 
         liq_pool.validate()?;

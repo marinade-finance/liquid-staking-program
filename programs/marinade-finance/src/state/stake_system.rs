@@ -7,17 +7,12 @@ use anchor_lang::{prelude::*, Discriminator};
 
 use super::list::List;
 
-#[derive(Clone, Copy, Debug, PartialEq, AnchorSerialize, AnchorDeserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub enum StakeStatus {
+    #[default]
     Unknown,
     Active,
     Deactivating,
-}
-
-impl Default for StakeStatus {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 impl Display for StakeStatus {
