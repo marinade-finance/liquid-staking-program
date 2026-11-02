@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), deny(warnings))]
-#![allow(deprecated)]
+#![allow(deprecated, unexpected_cfgs)]
 
 use anchor_lang::prelude::*;
 
