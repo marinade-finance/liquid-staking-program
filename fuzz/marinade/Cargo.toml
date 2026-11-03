@@ -1,0 +1,80 @@
+[package]
+name = "marinade_fuzz"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+# Standalone workspace - isolated from parent project to avoid Solana version conflicts
+
+[dependencies]
+# Fuzzing framework (crucible runtime) — tracks crucible `main` so the harness is always built and
+# fuzzed against the latest fuzzer. CI runs `cargo update -p crucible-*` before building to pull the
+# newest main; the committed Cargo.lock is only the baseline. (main carries litesvm 0.15.2 + the
+# P-0007 panic scanner `last_target_panic`.)
+crucible-fuzzer = { git = "https://github.com/asymmetric-research/crucible.git", branch = "main" }
+crucible-test-context = { git = "https://github.com/asymmetric-research/crucible.git", branch = "main" }
+crucible-idl-gen = { git = "https://github.com/asymmetric-research/crucible.git", branch = "main" }
+
+anchor-lang = "1.0.1"
+
+# Solana versions aligned to crucible@chore/litesvm-0.15.2 (litesvm 0.15.2 → Agave 4.1 runtime).
+# `serde` feature: generated native-program (bincode) arg structs derive serde::Serialize.
+solana-pubkey = { version = "3.0", features = ["serde", "curve25519"] }
+solana-keypair = "3.1.2"
+solana-signer = "3.0.1"
+solana-message = "4.2.4"
+solana-signature = "3.4.1"
+solana-instruction = "3.4.0"
+# Pin the transitive solana-syscalls to the version crucible@chore/litesvm-0.15.2 locks: 4.2.1 added
+# an unstable `MaybeUninit::write_copy_of_slice` (feature `maybe_uninit_write_slice`) that breaks on
+# stable Rust; 4.1.2 builds clean.
+solana-syscalls = "=4.1.2"
+
+# Fuzzing
+libafl = { version = "0.15.1", features = ["std", "cli", "prelude"] }
+libafl_bolts = { version = "0.15.1", features = ["std"] }
+arbitrary = { version = "1", features = ["derive"] }
+
+# Utilities
+anyhow = "1.0"
+bytemuck = "1.14"
+ctor = "0.6"
+ctrlc = "3.4"
+
+# Native-program (bincode) instruction encoding — generated code for 4-byte
+# discriminator IDLs serializes args with serde + bincode (fixint, LE).
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+
+[[bin]]
+name = "invariant_test"
+path = "src/main.rs"
+
+# Max-throughput release profile for fuzzing. THIN LTO + a single codegen unit inline across the
+# litesvm / crucible-test-context boundary (the SVM interpreter is the hot path), which a default
+# release build (16 codegen units, no LTO) leaves un-inlined. Thin (not fat) LTO deliberately: fat
+# LTO makes Apple's system linker parse rustc bitcode and fails on this toolchain (libLTO LLVM17 vs
+# rustc LLVM21, "Unknown attribute kind 102" on the spl confidential-transfer deps). panic stays
+# "unwind" (default) — crucible relies on unwinding to catch harness panics. Slower to compile.
+[profile.release]
+opt-level = 3
+# LTO (fat or thin) is unusable on this toolchain: it makes Apple's system linker parse rustc's
+# LLVM-21 bitcode via libLTO (LLVM 17) and fails ("Unknown attribute kind 102") on the spl
+# confidential-transfer deps — would need the lld linker. codegen-units=1 (no LTO) is the safe max:
+# better intra-crate inlining (incl. the litesvm hot path) without any libLTO involvement.
+codegen-units = 1
+
+[features]
+# Admin/config/init actions are generated behind this gate so ordinary fuzzing
+# never re-configures or freezes the world setup() built. Enable only for admin-focused runs.
+admin_actions = []
+invariant_test = []
+# Quarantine gate for test content that references helpers/methods never actually defined
+# (orphaned by an earlier round) -- compiles only when explicitly enabled, so it never blocks
+# `cargo test`/the central defer_build compile check. See marginfi's identical fix for precedent.
+scout_orphaned_tests = []
+# Handoff reproducers: enables action_repro_finalize_underflow (finding 01) and
+# action_repro_score_overflow (finding 02) so a featured run triggers all three findings via P-0007.
+# OFF by default so a normal campaign isn't drowned by the manager-gated / migration-only panics.
+# See bugs/marinade/REPRODUCTION.md.
+repro_findings = []

@@ -1,0 +1,178 @@
+name: FuzzCorp bundle (marinade_invariants)
+
+# Builds the target program from THIS ref's source, builds the crucible fuzz harness against it,
+# and submits the bundle to FuzzCorp. Runs on every PR and on push to main, so each change is
+# fuzzed against its own program build — no prebuilt program/IDL is committed to the repo.
+#
+# Required repo configuration (Settings > Secrets and variables > Actions):
+#   - secret  FUZZ_API_KEY       FuzzCorp dashboard API key (service account)
+#   - var     FUZZ_ORGANIZATION  = marinade
+#   - var     FUZZ_PROJECT       = liquid-staking-program
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest  # amd64 — matches the FuzzCorp worker fleet
+    # Bound the job: without this a run can sit for hours (6h GitHub default).
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      # The program only builds with the pinned anchor 0.27 / solana 1.14.29 toolchain (modern
+      # toolchains fail on ahash's `stdsimd`). The verifiable-build image carries that toolchain and
+      # produces the same 1.14.29 SBF binary the harness needs (it clears crucible's CPI wall).
+      # CARGO_PROFILE_RELEASE_DEBUG=2 / STRIP=none are load-bearing for coverage.
+      # `anchor build` emits NO DWARF by default: the intermediate at
+      # target/bpfel-unknown-unknown/release/ keeps its symbol table (so `file`
+      # reports "not stripped" and it looks usable) while carrying zero compile
+      # units. Coverage then fails as `SourcesOriginalPath ... does not match any
+      # source file`, because the profile contains no source files at all --
+      # a misleading error that reads like a path bug rather than a missing-DWARF bug.
+      #
+      # Coverage depends on this build DISABLING LTO. The workspace release profile
+      # is lto="fat" + codegen-units=1, which merges the program into ~14 compile
+      # units; the cover task then resolves 0 PCs and renders nothing, while every
+      # CI step still reports success. Turning LTO off restores per-unit line
+      # tables -- the same change took zolana from 28 units / 0% to 434 units / 98%.
+      #
+      # e_machine 247 IS the problem, and the note that used to sit here saying it was
+      # not is withdrawn. Measured from the worker's own cover log against a 247 build
+      # whose DWARF is complete and valid (125 line-program units, 46 first-party
+      # source files, real addresses in .debug_line):
+      #     [COVERAGE] DWARF source map loaded: 0 PCs resolved, 0 functions
+      #     [COVERAGE] Symbol-table function names loaded: 973 functions
+      #     [LCOV] Source-level coverage: 0 source files
+      #     [COVERAGE-ONLY] Coverage: 5291 edges (26.1%), 4986 branches (49.3%)
+      # The harness executes fine; only the SOURCE mapping dies. With 0 source files in
+      # the profile the cover task then rejects EVERY SourcesOriginalPath -- deep,
+      # shallow and leading-slash all produce
+      #   "SourcesOriginalPath ... does not match any source file in the coverage profile"
+      # which names the prefix and so reads as a path bug. It is not. exponent renders
+      # 5836/6265 through the same driver and is e_machine 263; this is the only
+      # difference between them that survived checking (both are DWARF 4).
+      #
+      # debug=2 + strip=none keep the DWARF; ONE build yields both the executed
+      # target/deploy/*.so and the unstripped intermediate the cover task reads, so
+      # the symbols always match the binary being fuzzed. LTO stays off so the
+      # per-unit line tables survive.
+      # Provides `cargo build-sbf`. The program no longer builds through the
+      # projectserum/build:v0.27.0 image, because that image's cargo-build-bpf can only
+      # emit e_machine 247 -- see the note on the build step below.
+      - name: Install Solana CLI (provides cargo build-sbf)
+        run: |
+          set -euo pipefail
+          # 3.1.14, not 2.1.x. Both spellings of --arch are handled below, but 2.1.21's
+          # cargo-build-sbf cannot resolve `--tools-version v1.44` and dies with a bare
+          # `Result::unwrap() on an Err value: Os { code: 2, kind: NotFound }`.
+          # v1.44 is not optional: it is the OLDEST platform-tools with an sbpf target
+          # (needed for --arch) and almost the NEWEST whose rustc can still compile
+          # anchor 0.27 -- the default v1.52 (rust 1.89) fails with 39 errors out of the
+          # anchor 0.27 derive macros.
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.14/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Build marinade program (SBPFv1 -- e_machine 263, required for coverage)
+        run: |
+          set -euo pipefail
+          # ahash 0.7.6 (hashbrown 0.11.2 <- borsh 0.9.3 <- anchor-lang 0.27) uses
+          # `feature(stdsimd)`, removed in rust 1.78. Every platform-tools release new
+          # enough to offer --arch v1 ships rust >= 1.79, so the pinned lock cannot
+          # build there. 0.7.8 was published to fix exactly this and is semver-
+          # compatible, so this is a lockfile-only bump at build time -- no program
+          # source changes, and the committed Cargo.lock is left alone.
+          cargo update -p ahash --precise 0.7.8
+          # The --arch value is spelled differently across CLI generations: solana 2.1.x
+          # accepts [sbfv1, sbfv2]; 3.1.x accepts [v0..v4]. Passing the wrong one is a
+          # hard error ("'v1' isn't a valid value for '--arch'"), so pick from --help
+          # rather than pinning a spelling to a CLI version we do not control.
+          if cargo build-sbf --help 2>&1 | grep -q 'sbfv1'; then arch=sbfv1; else arch=v1; fi
+          echo "using --arch $arch"
+          # v1.51, and the version is load-bearing for COVERAGE, not for compilation.
+          # platform-tools v1.44 builds a perfectly good program whose DWARF is also
+          # complete -- 534 line-program units, correct source paths -- but every
+          # DW_LNE_set_address is written as 4 zero bytes + a 4-byte address into an
+          # 8-byte field, i.e. shifted left 32 bits. Measured on the v1.44 artifact:
+          # 706 non-zero addresses, 0 of them inside .text; shift them right 32 and
+          # 706/706 land in range. The mapper therefore resolves 0 PCs, the LCOV gets
+          # 0 source files, and the cover task rejects every SourcesOriginalPath.
+          # v1.51 emits them correctly (716/716 in .text) and is what the exponent
+          # harness -- which renders 5836/6265 -- uses.
+          #
+          # -A unexpected_cfgs is required to build anchor 0.27 on v1.51's rust 1.84:
+          # its derive macros emit cfgs the newer rustc does not know, and the lint is
+          # denied by default here, surfacing as "39 previous errors" that look like
+          # real compile failures rather than a lint.
+          RUSTFLAGS="-A unexpected_cfgs" \
+          CARGO_PROFILE_RELEASE_DEBUG=2 \
+          CARGO_PROFILE_RELEASE_STRIP=none \
+          CARGO_PROFILE_RELEASE_LTO=false \
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+          cargo build-sbf --tools-version v1.51 --arch "$arch" \
+            --manifest-path programs/marinade-finance/Cargo.toml 2>&1 | tee /tmp/build.log
+          # build-sbf reports frame-size violations on stdout while exiting 0; a binary
+          # built past the limit faults where the real program does not.
+          if grep -qE 'overwrites values in the frame|exceeded max offset' /tmp/build.log; then
+            echo "::error::SBF stack-frame violation -- refusing to fuzz this binary"; exit 1
+          fi
+          mkdir -p fuzz/marinade/programs
+          cp target/deploy/marinade_finance.so fuzz/marinade/programs/marinade_program.so
+          m=$(od -An -tu2 -j18 -N2 fuzz/marinade/programs/marinade_program.so | tr -d ' ')
+          echo "staged program e_machine=$m"
+          if [ "$m" != "263" ]; then
+            echo "::error::expected e_machine 263 (Solana Bytecode Format), got $m."
+            echo "::error::Source coverage would render EMPTY while every step stays green."
+            exit 1
+          fi
+
+      # build-bundle.sh uses llvm-dwarfdump to (a) prove the staged program carries
+      # real DWARF and (b) read its comp_dir to derive SourcesOriginalPath. Without
+      # the tool both checks silently degrade to "unknown" and a DWARF-less bundle
+      # can ship, rendering empty coverage while every step still reports success.
+      - name: Install llvm-dwarfdump (coverage gate)
+        run: sudo apt-get update && sudo apt-get install -y llvm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.92.0
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            fuzz/marinade/target
+          key: fuzz-marinade-${{ runner.os }}-${{ hashFiles('fuzz/marinade/Cargo.lock') }}
+
+      # Track crucible main so the harness is always built and fuzzed against the LATEST fuzzer, not
+      # a pinned snapshot. Updates the lock to the newest main commit before the build.
+      - name: Use latest crucible main
+        run: cd fuzz/marinade && cargo update -p crucible-fuzzer -p crucible-test-context -p crucible-idl-gen
+
+      - name: Build FuzzCorp bundle
+        run: bash fuzz/marinade/build-bundle.sh
+
+      # Upload only when secrets are actually available: pushes, manual dispatches and
+      # same-repo PRs. Fork PRs still build the program + harness above as a check but
+      # cannot upload, because GitHub withholds secrets from them.
+      # Fail-closed pre-upload checks. Everything this catches is otherwise SILENT:
+      # the bundle validates, uploads, runs and quietly produces nothing. It also
+      # stages any first-party source root the DWARF references but the bundle is
+      # missing (a program spanning programs/ + libraries/ loses the second one).
+      - name: Bundle guard (pre-upload)
+        run: ./fuzz/marinade/bundle-guard.sh fuzz/marinade/build/bundle .
+
+      - name: Upload bundle to FuzzCorp
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: asymmetric-research/fuzz-upload-action@v2
+        with:
+          upload_type: bundle
+          upload_path: fuzz/marinade/build/bundle
+        env:
+          FUZZ_ORGANIZATION: ${{ vars.FUZZ_ORGANIZATION || 'marinade' }}
+          FUZZ_PROJECT: ${{ vars.FUZZ_PROJECT || 'liquid-staking-program' }}
+          FUZZ_API_KEY: ${{ secrets.FUZZ_API_KEY }}
