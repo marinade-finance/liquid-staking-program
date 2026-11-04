@@ -88,7 +88,7 @@ impl<'info> LiquidUnstake<'info> {
         };
 
         // compute fee in msol
-        let msol_fee = liquid_unstake_fee.apply(msol_amount);
+        let msol_fee = liquid_unstake_fee.apply(msol_amount as u128);
         msg!("msol_fee {}", msol_fee);
 
         // fee goes into treasury & LPs, so the user receives lamport value of data.msol_amount - msol_fee
@@ -129,7 +129,7 @@ impl<'info> LiquidUnstake<'info> {
 
         // cut 25% from the fee for the treasury
         let treasury_msol_cut = if treasury_msol_balance.is_some() {
-            self.state.liq_pool.treasury_cut.apply(msol_fee)
+            self.state.liq_pool.treasury_cut.apply(msol_fee as u128)
         } else {
             0
         };

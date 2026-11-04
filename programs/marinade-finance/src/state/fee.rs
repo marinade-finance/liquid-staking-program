@@ -40,9 +40,9 @@ impl Fee {
         Ok(())
     }
 
-    pub fn apply(&self, lamports: u64) -> u64 {
+    pub fn apply(&self, lamports: u128) -> u64 {
         // LMT no error possible
-        (lamports as u128 * self.basis_points as u128 / Self::MAX_BASIS_POINTS as u128) as u64
+        (lamports * self.basis_points as u128 / Self::MAX_BASIS_POINTS as u128) as u64
     }
 }
 
@@ -106,9 +106,9 @@ impl FeeCents {
         Ok(())
     }
 
-    pub fn apply(&self, lamports: u64) -> u64 {
+    pub fn apply(&self, lamports: u128) -> u64 {
         // LMT no error possible
-        (lamports as u128 * self.bp_cents as u128 / Self::MAX_BP_CENTS.bp_cents as u128) as u64
+        (lamports * self.bp_cents as u128 / Self::MAX_BP_CENTS.bp_cents as u128) as u64
     }
 }
 

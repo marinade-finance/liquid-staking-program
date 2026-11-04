@@ -183,7 +183,7 @@ impl<'info> WithdrawStakeAccount<'info> {
             // apply withdraw_stake_account_fee to avoid economical attacks
             // withdraw_stake_account_fee must be >= one epoch staking rewards
             let withdraw_stake_account_fee_lamports =
-                self.state.withdraw_stake_account_fee.apply(sol_value);
+                self.state.withdraw_stake_account_fee.apply(sol_value as u128);
             // The mSOL fee value is sending to the treasury but
             // the corresponding SOL value is not delivering inside the stake to the user
             // because it is a fee user is paying for running this instruction
