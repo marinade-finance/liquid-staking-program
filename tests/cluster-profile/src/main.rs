@@ -1,6 +1,9 @@
 mod agave;
 mod buffers;
 mod diff;
+#[allow(dead_code)]
+#[path = "../../harness/src/effects.rs"]
+mod effects;
 mod elf;
 mod model;
 mod rpc;

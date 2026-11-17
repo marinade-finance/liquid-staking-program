@@ -1,31 +1,6 @@
-//! Known pending core-BPF upgrade buffers. Trivially editable: add one `Known` per line.
+//! Buffers of core-BPF upgrades/replacements, taken from the harness' effects model
+//! (`harness/src/effects.rs`, PROGRAM_SWAPS) so both sides share one table.
 //! More can be supplied at run time with `--buffer <feature>:<program>:<buffer>`.
-
-pub struct Known {
-    /// Feature gate id (base58) whose activation upgrades `program` from `buffer`.
-    pub feature: &'static str,
-    /// Agave module name of that feature (informational).
-    pub module: &'static str,
-    /// Program that gets replaced.
-    pub program: &'static str,
-    /// Buffer account holding the new ELF.
-    pub buffer: &'static str,
-}
-
-pub const KNOWN: &[Known] = &[
-    Known {
-        feature: "Gx4XFcrVMt4HUvPzTpTSVkdDVgcDSjKhDN1RqRS6KDuZ",
-        module: "vote_state_v4",
-        program: "Stake11111111111111111111111111111111111111",
-        buffer: "BM11F4hqrpinQs28sEZfzQ2fYddivYs4NEAHF6QMjkJF",
-    },
-    Known {
-        feature: "ptokFjwyJtrwCa9Kgo9xoDS59V4QccBGEaRFnRPnSdP",
-        module: "replace_spl_token_with_p_token",
-        program: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-        buffer: "ptok6rngomXrDbWf5v5Mkmu5CEbB51hzSCPDoj9DrvF",
-    },
-];
 
 #[derive(Clone, Debug)]
 pub struct BufferSpec {
@@ -36,13 +11,13 @@ pub struct BufferSpec {
 }
 
 pub fn all(extra: &[String]) -> anyhow::Result<Vec<BufferSpec>> {
-    let mut v: Vec<BufferSpec> = KNOWN
+    let mut v: Vec<BufferSpec> = crate::effects::PROGRAM_SWAPS
         .iter()
         .map(|k| BufferSpec {
-            feature: k.feature.into(),
-            module: k.module.into(),
-            program: k.program.into(),
-            buffer: k.buffer.into(),
+            feature: k.feature_id.into(),
+            module: k.feature_module.into(),
+            program: k.program_id.into(),
+            buffer: k.source_buffer.into(),
         })
         .collect();
     for e in extra {
