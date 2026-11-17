@@ -73,7 +73,7 @@ fn allowed(sig: &str) -> bool {
 /// Write cumulative stats (called from `end`); cheap no-op most of the time.
 pub fn flush_stats(tag: &str, force: bool) {
     let mut last = LAST_FLUSH.lock().unwrap();
-    if !force && last.map(|l| l.elapsed().as_secs() < 5).unwrap_or(false) {
+    if !force && last.map(|l| l.elapsed().as_secs() < 2).unwrap_or(false) {
         return;
     }
     *last = Some(std::time::Instant::now());
@@ -277,7 +277,7 @@ fn build(w: &mut World, t: &mut Trident, name: &str, st: &State) -> Option<Built
         }
         "deposit" => {
             let bal = lam(t, &u.key);
-            ixs::deposit(&a, &u.key, &u.msol, amount(t, if pct(t, 50) { min_dep } else { bal }))
+            { let h = if pct(t, 50) { min_dep } else { bal }; let am = amount(t, h); ixs::deposit(&a, &u.key, &u.msol, am) }
         }
         "liquid_unstake" => {
             let bal = token_amount(t, &u.msol);
@@ -286,7 +286,7 @@ fn build(w: &mut World, t: &mut Trident, name: &str, st: &State) -> Option<Built
         }
         "add_liquidity" => {
             let bal = lam(t, &u.key);
-            ixs::add_liquidity(&a, &u.key, &u.lp, amount(t, if pct(t, 50) { st.min_deposit.max(SOL) } else { bal }))
+            { let h = if pct(t, 50) { st.min_deposit.max(SOL) } else { bal }; let am = amount(t, h); ixs::add_liquidity(&a, &u.key, &u.lp, am) }
         }
         "remove_liquidity" => {
             let bal = token_amount(t, &u.lp);
@@ -534,6 +534,11 @@ pub fn run_ix(w: &mut World, t: &mut Trident, name: &str, mutate_pct: u32) {
             w.track(t, s.meta.pubkey);
         }
     }
+    let mut pretags = HashMap::new();
+    for s in &ix.slots {
+        let tg = w.tags_of(t, &s.meta.pubkey);
+        pretags.insert(s.meta.pubkey, tg);
+    }
     let pre = invariants::take(w, t);
     let keys: Vec<Pubkey> = w.tracked.iter().copied().collect();
     let before = lamports_sum(t, &keys);
@@ -563,7 +568,7 @@ pub fn run_ix(w: &mut World, t: &mut Trident, name: &str, mutate_pct: u32) {
 
     // -- substitution must not succeed
     if mutated {
-        if let Some(reason) = mutate::must_fail(w, t, &orig, &ix) {
+        if let Some(reason) = mutate::must_fail(&pretags, &orig, &ix) {
             finding("substitution_succeeded", name, reason, ctx.clone());
         }
     }
@@ -723,7 +728,8 @@ pub fn world_action(w: &mut World, t: &mut Trident, mode: Mode) {
             if env_u("FUZZ_DONATE", 1) == 1 && pct(t, 40) {
                 // lamports straight to the reserve PDA (known: later stake_reserve / claim may overflow)
                 let l = lam(t, &a.reserve);
-                put(t, &a.reserve, l + 1 + rnd(t, 10 * SOL as usize) as u64, vec![], &system_id());
+                let x = rnd(t, 10 * SOL as usize) as u64;
+                put(t, &a.reserve, l + 1 + x, vec![], &system_id());
                 w.donated = true;
                 stat("world\treserve_donation".into());
             }
@@ -755,7 +761,8 @@ pub fn warmup(w: &mut World, t: &mut Trident) {
         let u = w.users[ui].clone();
         let n = 50 + rnd(t, 200) as u64;
         let _ = w.send(t, &ixs::deposit(&a, &u.key, &u.msol, n * SOL));
-        let _ = w.send(t, &ixs::add_liquidity(&a, &u.key, &u.lp, (5 + rnd(t, 20) as u64) * SOL));
+        let al = (5 + rnd(t, 20) as u64) * SOL;
+        let _ = w.send(t, &ixs::add_liquidity(&a, &u.key, &u.lp, al));
     }
     // inside the stake-delta window: stake into every validator
     w.set_clock(t, e, 100);

@@ -151,10 +151,10 @@ fn set_key(w: &World, t: &mut Trident, ix: &mut Ix, i: usize, k: Pubkey) {
 }
 
 /// `Some(reason)` if a success of `fin` (derived from `orig`) would prove a missing check.
-pub fn must_fail(w: &World, t: &mut Trident, orig: &Ix, fin: &Ix) -> Option<String> {
+pub fn must_fail(pt: &std::collections::HashMap<Pubkey, Vec<&'static str>>, orig: &Ix, fin: &Ix) -> Option<String> {
     for (i, (o, f)) in orig.slots.iter().zip(&fin.slots).enumerate() {
         if o.meta.pubkey != f.meta.pubkey {
-            let ft = w.tags_of(t, &f.meta.pubkey);
+            let ft = pt.get(&f.meta.pubkey).cloned().unwrap_or_default();
             let desc = format!("slot #{i} `{}` ({:?}) {} -> {} tags {:?}", o.name, o.role, o.meta.pubkey, f.meta.pubkey, ft);
             match o.role {
                 Role::Fixed | Role::Auth => return Some(format!("{} accepted a different account: {desc}", fin.name)),
