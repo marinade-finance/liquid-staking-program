@@ -1,0 +1,4 @@
+[toolchain]
+# litesvm 0.18.2 / agave 4.3.2 require rustc >= 1.97.1
+channel = "1.97.1"
+profile = "minimal"
