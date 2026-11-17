@@ -1,0 +1,2966 @@
+{
+  "schema": 1,
+  "name": "testnet",
+  "cluster": "testnet",
+  "rpc": "https://api.testnet.solana.com",
+  "fetched_at": "2026-11-17T16:13:16Z",
+  "slot": 465721036,
+  "epoch": 1090,
+  "version": {
+    "solana-core": "4.5.0-beta.0",
+    "feature-set": 1591744305
+  },
+  "features": {
+    "16FMCmgLzCNNz6eTwGanbyN2ZxvTBSLuQ6DZhgeMshg": {
+      "name": "Stop truncating strings in syscalls #31029",
+      "module": "stop_truncating_strings_in_syscalls",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 245900264
+    },
+    "21AWDosvp3pBamFW91KB35pNoaoZVTM7ess8nr2nt53B": {
+      "name": "merge NonceError into SystemError",
+      "module": "merge_nonce_error_into_system_error",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 86060263
+    },
+    "265hPS8k8xJ37ot82KEgjRunsUp5w4n4Q4VwwiN9i9ps": {
+      "name": "optimize epoch boundary updates",
+      "module": "optimize_epoch_boundary_updates",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 99452256
+    },
+    "28s7i3htzhahXQKqmS2ExzbEoUypg9krwvtK2M9UWXh9": {
+      "name": "update rewards from cached accounts",
+      "module": "update_rewards_from_cached_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 197516256
+    },
+    "2B2SBNbUcr438LtGXNcJNBP2GBSxjx81F945SdSkUSfC": {
+      "name": "SIMD-0175: Disable partitioned rent collection #4562",
+      "module": "disable_partitioned_rent_collection",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 337916256
+    },
+    "2Fr57nzzkLYXW695UdDxDeR5fhnZWSttZeZYemrnpGFV": {
+      "name": "SIMD-0140: Migrate Config program to Core BPF",
+      "module": "migrate_config_program_to_core_bpf",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316748256
+    },
+    "2GCrNXbzmt4xrwdcKS2RdsLzsgu4V5zHAemW57pcHT6a": {
+      "name": "SIMD-0458: Stop using static SimpleVote transaction cost",
+      "module": "remove_simple_vote_from_cost_model",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "2HmTkCj9tXuPE4ueHzdD7jPeMf9JGCoZh5AsyoATiWEe": {
+      "name": "stop incorrectly throwing IncorrectProgramId in bpf_loader #30747",
+      "module": "remove_bpf_loader_incorrect_program_id",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 224300256
+    },
+    "2R72wpcQ7qV7aTJWUumdn8u5wmmTyXbK7qzEy7YSAgyY": {
+      "name": "include account index in rent tx error #25190",
+      "module": "include_account_index_in_rent_error",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 144812257
+    },
+    "2h63t332mGCCsWK2nqqqHhN4U9ayyqhLVFvczznHDoTZ": {
+      "name": "update syscall base costs",
+      "module": "update_syscall_base_costs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124508260
+    },
+    "2jXx2yDmGysmBKfKYNgLj2DQyAQv6mMk2BPh4eSbyB4H": {
+      "name": "deprecate fee calculator",
+      "module": "disable_fee_calculator",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 114140256
+    },
+    "2ry7ygxiYURULZCrypHhveanvP5tzZ4toRwVp89oCNSj": {
+      "name": "apply cost tracker to blocks during replay #29595",
+      "module": "apply_cost_tracker_during_replay",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 322364256
+    },
+    "36PRUK2Dz6HWYdG9SpjeAsF5F3KxnFCakA2BZMbtMhSb": {
+      "name": "use correct check for nonoverlapping regions in memcpy syscall",
+      "module": "fixed_memcpy_nonoverlapping_check",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 136172256
+    },
+    "3BX6SBeEBibHaVQXywdkcgyUk6evfYZkHdztXiDtEpFS": {
+      "name": "warp timestamp again, adjust bounding to 150% slow #25666",
+      "module": "warp_timestamp_with_a_vengeance",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 135308256
+    },
+    "3HcSrCTGXTUnrTueHi4DAwNuMxZSsm5xui2Ax3mgxHqf": {
+      "name": "SIMD-0232: Custom Commission Collector",
+      "module": "custom_commission_collector",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 435116256
+    },
+    "3KZZ6Ks1885aGBQ45fwRcPXVBCtzUvxhUTkwKMR41Tca": {
+      "name": "enable versioned transaction message processing",
+      "module": "versioned_tx_message_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 127100256
+    },
+    "3NKRSwpySNwD3TvP5pHnRmkAQRsdkXWRr1WaQh8p4PWX": {
+      "name": "Reject bpf callx r10 instructions",
+      "module": "reject_callx_r10",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 283052256
+    },
+    "3XgNukcZWf9o3HdA3fpJbm94XFc4qpvTXc8h1wxYwiPi": {
+      "name": "disable ldabs* and ldind* SBF instructions",
+      "module": "disable_bpf_deprecated_load_instructions",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124508260
+    },
+    "3aJdcZqxoLpSBxgeYGjPwaYS1zzcByxUDqJkbzWAH1Zb": {
+      "name": "move the CPI stack overflow check to the end of push",
+      "module": "record_instruction_in_transaction_context_push",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 138764256
+    },
+    "3ccR6QpxGYsAbWyfevEtBNGfWV4xBffxRj2tD6A9i39F": {
+      "name": "check initialized Vote data",
+      "module": "check_init_vote_data",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 67052260
+    },
+    "3gtZPqvPpsbXZVCx6hceMfWxtsmrjMzmg8C7PLKSxS2d": {
+      "name": "filter vote slots older than the slot hashes history",
+      "module": "filter_votes_outside_slot_hashes",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 130556260
+    },
+    "3opE3EzAKnUftUDURkzMgwpNgimBAypW1mNDYH4x4Zg7": {
+      "name": "SIMD-0096: Reward full priority fee to validators",
+      "module": "reward_full_priority_fee",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 315884256
+    },
+    "3u3Er5Vc2jVcwz4xr2GJeSAXT3fAj6ADHZ4BJMZiScFd": {
+      "name": "durable nonces must be advanceable",
+      "module": "nonce_must_be_advanceable",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 137036260
+    },
+    "3uFHb9oKdGfgZGJK9EHaAXN4USvnQtAFC13Fh5gGFS5B": {
+      "name": "Update desired hashes per tick on epoch boundary",
+      "module": "update_hashes_per_tick",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "3uRVPBpyEJRo1emLCrq38eLRFGcu6uKSpUXqGvU8T7SZ": {
+      "name": "check syscall outputs do_not overlap #28600",
+      "module": "check_syscall_outputs_do_not_overlap",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 165980260
+    },
+    "437r62HoAdUb63amq3D7ENnBLDhHT2xY8eFkLJYVKK4x": {
+      "name": "enable the deactivate delinquent stake instruction #23932",
+      "module": "stake_deactivate_delinquent_instruction",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "4ApgRX3ud6p7LNMJmsuaAcZY5HWctGPr5obAsjB3A54d": {
+      "name": "prevent calling precompiles as programs",
+      "module": "prevent_calling_precompiles_as_programs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 114140256
+    },
+    "4Di3y24QFLt5QEUPZtbnjyfQKfm6ZMTfa6Dw1psfoMKU": {
+      "name": "drop redundant turbine path",
+      "module": "drop_redundant_turbine_path",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 196220264
+    },
+    "4EJQtF2pkRyawwcTVfQutzq4Sa5hRhibF6QAK1QXhtEX": {
+      "name": "enable durable nonce #25744",
+      "module": "enable_durable_nonce",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 137036260
+    },
+    "4RWNif6C2WCNiKVW7otP4G7dkmkHGyKQWRpuZ1pxKU5m": {
+      "name": "pico inflation",
+      "module": "pico_inflation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 49772256
+    },
+    "4UDcAfQ6EcA6bdcadkeHpkarkhZGJ7Bpq7wTAiRMjkoi": {
+      "name": "disable builtin loader ownership chains #29956",
+      "module": "disable_builtin_loader_ownership_chains",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 199244256
+    },
+    "4WeHX6QoXCCwqbSFgi6dxnB6QsPo6YApaNTH7P4MLQ99": {
+      "name": "SIMD-0083: Allow batched transactions to read/write and write/write the same accounts",
+      "module": "relax_intrabatch_account_locks",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 389756256
+    },
+    "4a6f7o7iTcA8hRDCrPLkSatnt5Ykxiu36wo5p1Tt12wC": {
+      "name": "SIMD-0437-1: Set lamports per byte to 6333",
+      "module": "set_lamports_per_byte_to_6333",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 434684256
+    },
+    "4d5AKtxoh93Dwm1vHXUU3iRATuMndx1c431KgT2td52r": {
+      "name": "Add compute_budget_program",
+      "module": "add_compute_budget_program",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 105068256
+    },
+    "4eohviozzEeivk1y9UbrnekbAFMDQyJz5JjA9Y6gyvky": {
+      "name": "SIMD-0089: Migrate Feature Gate program to Core BPF (programify)",
+      "module": "migrate_feature_gate_program_to_core_bpf",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316748256
+    },
+    "4kpdyrcj5jS47CZb2oJGfVxjYbsMm2Kx97gFyZrxxwXz": {
+      "name": "no overflow rent distribution",
+      "module": "no_overflow_rent_distribution",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 47612256
+    },
+    "4yuaYAj2jGMGTh1sSmi4G2eFscsDq8qjugJXZoBN6YEa": {
+      "name": "disable reporting of unresolved SBF symbols at runtime",
+      "module": "disable_bpf_unresolved_symbols_at_runtime",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124508260
+    },
+    "51VCKU5eV6mcTc9q9ArfWELU2CqDoi13hdAjr6fHMdtv": {
+      "name": "Verify retransmitter signature #1840",
+      "module": "verify_retransmitter_signature",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "54KAoNiUERNoWWUhTWWwXgym94gzoXFVnHyQwPA18V9A": {
+      "name": "fail libsecp256k1_verify if count appears wrong",
+      "module": "libsecp256k1_fail_on_bad_count2",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "5Ach9H8V5NCNDQg7Md6HnJmVttF3tzHwiWWucnnFd4jz": {
+      "name": "SIMD-0685: Loader V3 Remove ExtendProgram",
+      "module": "loader_v3_remove_extend_program",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "5GpmAKxaGsWWbPp4bNXFLJxZVvG92ctxf7jQnzTQjF3n": {
+      "name": "enable epoch accounts hash calculation #27539",
+      "module": "epoch_accounts_hash",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "5JsG4NWH8Jbrqdd8uL6BNwnyZK3dQSoieRXG5vmofj9y": {
+      "name": "SIMD-0180: Enable vote address leader schedule #4573",
+      "module": "enable_vote_address_leader_schedule",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 352604256
+    },
+    "5KLGJSASDVxKPjLCDWNtnABLpZjsQSrYZ8HKwcEdAMC8": {
+      "name": "drops unchained Merkle shreds #2149",
+      "module": "drop_unchained_merkle_shreds",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 344828256
+    },
+    "5Pecy6ie6XGm22pc9d4P9W5c31BugcFBuy6hsP2zkETv": {
+      "name": "checked arithmetic in fee validation #31273",
+      "module": "checked_arithmetic_in_fee_validation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "5TuppMutoyzhUSfuYdhgzD47F92GL1g89KpCZQKqedxP": {
+      "name": "enable the remaining_compute_units syscall",
+      "module": "remaining_compute_units_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "5ZCcFAzJ1zsFKe1KSZa9K92jhx7gkcKj97ci2DBo1vwj": {
+      "name": "Simplify checks performed for writable upgradeable program accounts #30559",
+      "module": "simplify_writable_program_account_check",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 245900264
+    },
+    "5ekBxc8itEnPv4NzGJtr8BVVQLNMQuLMNQQj7pHoLNZ9": {
+      "name": "transaction wide compute cap",
+      "module": "tx_wide_compute_cap",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124508260
+    },
+    "5oMCU3JPaFLr8Zr4ct7yFA7jdk6Mw1RmB8K4u9ZbS42z": {
+      "name": "SIMD-0207: Raise block limit to 50M",
+      "module": "raise_block_limits_to_50m",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 324524256
+    },
+    "5wAGiy15X1Jb2hkHnPDCM8oB9V42VNA9ftNVFK84dEgv": {
+      "name": "set rent epoch to Epoch::MAX for rent-exempt accounts #28683",
+      "module": "set_exempt_rent_epoch_max",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "5x3825XS7M2A3Ekbn5VGGkvFoAg5qrRWkTrY4bARP1GL": {
+      "name": "enable bpf upgradeable loader SetAuthorityChecked instruction #28424",
+      "module": "enable_bpf_loader_set_authority_checked_ix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "5xXZc66h4UdB6Yq7FzdBxBiRAFMMScMLwHxk2QZDaNZL": {
+      "name": "SIMD-0321: Provide instruction data offset in VM r2",
+      "module": "provide_instruction_data_offset_in_vm_r2",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 388028256
+    },
+    "61BtM7BkDEE8Yq5fskEVAQT9mYA8qCejJWoLe5apqg81": {
+      "name": "SIMD-0437-2: Set lamports per byte to 5080",
+      "module": "set_lamports_per_byte_to_5080",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 437708256
+    },
+    "63Zvc4ixE2NQsP1ef9R5AWQyty96BhRp7NiSuejUmXGM": {
+      "name": "SIMD-0684: Loader V3 Allow Prefunded ProgramData",
+      "module": "loader_v3_allow_prefunded_programdata",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "64ixypL1HPu8WtJhNSMb9mSgfFaJvsANuRkTbHyuLfnx": {
+      "name": "SIMD-0160: static instruction limit",
+      "module": "static_instruction_limit",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 385868256
+    },
+    "6M4oQ6eXneVhtLoiAr4yRYQY43eVLjrKbiDZDJc892yk": {
+      "name": "SIMD-0196: Migrate Stake program to Core BPF #3655",
+      "module": "migrate_stake_program_to_core_bpf",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 345692256
+    },
+    "6RvdSWHh8oh72Dp7wMTS2DBkf3fRPtChfNrAo3cZZoXJ": {
+      "name": "secp256k1_recover syscall",
+      "module": "secp256k1_recover_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 86060263
+    },
+    "6TkHkRmP7JZy1fdM6fg5uXn76wChQBWGokHBJzrLB3mj": {
+      "name": "SIMD-0268: Raise CPI nesting limit from 4 to 8",
+      "module": "raise_cpi_nesting_limit_to_8",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "6Uf8S75PVh91MYgPQSHnjRAPQq6an5BDv9vomrCwDqLe": {
+      "name": "Deprecate unused legacy vote tx plumbing",
+      "module": "deprecate_unused_legacy_vote_plumbing",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 284348256
+    },
+    "6YsBCejwK96GZCkJ6mkZ4b68oP63z2PLoQmWjC7ggTqZ": {
+      "name": "consume duplicate proofs from blockstore in consensus #34372",
+      "module": "consume_blockstore_duplicate_proofs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 259724256
+    },
+    "6aHuNsUmwSzCEMjrBzBCYaxHAyAcQBjVES92JigHBDuC": {
+      "name": "SIMD-0406: Maximum instruction accounts",
+      "module": "limit_instruction_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 416540256
+    },
+    "6iyggb5MTcsvdcugX7bEKbHV8c6jdLbpHwkncrgLMhfo": {
+      "name": "stop adding hashes for skipped slots to recent blockhashes",
+      "module": "fix_recent_blockhashes",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "6oMCUgfY6BzZ6jwB681J6ju5Bh6CjVXbd7NeWYqiXBSu": {
+      "name": "SIMD-0256: Raise block limit to 60M",
+      "module": "raise_block_limits_to_60m",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 345260256
+    },
+    "6ppMXNYLhVd7GcsZ5uV11wQEW7spppiMVfqQv5SXhDpX": {
+      "name": "enable builtin ed25519 signature verify program",
+      "module": "ed25519_program_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 112412257
+    },
+    "6sPDzwyARRExKH52LECxcGoqziH8G7SZofwuxi8Ja331": {
+      "name": "SIMD-0312: Enable CreateAccountAllowPrefund system program instruction",
+      "module": "create_account_allow_prefund",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "6uaHcKPGUy4J7emLBgUTeufhJdiwhngW6a1R9B7c2ob9": {
+      "name": "enable sol_log_data syscall",
+      "module": "sol_log_data_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 112412257
+    },
+    "74CoWuBmt3rUVUrCb2JiSTvh6nXyBWUsK4SaMj3CtE3T": {
+      "name": "cpi ignore serialized_len_ptr #29592",
+      "module": "move_serialized_len_ptr_in_cpi",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "75m6ysz33AfLA5DDEzWM1obBrnPQRSsdVQ2nRmc8Vuu1": {
+      "name": "support account data reallocation",
+      "module": "do_support_realloc",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 125804256
+    },
+    "76dHtohc2s5dR3ahJyBxs7eJJVipFkaPdih9CLgTTb4B": {
+      "name": "SIMD-0249: Delay Commission Updates",
+      "module": "delay_commission_updates",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "79HWsX9rpnnJBPcdNURVqygpMAfxdrAirzAGAVmf92im": {
+      "name": "disable new deployments of deprecated sol_alloc_free_ syscall",
+      "module": "disable_deploy_of_alloc_free_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "7AzqUCKQjoCKhWDDHgEYkTY8iRwWtuuxHogcmx1UJzR8": {
+      "name": "SIMD-0607: Remove floating point from runtime inflation",
+      "module": "remove_runtime_float_ops",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "7GUcYgq4tVtaqNCKT3dho9r4665Qp5TxCZ27Qgjx3829": {
+      "name": "Executables incur CPI data costs",
+      "module": "executables_incur_cpi_data_cost",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 137468257
+    },
+    "7VVhpg5oAjAmnmz1zCcSHb2Z9ecZB2FQqpnEwReka9Zm": {
+      "name": "SIMD-0242: Static Nonce Account Only",
+      "module": "require_static_nonce_account",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 371180256
+    },
+    "7Vced912WrRnfjaiKRiNBcbuFw7RrnLv3E3z95Y4GTNc": {
+      "name": "enable early verification of account modifications #25899",
+      "module": "enable_early_verification_of_account_modifications",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "7VgiehxNxu53KdxgLspGQY8myE6f7UokaWa4jsGcaSz": {
+      "name": "SIMD-0460: Virtual Address Space Adjustments",
+      "module": "virtual_address_space_adjustments",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 407900256
+    },
+    "7WeS1vfPRgeeoXArLh7879YcB9mgE9ktjPDtajXeWfXn": {
+      "name": "disable bpf loader management instructions #34194",
+      "module": "disable_bpf_loader_instructions",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 257132256
+    },
+    "7XRJcS5Ud5vxGB54JbK9N2vBZVwnwdBNeJW1ibRgD9gx": {
+      "name": "full inflation enabled by Certus One",
+      "module": "full_inflation::mainnet::certusone::enable",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "7axKe5BTYBDD87ftzWbk5DfzWMGyRvqmWTduuo22Yaqy": {
+      "name": "replace Lockout with LandedVote (including vote latency) in vote state #31264",
+      "module": "vote_state_add_vote_latency",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "7bTK6Jis8Xpfrs8ZoUfiMDPazTcdPcTWheZFJTA5Z6X4": {
+      "name": "Enable MoveStake and MoveLamports stake program instructions #1610",
+      "module": "move_stake_and_move_lamports_ixs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 302060257
+    },
+    "7g9EUwj4j7CS21Yx1wvgWLjSZeh5aPq8x9kpoPwXM8n8": {
+      "name": "limit secp256k1 recovery id",
+      "module": "limit_secp256k1_recovery_id",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 138764256
+    },
+    "7rcw5UtqgDTBBv2EcynNfYckgdAaH1MAsCjKgXMkN7Ri": {
+      "name": "enable curve25519 syscalls",
+      "module": "curve25519_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 268364256
+    },
+    "7txXZZD6Um59YoLMF7XUNimbMjsqsWhc7g2EniiTrmp1": {
+      "name": "fail vote withdraw instructions which leave the account non-rent-exempt",
+      "module": "reject_non_rent_exempt_vote_withdraws",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 113708264
+    },
+    "7uZBkJXJ1HkuP6R3MJfZs7mLwymBcDbKdqbF51ZWLier": {
+      "name": "Enable chained Merkle shreds #34916",
+      "module": "enable_chained_merkle_shreds",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 299036260
+    },
+    "812kqX67odAp5NFwM8D2N24cku7WTm9CHUTFUXaDkWPn": {
+      "name": "prevent crediting rent paying accounts #26606",
+      "module": "prevent_crediting_accounts_that_end_rent_paying",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 146972256
+    },
+    "8199Q2gMD2kwgfopK5qqVWuDbegLgpuFUFHCcUJQDN8b": {
+      "name": "error on bpf function hash collisions",
+      "module": "error_on_syscall_bpf_function_hash_collisions",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 283484257
+    },
+    "86HpNqzutEZwLcPxS6EHDcMNYWk6ikhteg9un7Y2PBKE": {
+      "name": "Compact vote state updates to lower block size",
+      "module": "compact_vote_state_updates",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "8C8MCtsab5SsfammbzvYz65HHauuUYdbY2DZ4sznH6h5": {
+      "name": "Update desired hashes per tick to 4.4M",
+      "module": "update_hashes_per_tick3",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 248924256
+    },
+    "8FdwgyHFEjhAdjWfV2vfqk7wA1g9X3fQpKH7SBpEv3kC": {
+      "name": "require static program ids in versioned transactions",
+      "module": "require_static_program_ids_in_transaction",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 144812257
+    },
+    "8U4skmMVnF6k2kMvrWbQuRUT3qQSiTYpSjqmhmgfthZu": {
+      "name": "SIMD-0105: Maintain Dynamic Set of Reserved Account Keys",
+      "module": "add_new_reserved_account_keys",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316316256
+    },
+    "8We4E7DPwF2WfAN8tRTtWQNhi98B99Qpuj7JoZ3Aikgg": {
+      "name": "Update desired hashes per tick to 7.6M",
+      "module": "update_hashes_per_tick4",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 249788256
+    },
+    "8ZVMrzG6pPBREHMbHNyrErKJsXA7b1vg9e1iycSooCeY": {
+      "name": "SIMD-0596: Increase transaction v1 account lock limit to 96",
+      "module": "increase_tx_v1_account_lock_limit",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "8Zs9W7D9MpSEtUWSQdGniZk2cNmV22y6FLJwCx53asme": {
+      "name": "enable bpf upgradeable loader ExtendProgram instruction #25234",
+      "module": "enable_bpf_loader_extend_program_ix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "8aXvSuopd1PUj7UhehfXJRg6619RHp8ZvwTyyJHdUYsj": {
+      "name": "fail libsecp256k1_verify if count appears wrong",
+      "module": "libsecp256k1_fail_on_bad_count",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "8kEuAshXLsgkUEdcFVLqrjCGGHVWFW99ZZpxvAzzMtBp": {
+      "name": "dedupe config program signers",
+      "module": "dedupe_config_program_signers",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 86060263
+    },
+    "8pgXCMNXC8qyEFypuwpXyRxLXZdpM4Qo72gJ6k87A6wL": {
+      "name": "Native program should consume compute units #30620",
+      "module": "native_programs_consume_cu",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 245900264
+    },
+    "8sKQrMQoUHtQSUP83SPG4ta2JDjSAiWs7t5aJ9uEd6To": {
+      "name": "use default units per instruction in fee calculation #26785",
+      "module": "use_default_units_in_fee_calculation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "8whkDenELnfwYLirBc4Wb4H2Z1z5K7tiykpdxJS7cWg1": {
+      "name": "Apply a minimum loaded data size to loader-v3 ProgramData accounts",
+      "module": "loaderv3_programdata_size_floor",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 463196260
+    },
+    "98std1NSHqXi9WYvFShfVepRdCoq1qvsp8fsR2XZtG8g": {
+      "name": "add compute budget ix for setting a compute unit price",
+      "module": "add_set_compute_unit_price_ix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 137900256
+    },
+    "9gxu85LYRAcZL38We8MYJ4A9AwgBBPtVBAqebMcT1241": {
+      "name": "cap accounts data allocations per transaction #27375",
+      "module": "cap_accounts_data_allocations_per_transaction",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "9k5ijzTbYPtjzu8wj2ErH9v45xecHzQ1x4PMYMMxFgdM": {
+      "name": "enforce max number of accounts per bpf program instruction #26628",
+      "module": "cap_bpf_program_instruction_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "9kdtFSrXHQg3hKkbXkQ6trJ3Ja1xpJ22CTFSNAciEwmL": {
+      "name": "fail instructions which have native_loader as program_id directly",
+      "module": "reject_empty_instruction_without_program",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 113708264
+    },
+    "9onWzzvCzNC2jfhxxeqRgs5q7nFAAKpCUvkj6T6GJK9i": {
+      "name": "Raise minimum stake delegation to 1.0 SOL #24357",
+      "module": "stake_raise_minimum_delegation_to_1_sol",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "9ypxGLzkMxi89eDerRKXWDXe44UY2z4hBig4mDhNq5Dp": {
+      "name": "SIMD-0159: Move precompile verification into SVM",
+      "module": "move_precompile_verification_to_svm",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 320636257
+    },
+    "A16q37opZdQMCbe5qJ6xpBB9usykfv8jZaMkxvZQi4GJ": {
+      "name": "add alt_bn128 syscalls #27961",
+      "module": "enable_alt_bn128_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "A1pengvuM6JEcyNuTnMqepBKhwHE3N6PmUrdATGawhJS": {
+      "name": "SIMD-0326: Alpenglow: new consensus algorithm",
+      "module": "alpenglow",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 444620256
+    },
+    "A8xyMHZovGXFkorFqEmVH2PKGLiBip5JD7jt4zsUWo4H": {
+      "name": "Remove congestion multiplier from transaction fee calculation #29881",
+      "module": "remove_congestion_multiplier_from_fee_calculation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 218684268
+    },
+    "AVZS3ZsN4gi6Rkx2QUibYuSJG3S6QHib7xCYhG6vGJxU": {
+      "name": "vote account withdraw authority may change the authorized voter #22521",
+      "module": "vote_withdraw_authority_may_change_authorized_voter",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124076256
+    },
+    "AnAP9zPV4KL7czAPQbFhpDKV2tx7g4UGNbK9wvXwjaRo": {
+      "name": "SIMD-0387: BLS Pubkey Management in Vote Account",
+      "module": "bls_pubkey_management_in_vote_account",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 416540256
+    },
+    "B7H2caeia4ZFcpE3QcgMqbiWiBtWrdBRBSJ1DY6Ktxbq": {
+      "name": "SIMD-0182: Deplete compute meter for vm errors #3993",
+      "module": "deplete_cu_meter_on_vm_failure",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 319340257
+    },
+    "B8JJXCy5amZyWG9r7EnUYLwzXSXTxG7GZ1qZ1qggo83g": {
+      "name": "SIMD-0500: Disable deployment of SBPF v0, v1 and v2 programs",
+      "module": "disable_sbpf_v0_v1_v2_deployment",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "B9cdB55u4jQsDNsdTK525yE9dmSc5Ga7YBaBrDFvEhM9": {
+      "name": "disable setting is_executable and_rent_epoch in CPI #26987",
+      "module": "disable_cpi_setting_executable_and_rent_epoch",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 219116256
+    },
+    "BKCPBQQBZqggVnFso5nQ8rQ4RwwogYwjuUt9biBjxwNF": {
+      "name": "collect rent from accounts owned by sysvars",
+      "module": "rent_for_sysvars",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 100748256
+    },
+    "BL99GYhdjjcv6ys22C9wPgn2aTVERDbPHHo4NbS3hgp7": {
+      "name": "spl-token self-transfer fix",
+      "module": "spl_token_v2_self_transfer_fix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 64028256
+    },
+    "BTWmtJC8U5ZLMbBUUA1k6As62sYjPEjAiNAT55xYGdJU": {
+      "name": "revise turbine epoch stakes",
+      "module": "revise_turbine_epoch_stakes",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "BY4JhHLahVzS9ynfDz4exzGPbVXhFmJvEyMWsXbDBqME": {
+      "name": "SIMD-0392: Relaxation of post-execution min_balance check",
+      "module": "relax_post_exec_min_balance_check",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 434252256
+    },
+    "BcWknVcgvonN8sL4HE4XFuEVgfcee5MwxWPAgP6ZV89X": {
+      "name": "vote/state program checked instructions #18345",
+      "module": "vote_stake_checked_instructions",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 89516256
+    },
+    "BiCU7M5w8ZCMykVSyhZ7Q3m2SWoR2qrEQ86ERcDX77ME": {
+      "name": "nonce must be writable",
+      "module": "nonce_must_be_writable",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 114140256
+    },
+    "BkFDxiJQWZXGTZaJQxH7wVEHkAmwCgSEVkrvswFfRJPD": {
+      "name": "require all new transaction accounts with data to be rent-exempt",
+      "module": "require_rent_exempt_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 125804256
+    },
+    "BrTR9hzw4WBGFP65AJMbpAo64DcA3U6jdPSga9fMV5cS": {
+      "name": "perform all checks for transfers of 0 lamports",
+      "module": "system_transfer_zero_check",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 84332260
+    },
+    "BsKLKAn1WM4HVhPRDsjosmqSg2J8Tq5xP2s2daDS6Ni4": {
+      "name": "Update desired hashes per tick to 9.2M",
+      "module": "update_hashes_per_tick5",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 250220256
+    },
+    "BtVN7YjDzNE6Dk7kTT7YTDgMNUZTNgiSJgsdzAeTg2jF": {
+      "name": "Removing unwanted rounding in fee calculation #34982",
+      "module": "remove_rounding_in_fee_calculation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 303356256
+    },
+    "BzBBveUDymEYoYzcMWNQCx3cd4jQs7puaVFHLtsbB6fm": {
+      "name": "community vote allowing Certus One to enable full inflation",
+      "module": "full_inflation::mainnet::certusone::vote",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "C5fh68nJ7uyKAuYZg2x9sEQ5YrVf3dkW6oojNBSc3Jvo": {
+      "name": "send votes to the tpu vote port",
+      "module": "send_to_tpu_vote_port",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 96860257
+    },
+    "C97eKZygrkU4JxJsZdjgbUY7iQR7rKTr4NyDWo2E5pRm": {
+      "name": "SIMD-0128: Migrate Address Lookup Table program to Core BPF",
+      "module": "migrate_address_lookup_table_program_to_core_bpf",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 321068256
+    },
+    "C9oAhLxDBm3ssWtJx1yBGzPY55r2rArHmN1pbQn6HogH": {
+      "name": "SIMD-0170: Reserve minimal CUs for builtin instructions #2562",
+      "module": "reserve_minimal_cus_for_builtin_instructions",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 318476256
+    },
+    "CBkDroRDqm8HwHe6ak9cguPjUomrASEkfmxEaZ5CNNxz": {
+      "name": "enforce max number of locked accounts per transaction",
+      "module": "max_tx_account_locks",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 113708264
+    },
+    "CCu4boMmfLuqcmfTLPHQiUo22ZdUsXjgzPAURYaWt1Bw": {
+      "name": "Requestable heap frame size",
+      "module": "requestable_heap_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124508260
+    },
+    "CE2et8pqgyQMP2mQRg3CgvX8nJBKUArMu3wfiQiQKY1y": {
+      "name": "round up heap size when calculating heap cost #30679",
+      "module": "round_up_heap_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "CFK1hRCNy8JJuAAY8Pb2GjLFNdCThS2qwZNe3izzBMgn": {
+      "name": "add add_get_processed_sibling_instruction_syscall",
+      "module": "add_get_processed_sibling_instruction_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 124508260
+    },
+    "CGB2jM8pwZkeeiXQ66kBMyBR6Np61mggL7XUsmLjVcrw": {
+      "name": "SIMD-0183: Skip rent rewrites",
+      "module": "skip_rent_rewrites",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316748256
+    },
+    "CHaChatUnR3s6cPyPMMGNJa3VdQQ8PNH2JqdD4LpCKnB": {
+      "name": "SIMD-0332: Reduce ChaCha rounds for Turbine from 20 to 8",
+      "module": "switch_to_chacha8_turbine",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 387164256
+    },
+    "CJzY83ggJHqPGDq8VisV3U91jDJLuEaALZooBrXtnnLU": {
+      "name": "SIMD-0084: Disable rent fees collection",
+      "module": "disable_rent_fees_collection",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316748256
+    },
+    "CLCoTADvV64PSrnR6QXty6Fwrt9Xc6EdxSJE4wLRePjq": {
+      "name": "SIMD-0127: Enable syscall for fetching Sysvar bytes",
+      "module": "get_sysvar_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316748256
+    },
+    "CR3dVN2Yoo95Y96kLSTaziWDAQT2MNEpiWh5cqVq2pNE": {
+      "name": "enable account data direct mapping",
+      "module": "account_data_direct_mapping",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 408332256
+    },
+    "Cdkc8PPTeTNUPoZEfCY5AyetUrEdkZtNPMgz58nqyaHD": {
+      "name": "switch to new ELF parser #30497",
+      "module": "switch_to_new_elf_parser",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "CpkdQmspsaZZ8FVAouQTtTWZkc8eeQ7V3uj7dWz543rZ": {
+      "name": "on bank load account, do not try to fix up rent_epoch #28541",
+      "module": "on_load_preserve_rent_epoch_for_rent_exempt_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "Crbnc267wkJvFhYakqwWWX57sx5bkrftJLekzy6yWKLT": {
+      "name": "SIMD-0123: Block Revenue Sharing",
+      "module": "block_revenue_sharing",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "D2aip4BBr8NPWtU9vLrwrBvbuaQ8w1zV38zFLxx4pfBV": {
+      "name": "Require stake split destination account to be rent exempt",
+      "module": "require_rent_exempt_split_destination",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "D31EFnLgdiysi84Woo3of4JMu7VmasUS3Z7j9HYXCeLY": {
+      "name": "enable turbine fanout experiments #29393",
+      "module": "enable_turbine_fanout_experiments",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "D4jsDcXaqdW8tDAWn8H4R25Cdns2YwLneujSL1zvjW6R": {
+      "name": "require custodian to authorize withdrawer change for locked stake",
+      "module": "require_custodian_for_locked_stake_authorize",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 67052260
+    },
+    "DT4n6ABDqs6w4bnfwrXT9rsprcPf6cdDga1egctaPkLC": {
+      "name": "full inflation on devnet and testnet",
+      "module": "full_inflation::devnet_and_testnet",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "DTVTkmw3JSofd8CJVJte8PXEbxNQ2yZijvVr3pe2APPj": {
+      "name": "on accounts hash calculation, do not try to rehash accounts #28934",
+      "module": "disable_rehash_for_rent_epoch",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "DdLwVYuvDz26JohmgSbA7mjpJFgX5zP2dkp8qsF2C33V": {
+      "name": "cap transaction accounts data size up to a limit #27839",
+      "module": "cap_transaction_accounts_data_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "DeS7sR48ZcFTUmt5FFEVDr1v1bh73aAbZiZq3SYr8Eh8": {
+      "name": "SIMD-0186: Loaded transaction data size specification",
+      "module": "formalize_loaded_transaction_data_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 369884256
+    },
+    "DhsYfRjxfnh2g7HKJYSzT79r74Afa1wbHkAgHndrA1oy": {
+      "name": "upgrade libsecp256k1 to v0.5.0",
+      "module": "libsecp256k1_0_5_upgrade_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 86060263
+    },
+    "DpJREPyuMZ5nDfU6H3WTqSqUFSXAfw8u7xqmWtEwJDcP": {
+      "name": "quick bail on panic",
+      "module": "quick_bail_on_panic",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 138332256
+    },
+    "Ds87KVeqhbv7Jw8W6avsS1mqz3Mw5J3pRTpPoDQ2QdiJ": {
+      "name": "add shred-type to shred seed #25556",
+      "module": "add_shred_type_to_shred_seed",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 136172256
+    },
+    "DwScAzPUjuv65TMbDnFY7AgwmotzWy3xpEJMXM3hZFaB": {
+      "name": "enable sol_{set,get}_return_data syscall",
+      "module": "return_data_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 112412257
+    },
+    "E3PHP7w8kB7np3CTQ1qQ2tW3KCtjRSXBQgW9vM2mWv2Y": {
+      "name": "secp256k1 program",
+      "module": "secp256k1_program_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 39404256
+    },
+    "E5JiFDQCwyC6QfT9REFyMpfK2mHcmv1GUDySU1Ue7TYv": {
+      "name": "spl-token multisig fix",
+      "module": "spl_token_v2_multisig_fix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 39836256
+    },
+    "E8MkiWZNNPGU6n55jkGzyj8ghUmjCHRmDFdYYFYHxWhQ": {
+      "name": "leave nonce as is on success",
+      "module": "leave_nonce_on_success",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 114140256
+    },
+    "EBeznQDjcPG8491sFsKZYBi5S5jTVXMpAKNDJMQPS2kq": {
+      "name": "reduce required payer balance for program deploys",
+      "module": "reduce_required_deploy_balance",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 96860257
+    },
+    "EDGMC5kxFxGk4ixsNkGt8bW7QL5hDMXnbwaZvYMwNfzF": {
+      "name": "SIMD-0459: Syscall Parameter Address Restrictions",
+      "module": "syscall_parameter_address_restrictions",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 407468256
+    },
+    "EJJewYSddEEtSZHiqugnvhQHiWyZKjkFDQASd7oKSagn": {
+      "name": "add alt_bn128 compression syscalls",
+      "module": "enable_alt_bn128_compression_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 279164260
+    },
+    "EMX9Q7TVFAmQ9V1CggAkhMzhXSg8ECp7fHrWQX2G1chf": {
+      "name": "evict invalid stakes cache entries on epoch boundaries",
+      "module": "evict_invalid_stakes_cache_entries",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 113708264
+    },
+    "EQUMpNFr7Nacb1sva56xn1aLfBxppEoSBH8RRVdkcD1x": {
+      "name": "Disable account loader special case #3513",
+      "module": "disable_account_loader_special_case",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 302492256
+    },
+    "EVW9B5xD9FFK7vw1SBARwMA4s5eRo5eKJdKpsBikzKBz": {
+      "name": "prohibit extra transaction signatures",
+      "module": "verify_tx_signatures_len",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 94700260
+    },
+    "EWme9uFqfy1ikK1jhJs8fM5hxWnK336QJpbscNtizkTU": {
+      "name": "Update desired hashes per tick to 2.8M",
+      "module": "update_hashes_per_tick2",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 248492264
+    },
+    "EaQpmC6GtRssaZ3PCUM5YksGqUdMLeZ46BQXYtHYakDS": {
+      "name": "include transaction loaded accounts data size in base fee calculation #30657",
+      "module": "include_loaded_accounts_data_size_in_fee_calculation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "EfhYd3SafzGT472tYQDUc4dPd2xdEfKs5fwkowUgVt4W": {
+      "name": "remove support for RequestUnitsDeprecated instruction #27500",
+      "module": "remove_deprecated_request_unit_ix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "Eg7tXEwMZzS98xaZ1YHUbdRHsaYZiCsSaR6sKgxreoaj": {
+      "name": "SIMD-0291: Commission Rate in Basis Points",
+      "module": "commission_rate_in_basis_points",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 416540256
+    },
+    "EhisBfVtGvEA8bVCVN5VMaYEaX6iTfoUrmcDi8LY7Kxy": {
+      "name": "SIMD-0433: Loader V3 Set Program Data to ELF Length",
+      "module": "loader_v3_set_program_data_to_elf_length",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "ExtendProgCheckedWi11BeDe1eted11111111111111": {
+      "name": "Enable ExtendProgramChecked instruction",
+      "module": "enable_extend_program_checked",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "F6UVKh1ujTEFK3en2SyAL3cdVnqko1FVEXWhmdLRu6WP": {
+      "name": "SIMD-0173 and SIMD-0174: Enable deployment and execution of SBPFv2 programs",
+      "module": "enable_sbpf_v2_deployment_and_execution",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 346124256
+    },
+    "FCsQnd4V52NESBhVURWYSWBbmLFzgxEZVC2WngzHzp1u": {
+      "name": "SIMD-0690: Hash validation in Core BPF program migrations and upgrades",
+      "module": "core_bpf_hash_validation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "FEEXbxUuKobtrt1qNK5pjtzbPQhsppBTrNNG74xu4mai": {
+      "name": "SIMD-0290: Relax block constraint requiring valid fee-payer",
+      "module": "relax_fee_payer_constraint",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "FKAcEvNgSY79RpqsPNUV5gDyumopH4cEHqUxyfm8b8Ap": {
+      "name": "relax authority signer check for lookup table creation #27205",
+      "module": "relax_authority_signer_check_for_lookup_table_creation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "FKe75t4LXxGaQnVHdUKM6DSFifVVraGZ8LyNo7oPwy1Z": {
+      "name": "SIMD-0133: Enable syscall: sol_get_epoch_stake",
+      "module": "enable_get_epoch_stake_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 322796256
+    },
+    "FKu1qYwLQSiehz644H6Si65U5ZQ2cp9GxsyFUfYcuADv": {
+      "name": "Update desired hashes per tick to 10M",
+      "module": "update_hashes_per_tick6",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 251084256
+    },
+    "FL9RsQA6TVUoh5xJQ9d936RHSebA1NLQqe3Zv9sXZRpr": {
+      "name": "Enable Poseidon syscall",
+      "module": "enable_poseidon_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 280892257
+    },
+    "FLh2kvwNhDNN6kkQrwdDQ4p5FrgdqxnwykgMUryABRwT": {
+      "name": "SIMD-0326: Alpenglow fast leader handover",
+      "module": "alpenglow_fast_leader_handover",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "FNKCMBzYUdjhHyPdsKG2LSmdzH8TCHXn3ytj8RNBS4nG": {
+      "name": "enable gossip duplicate proof ingestion #32963",
+      "module": "enable_gossip_duplicate_proof_ingestion",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 285212256
+    },
+    "FQnc7U4koHqWgRvFaBJjZnV8VPg6L6wWK33yJeDp4yvV": {
+      "name": "stake split instruction uses rent sysvar",
+      "module": "stake_split_uses_rent_sysvar",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "FToKNBYyiF4ky9s8WsmLBXHCht17Ek7RXaLZGHzzQhJ1": {
+      "name": "spl-token set_authority fix",
+      "module": "spl_token_v2_set_authority_fix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 89084265
+    },
+    "FXs1zh47QbNnhXcnB6YiAQoJ4sGB91tKF3UFHLcKT7PM": {
+      "name": "SIMD-0162: Remove checks of accounts is_executable flag",
+      "module": "remove_accounts_executable_flag_checks",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 339212256
+    },
+    "FaTa17gVKoqbh38HcfiQonPsAaQViyDCCSg71AubYZw8": {
+      "name": "SPL Associated Token Account Program version 1.1.0 release #24741",
+      "module": "spl_associated_token_account_v1_1_0",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 143084256
+    },
+    "Fab5oP3DmsLYCiQZXdjyqT3ukFFPrsmqhXU4WU1AWVVF": {
+      "name": "prevent recipients of rent rewards from ending in rent-paying state #30151",
+      "module": "prevent_rent_paying_rent_recipients",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "Ff8b1fBeB86q8cjq47ZhsQLgv5EkHu3G1C99zjUfAzrq": {
+      "name": "enable direct vote state update",
+      "module": "allow_votes_to_directly_update_vote_state",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "Ffswd3egL3tccB6Rv3XY6oqfdzn913vUcjCSnpvCKpfx": {
+      "name": "better error codes for tx lamport check #33353",
+      "module": "better_error_codes_for_tx_lamport_check",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 224732260
+    },
+    "Ftok2jhqAqxUWEiCVRrfRs9DPppWP8cgTB7NQNKL88mS": {
+      "name": "spl-token v3.3.0 release",
+      "module": "spl_token_v3_3_0_release",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 112844260
+    },
+    "Ftok4njE8b7tDffYkC5bAbCaQv5sL6jispYrprzatUwN": {
+      "name": "SPL Token Program version 3.4.0 release #24740",
+      "module": "spl_token_v3_4_0",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 143084256
+    },
+    "FuS3FPfJDKSNot99ECLXtp3rueq36hMNStJkPJwWodLh": {
+      "name": "SIMD-0137: Abort when elliptic curve syscalls invoked on invalid curve id",
+      "module": "abort_on_invalid_curve",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 300764256
+    },
+    "G6vbf1UBok8MWb8m25ex86aoQHeKTzDKzuZADHkShqm6": {
+      "name": "add compute budget instruction for setting account data size per transaction #30366",
+      "module": "add_set_tx_loaded_accounts_data_size_instruction",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "G74BkWBzmsByZ1kxHy44H3wjwp5hp7JbrGRuDpco22tY": {
+      "name": "fix root in vote state updates #27361",
+      "module": "vote_state_update_root_fix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "GDH5TVdbTPUpRnXaRyQqiKUa7uZAbZ28Q2N9bhbKoMLm": {
+      "name": "loosen cpi size restrictions #26641",
+      "module": "loosen_cpi_size_restriction",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 301628256
+    },
+    "GE7fRxmW46K6EmCD9AMZSbnaJ2e3LfqCZzdHi9hmYAgi": {
+      "name": "filter stake_delegation_accounts #14062",
+      "module": "filter_stake_delegation_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 54092257
+    },
+    "GQALDaC48fEhZGWRj9iL5Q889emJKcj3aCvHF7VCbbF4": {
+      "name": "limit max instruction trace length #27939",
+      "module": "limit_max_instruction_trace_length",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "GTUMCZ8LTNxVfxdrw7ZsDFTxXb7TutYkzJnFwinpE6dg": {
+      "name": "disable the deprecated BPF loader",
+      "module": "disable_deprecated_loader",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 158204260
+    },
+    "GV49KKQdBNaiv2pgqhS2Dy3GWYJGXMTVYbYkdk91orRy": {
+      "name": "drops legacy shreds #34328",
+      "module": "drop_legacy_shreds",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 255836256
+    },
+    "GaBtBJvmS4Arjj5W1NmFcyvPjsHN38UGYDq2MDwbs9Qu": {
+      "name": "deprecate unused rewards sysvar",
+      "module": "deprecate_rewards_sysvar",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 39404256
+    },
+    "Gea3ZkK2N4pHuVZVxWcnAtS6UEDdyumdYt4pFcKjA3ar": {
+      "name": "separate durable nonce and blockhash domains #25744",
+      "module": "separate_nonce_from_blockhash",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 137036260
+    },
+    "GmC19j9qLn2RFk5NduX6QXaDhVpGncVVBzyM8e9WMz2F": {
+      "name": "check size when translating slices",
+      "module": "check_slice_translation_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "GmuBvtFb2aHfSfMXpuFeWZGHyDeCLPS79s48fmCWCfM5": {
+      "name": "delay visibility of program upgrades #30085",
+      "module": "delay_visibility_of_program_deployment",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "GvDsGDkH5gyzwpDhxNixx8vtx1kwYHH13RiNAPw27zXb": {
+      "name": "warp timestamp again, adjust bounding to 25% fast 80% slow #15204",
+      "module": "warp_timestamp_again",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "GwtDQBghCTBgmX2cpEGNPxTEBUTQRaDMGTr5qychdGMj": {
+      "name": "reduce stake warmup cooldown from 25% to 9%",
+      "module": "reduce_stake_warmup_cooldown",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 247628260
+    },
+    "Gx4XFcrVMt4HUvPzTpTSVkdDVgcDSjKhDN1RqRS6KDuZ": {
+      "name": "SIMD-0185: Vote State v4",
+      "module": "vote_state_v4",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 387596256
+    },
+    "H3kBSaKdeiUsyHmeHqjJYNc27jesXZ6zWj3zWkowQbkV": {
+      "name": "fix owner for instructions sysvar",
+      "module": "instructions_sysvar_owned_by_sysvar",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 113708264
+    },
+    "H6iVbVaDZgDphcPbcZwc5LoznMPWQfnJ1AM7L1xzqvt5": {
+      "name": "SIMD-0339: Increase CPI Account Infos Limit",
+      "module": "increase_cpi_account_info_limit",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 385868256
+    },
+    "HFpdDDNQjvcXnXKec697HDDsyk6tFoWS2o8fkxuhQZpL": {
+      "name": "remove delegations from stakes cache when inactive",
+      "module": "stakes_remove_delegation_if_inactive",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 96860257
+    },
+    "HH3MUYReL2BvqqA3oEcAa7txju5GY6G4nxJ51zvsEjEZ": {
+      "name": "preserve rent epoch for rent exempt accounts #26479",
+      "module": "preserve_rent_epoch_for_rent_exempt_accounts",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 145676256
+    },
+    "HTTgmruMYRZEntyL3EdCDdnS6e4D5wRq1FA7kQsb66qq": {
+      "name": "remove support for the native loader",
+      "module": "remove_native_loader",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 106796256
+    },
+    "HTW2pSyErTj4BV6KBM9NZ9VBUJVxt7sacNWcf76wtzb3": {
+      "name": "blake3 syscall",
+      "module": "blake3_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "HeqqMQXVqavmiJsGTEXgCMydzMEWiiQTAgbs9KVKJVww": {
+      "name": "SIMD-0582: Early detection of instruction trace overflow",
+      "module": "early_instruction_trace_overflow_detection",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "Hh4mTuC2AVFALH78RjiL8Rih1CcLxXpm4ehXCJNsUei1": {
+      "name": "SIMD-0688: Single Program Runtime Environment",
+      "module": "single_program_runtime_environment",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "HooKD5NC9QNxk25QuzCssB8ecrEzGt6eXEPBUxWp1LaR": {
+      "name": "SIMD-0047: Enable new sysvar last_restart_slot",
+      "module": "last_restart_slot_sysvar",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 283916256
+    },
+    "Hr1nUA9b7NJ6eChS26o7Vi8gYYDDwWD3YeBfzJkTbU86": {
+      "name": "Enable transaction to request heap frame using compute budget instruction #30076",
+      "module": "enable_request_heap_frame_ix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 220844260
+    },
+    "HxrEu1gXuH7iD3Puua1ohd5n4iUKJyFNtNxk9DVJkvgr": {
+      "name": "nonce must be authorized",
+      "module": "nonce_must_be_authorized",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 137036260
+    },
+    "HyrbKftCdJ5CrUfEti6x26Cj7rZLNe32weugk7tLcWb8": {
+      "name": "syscalls use saturated math",
+      "module": "syscall_saturated_math",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 140060257
+    },
+    "J2QdYx8crLbTVK8nur1jeLsmc3krDbfjoxoea2V1Uy5Q": {
+      "name": "Default max tx-wide compute units calculated per instruction",
+      "module": "default_units_per_instruction",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 135308256
+    },
+    "J4HFT8usBxpcF63y46t1upYobJgChmKyZPm5uTBRg25Z": {
+      "name": "enable program redeployment cooldown #29135",
+      "module": "enable_program_redeployment_cooldown",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "JAN1trEUEtZjgXYzNBYHU9DYd7GnThhXfFP7SzPXkPsG": {
+      "name": "disable fees sysvar",
+      "module": "disable_fees_sysvar",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 213500260
+    },
+    "JDn5q3GBeqzvUa7z67BbmVHVdE3EbUAjvFep3weR3jxX": {
+      "name": "SIMD-0129: simplify alt_bn128 syscall error codes",
+      "module": "simplify_alt_bn128_syscall_error_codes",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 278300256
+    },
+    "JE86WkYvTrzW8HgNmrHY7dFYpCmSptUpKupbo2AdQ9cG": {
+      "name": "SIMD-0166: Enable deployment and execution of SBPFv1 programs",
+      "module": "enable_sbpf_v1_deployment_and_execution",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 338780256
+    },
+    "LTDSzjZKFJMKHYpNycG1FrWwGGTaFFwqEFjB5GGLNVD": {
+      "name": "SIMD-0186 Amendment: Define fee-only semantics",
+      "module": "define_ltds_fee_only_semantics",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 417836256
+    },
+    "LTHasHQX6661DaDD4S6A2TFi6QBuiwXKv66fB1obfHq": {
+      "name": "SIMD-0215: enables lattice-based accounts hash",
+      "module": "accounts_lt_hash",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 335324256
+    },
+    "LTdLt9Ycbyoipz5fLysCi1NnDnASsZfmJLJXts5ZxZz": {
+      "name": "SIMD-0223: removes accounts delta hash",
+      "module": "remove_accounts_delta_hash",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 337484256
+    },
+    "LTsNAP8h1voEVVToMNBNqoiNQex4aqfUrbFhRH3mSQ2": {
+      "name": "SIMD-0220: snapshots use lattice-based accounts hash",
+      "module": "snapshots_lt_hash",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 344396256
+    },
+    "LoaderV4WasAbandoned11111111111111111111111": {
+      "name": "SIMD-0167: Enable Loader-v4",
+      "module": "enable_loader_v4",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "P1BCUMpAC7V2GRBRiJCNUgpMyWZhoqt3LKo712ePqsz": {
+      "name": "SIMD-0286: Raise block limit to 100M",
+      "module": "raise_block_limits_to_100m",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 419132256
+    },
+    "PaymEPK2oqwT9TXAVfadjztH2H6KfLEB9Hhd5Q5frvP": {
+      "name": "SIMD-0191: Relax Transaction Loading Constraints",
+      "module": "relax_transaction_loading_constraints",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 317612256
+    },
+    "RENtePQcDLrAbxAsP3k8dwVcnNYQ466hi2uKvALjnXx": {
+      "name": "SIMD-0267: Sets rent_epoch to a constant in the VM",
+      "module": "mask_out_rent_epoch_in_vm_serialization",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 333596256
+    },
+    "RMsTKfD6hZnBhhNvgGBeKNrqCNkeoP3DYYxNtcuWtRg": {
+      "name": "SIMD-0599: Remove inactive stakes from stake delegations",
+      "module": "remove_inactive_stakes",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 461468256
+    },
+    "RfEcA95xnhuwooVAhUUksEJLZBF7xKCLuqrJoqk4Zph": {
+      "name": "vote only on retransmitter signed fec sets",
+      "module": "vote_only_retransmitter_signed_fec_sets",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "SAdVFw3RZvzbo6DvySbSdBnHN4gkzSTH9dSxesyKKPj": {
+      "name": "Enable advancing credits observed for activation epoch #19309",
+      "module": "stake_program_advance_activating_credits_observed",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 96860257
+    },
+    "STk5Xj8hdAx3sTzmtJ3QysKkq6X2A3yj73JtxttiRyk": {
+      "name": "SIMD-0490: Upgrade BPF Stake Program to v5.0.0",
+      "module": "upgrade_bpf_stake_program_to_v5",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 407036256
+    },
+    "SVn36yVApPLYsa8koK3qUcy14zXDnqkNYWyUh1f4oK1": {
+      "name": "ignore slot when calculating an account hash #28420",
+      "module": "account_hash_ignore_slot",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 217388260
+    },
+    "SeRjtX7Abiq5hQYbzdCny266oveDseHZh9tnrs2cdVC": {
+      "name": "SIMD-0565: Enable secp256r1 syscalls",
+      "module": "secp256r1_syscall_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "St8k9dVXP97xT6faW24YmRSYConLbhsMJA4TJTBLmMT": {
+      "name": "add GetMinimumDelegation instruction to stake program",
+      "module": "add_get_minimum_delegation_instruction_to_stake_program",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "TestFeature11111111111111111111111111111111": {
+      "name": "SIMD-0161: Disables execution of SBPFv0 programs",
+      "module": "disable_sbpf_v0_execution",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "TestFeature21111111111111111111111111111111": {
+      "name": "Re-enables execution of SBPFv0 programs",
+      "module": "reenable_sbpf_v0_execution",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "UPbPFtaUVoKZuMEJsDxLfvCNuKavoVapghnzepr1e26": {
+      "name": "SIMD-0648: Unbound LoaderV3 Instruction Data",
+      "module": "unbound_loader_v3_instruction_data",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "VAT9huvhPjRN9cyrPytq9rwvEJ3J4ADtjdncgZRyANJ": {
+      "name": "SIMD-0357: Alpenglow VAT implementation",
+      "module": "validator_admission_ticket",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 417404256
+    },
+    "VoteAccount1nitia1izeV211111111111111111111": {
+      "name": "SIMD-0464: Vote Account Initialize V2",
+      "module": "vote_account_initialize_v2",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "YbbRLkvenrocjGPGyoQE4wjnvYzTgfsk38NFmcYK7a5": {
+      "name": "SIMD-0431: Loader V3 minimum extend program size",
+      "module": "loader_v3_minimum_extend_program_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 416540256
+    },
+    "b1sgUiJ3qu7hYm3tNDyyqZNQd6gLGJmJppnLNa93PCQ": {
+      "name": "SIMD-0388: BLS12-381 syscalls",
+      "module": "enable_bls12_381_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "bn1hKNURMGQaQoEVxahcEAcqiX3NwRs6hgKKNSLeKxH": {
+      "name": "SIMD-0302: Add alt_bn128 G2 syscalls",
+      "module": "enable_alt_bn128_g2_syscalls",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "bn2oPgpkzQPT3tohMaAsMVGjhDmmDa4jCaVPqCFmtxM": {
+      "name": "SIMD-0284: Add little-endian compatibility for alt_bn128",
+      "module": "alt_bn128_little_endian",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "bn2puAyxUx6JUabAxYdKdJ5QHbNNmKw8dCGuGCyRrFN": {
+      "name": "SIMD-0222: fix alt_bn128 multiplication input length #3686",
+      "module": "fix_alt_bn128_multiplication_input_length",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 346988256
+    },
+    "bnYzodLwmybj7e1HAe98yZrdJTd7we69eMMLgCXqKZm": {
+      "name": "SIMD-0334: Fix alt_bn128_pairing length check",
+      "module": "fix_alt_bn128_pairing_length_check",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 385868256
+    },
+    "chaie9S2zVfuxJKNRGkyTDokLwWxx6kD2ZLsqQHaDD8": {
+      "name": "generate duplicate proofs for chained merkle root conflicts",
+      "module": "chained_merkle_conflict_duplicate_proofs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "ddibiks7RHZR69QXYMCmk4EZNt6WckspTqEEWv6cS38": {
+      "name": "SIMD-0550: Double disinflation rate",
+      "module": "double_disinflation_rate",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "decoMktMcnmiq6t3u7g5BfgcQu91nKZr6RvMYf9z1Jb": {
+      "name": "Allow commission decrease at any time in epoch #33843",
+      "module": "allow_commission_decrease_at_any_time",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 299036260
+    },
+    "depVvnQ2UysGrhwdiwU42tCadZL8GcBb1i2GYhMopQv": {
+      "name": "Deprecate legacy vote instructions",
+      "module": "deprecate_legacy_vote_ixs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "dupPajaLy2SSn8ko42aZz4mHANDNrLe8Nw8VQgFecLa": {
+      "name": "generate duplicate proofs for index and erasure conflicts #34360",
+      "module": "index_erasure_conflict_duplicate_proofs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 261020256
+    },
+    "eca6zf6JJRjQsYYPkBHF3N32MTzur4n2WL4QiiacPCL": {
+      "name": "restrict curve25519 multiscalar multiplication vector lengths #34763",
+      "module": "curve25519_restrict_msm_length",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 264044260
+    },
+    "ed9tNscbWLYBooxWA7FE2B5KHWs8A6sxfY8EzezEcoo": {
+      "name": "SIMD-0152: Use strict verification in ed25519 precompile",
+      "module": "ed25519_precompile_verify_strict",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 299900256
+    },
+    "expHkkpN92z71GU7EwB7AXCy8Mz4kzDJFpGY1dZV9A7": {
+      "name": "SIMD-0529: big_integer mod_exp syscall",
+      "module": "enable_big_mod_exp_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "ffecLRhhakKSGhMuc6Fz2Lnfq4uT9q3iu9ZsNaPLxPc": {
+      "name": "vote only full fec sets",
+      "module": "vote_only_full_fec_sets",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 324092256
+    },
+    "fixfecLZYMfkGzwq6NJA11Yw6KYztzXiK9QcL3K78in": {
+      "name": "SIMD-0317: Enforce 32 data + 32 coding shreds",
+      "module": "enforce_fixed_fec_set",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 385868256
+    },
+    "htsptAwi2yRoZH83SKaUXykeZGtZHgxkS2QwW1pssR8": {
+      "name": "SIMD-0306: Raise account CU limit to 40% max",
+      "module": "raise_account_cu_limit",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 368156256
+    },
+    "iBRL5RuWhw4yqaAZu96RUULHckHTZAoe2b77qaV38JZ": {
+      "name": "SIMD-0525: Reduce slot time to 350ms",
+      "module": "reduce_slot_time_to_350ms",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 426476256
+    },
+    "iBRLL3k18HST852F1Mf3Lv83waTNQmmqvKDxvYGwQFL": {
+      "name": "SIMD-0525: Reduce slot time to 300ms",
+      "module": "reduce_slot_time_to_300ms",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 427340256
+    },
+    "iBRLMc81UjRa8fn8A6eE8bJTnRbgQoPTynM51akENCV": {
+      "name": "SIMD-0525: Reduce slot time to 250ms",
+      "module": "reduce_slot_time_to_250ms",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 428204256
+    },
+    "iBRLjhJnkmDZgNoZRDMW11d8ZV7HvsL3vAyRjZB5npW": {
+      "name": "SIMD-0525: Reduce slot time to 200ms",
+      "module": "reduce_slot_time_to_200ms",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 429068256
+    },
+    "inv2LMjJ1j8e5DB36ETnszFcmtYfRZGgk6oJzYr9zK8": {
+      "name": "SIMD-0670: ABIv1 invoke signed v2 syscall",
+      "module": "invoke_signed_v2",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "meRgp4ArRPhD3KtCY9c5yAf2med7mBLsjKTPeVUHqBL": {
+      "name": "allow merging active stakes with unmatched credits_observed #18985",
+      "module": "stake_merge_with_unmatched_credits_observed",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 96860257
+    },
+    "mrkPjRg79B2oK2ZLgd7S3AfEJaX9B6gAF3H9aEykRUS": {
+      "name": "generate duplicate proofs for merkle root conflicts #34270",
+      "module": "merkle_conflict_duplicate_proofs",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 284780260
+    },
+    "nWBqjr3gpETbiaVj3CBJ3HFC5TMdnJDGt21hnvSTvVZ": {
+      "name": "check physical overlapping regions",
+      "module": "check_physical_overlapping",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 139196256
+    },
+    "noRuG2kzACwgaY7TVmLRnUNPLKNVQE1fb7X55YWBehp": {
+      "name": "validator commission updates are only allowed in the first half of an epoch #29362",
+      "module": "commission_updates_only_allowed_in_first_half_of_epoch",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 197948256
+    },
+    "pata6uFabFDejC1U7rpmFj9s1FhmiPyWk6D51U1ksx3": {
+      "name": "SIMD-0567: CU-optimized ATA program",
+      "module": "replace_ata_with_p_ata",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "poUdAqRXXsNmfqAZ6UqpjbeYgwBygbfQLEvWSqVhSnb": {
+      "name": "SIMD-0359: Enforce padding in Poseidon hash inputs",
+      "module": "poseidon_enforce_padding",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 385868256
+    },
+    "prpFrMtgNmzaNzkPJg9o753fVvbHKqNrNTm76foJ2wm": {
+      "name": "validate fee collector account #33888",
+      "module": "validate_fee_collector_account",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 251948256
+    },
+    "ptokFjwyJtrwCa9Kgo9xoDS59V4QccBGEaRFnRPnSdP": {
+      "name": "SIMD-0266: Efficient Token program",
+      "module": "replace_spl_token_with_p_token",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 396236256
+    },
+    "ptr9umikaeAS7ZBBp2fsfRhie16F1V2jCKA2y6gXNAK": {
+      "name": "SIMD-0449: Direct Account Pointers in Program Input",
+      "module": "direct_account_pointers_in_program_input",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 418268256
+    },
+    "r3r5hXFhEZLB2VCDXmUysuDZj4oMbtW8JRVUqvQSgqE": {
+      "name": "SIMD-0683: Pass ABIv1 input metadata via registers r3-r5",
+      "module": "pass_input_metadata_in_vm_r3_r5",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "rent6iVy6PDoViPBeJ6k5EJQrkj62h7DPyLbWGHwjrC": {
+      "name": "SIMD-0194: Deprecate rent exemption threshold",
+      "module": "deprecate_rent_exemption_threshold",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 386300256
+    },
+    "rexav5eNTUSNT1K2N7cfRjnthwhcP5BC25v2tA4rW4h": {
+      "name": "SIMD-0444: Relax program data account check in migration",
+      "module": "relax_programdata_account_check_migration",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 395372256
+    },
+    "rnt8ZQpz2HYhX3DkYBDGjJS1a36mYq69oXka7JrhEdi": {
+      "name": "SIMD-0438: Reset lamports per byte to legacy value of 6960",
+      "module": "set_lamports_per_byte_to_6960",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "rntCigrTppP5JdZz7K8TyN9sMzLdAcXp8SejYpVpX6D": {
+      "name": "SIMD-0437-3: Set lamports per byte to 2575",
+      "module": "set_lamports_per_byte_to_2575",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "rntD7invRBswCAdKtRsh1G4psKjrPdS3BKqtnA78C7N": {
+      "name": "SIMD-0437-4: Set lamports per byte to 1322",
+      "module": "set_lamports_per_byte_to_1322",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "rntTjNZ9boq8owDxjGVFHPfWNQPDaKiM5JcjxmDGg47": {
+      "name": "SIMD-0437-5: Set lamports per byte to 696",
+      "module": "set_lamports_per_byte_to_696",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "s512oDwgx8hjMnaQjXfqqrZroVj4HvC6TkN3iSSWXCh": {
+      "name": "SIMD-0512: SHA512 Syscall",
+      "module": "enable_sha512_syscall",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 416540256
+    },
+    "s51VGwCAgebo2745DSUris72RavoLkXGUmVJosESCXr": {
+      "name": "SIMD-0391: Upgrade BPF Stake Program to v5.1.0 (fixed-point warmup/cooldown)",
+      "module": "upgrade_bpf_stake_program_to_v5_1",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 431228256
+    },
+    "s5o4YoA9zUrw9j4v335ncdG5PpznDBsrgM6CvUGrasA": {
+      "name": "SIMD-0504: Stricter shred validation",
+      "module": "stricter_shred_validation",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "sTKz343FM8mqtyGvYWvbLpTThw3ixRM4Xk8QvZ985mw": {
+      "name": "Allow zero-lamport undelegated amount for initialized stakes #24670",
+      "module": "stake_allow_zero_undelegated_amount",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 195356264
+    },
+    "srremy31J5Y25FrAApwVb9kZcfXbusYMMsvTK9aWv5q": {
+      "name": "SIMD-0075: Enable secp256r1 precompile",
+      "module": "enable_secp256r1_precompile",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 332732256
+    },
+    "tSynMCspg4xFiCj1v3TDb4c7crMR5tSBhLz4sF7rrNA": {
+      "name": "Enable tower sync vote instruction",
+      "module": "enable_tower_sync_ix",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 316748256
+    },
+    "turbnbNRp22nwZCmgVVXFSshz7H7V23zMzQgA46YpmQ": {
+      "name": "disable turbine fanout experiments #29393",
+      "module": "disable_turbine_fanout_experiments",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 368156256
+    },
+    "turbzzBJLGMJJikLvgCCJu9e1hTmfxwarrbLndYAsK5": {
+      "name": "SIMD-0317: Enforce the Merkle proof size of a fixed 32:32 FEC set",
+      "module": "enforce_correct_proof_size",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "tvcF6b1TRz353zKuhBjinZkKzjmihXmBAHJdjNYw1sQ": {
+      "name": "use timeliness of votes in determining credits to award",
+      "module": "timely_vote_credits",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 299036260
+    },
+    "txv1aq4pp281K9um3tnPgkfX8UqtFT6wcVW3hNezGLL": {
+      "name": "SIMD-0385: Transaction V1",
+      "module": "enable_tx_v1",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 437276256
+    },
+    "vcmrbYbiMVKaq1snKP6eCacNDcr6qZvpCNUjmk6gxvZ": {
+      "name": "SIMD-0340: Validate chained block ID",
+      "module": "validate_chained_block_id",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "vcmrw431aNM8ngQ46derkZXipoTGQdbHkEygBDh12dA": {
+      "name": "SIMD-0340: Encompassing check for validate chained block ID",
+      "module": "validate_chained_block_id_2",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 416540256
+    },
+    "wLckV1a64ngtcKPRGU4S4grVTestXjmNjxBjaKZrAcn": {
+      "name": "cost model uses number of requested write locks #34819",
+      "module": "cost_model_requested_write_lock_cost",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 301196256
+    },
+    "zk1snxsc6Fh3wsGNbbHAJNHiJoYgF29mMnTSusGx5EJ": {
+      "name": "enable Zk Token proof program and syscalls",
+      "module": "zk_token_sdk_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "zkNLP7EQALfC1TYeB3biDU7akDckj8iPkvh9y2Mt2K3": {
+      "name": "enable Zk Token proof program transfer with fee",
+      "module": "enable_zk_transfer_with_fee",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "inactive"
+    },
+    "zkdoVwnSFnSLtGJG7irJPEYUpmb4i7sGMGcnN6T9rnC": {
+      "name": "Disables zk-elgamal-proof program",
+      "module": "disable_zk_elgamal_proof_program",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 340508256
+    },
+    "zkexuyPRdyTVbZqEAREueqL2xvvoBhRgth9xGSc1tMN": {
+      "name": "Re-enables zk-elgamal-proof program",
+      "module": "reenable_zk_elgamal_proof_program",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 406604256
+    },
+    "zkhiy5oLowR7HY4zogXjCjeMXyruLqBwSWH21qcFtnv": {
+      "name": "SIMD-0153: Enable ZkElGamalProof program",
+      "module": "zk_elgamal_proof_program_enabled",
+      "sources": [
+        "master",
+        "v4.5.0-beta.0"
+      ],
+      "status": "active",
+      "activated_at": 302924256
+    }
+  },
+  "sysvars": {
+    "rent": {
+      "lamports_per_byte_year": 5080,
+      "exemption_threshold": 1.0,
+      "burn_percent": 50
+    },
+    "epoch_schedule": {
+      "slots_per_epoch": 432000,
+      "leader_schedule_slot_offset": 432000,
+      "warmup": true,
+      "first_normal_epoch": 14,
+      "first_normal_slot": 524256
+    }
+  },
+  "programs": {
+    "11111111111111111111111111111111": {
+      "name": "system",
+      "owner": "NativeLoader1111111111111111111111111111111",
+      "builtin": true
+    },
+    "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL": {
+      "name": "spl-associated-token-account",
+      "owner": "BPFLoader2111111111111111111111111111111111",
+      "sha256": "6804554e69fd3a58caa191dc4a58f4c67223d30ca28ab8987f39fc18d2f7374d",
+      "len": 105032,
+      "file": "programs/6804554e69fd3a58caa191dc4a58f4c67223d30ca28ab8987f39fc18d2f7374d.so"
+    },
+    "AddressLookupTab1e1111111111111111111111111": {
+      "name": "address-lookup-table",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "e264e1537c5ee1252aae1fa476c25000b641357bc6af4efab65f314160a99570",
+      "len": 170144,
+      "file": "programs/e264e1537c5ee1252aae1fa476c25000b641357bc6af4efab65f314160a99570.so",
+      "programdata": "4zSpbk5jGQyMmUrqCSjFZbRKwsrMXBPsyTzjhJEAsefG",
+      "deployed_slot": 321068256
+    },
+    "BPFLoader2111111111111111111111111111111111": {
+      "name": "bpf-loader",
+      "owner": "NativeLoader1111111111111111111111111111111",
+      "builtin": true
+    },
+    "BPFLoaderUpgradeab1e11111111111111111111111": {
+      "name": "bpf-loader-upgradeable",
+      "owner": "NativeLoader1111111111111111111111111111111",
+      "builtin": true
+    },
+    "ComputeBudget111111111111111111111111111111": {
+      "name": "compute-budget",
+      "owner": "NativeLoader1111111111111111111111111111111",
+      "builtin": true
+    },
+    "Config1111111111111111111111111111111111111": {
+      "name": "config",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "06dd0ed33dda54b37fbbb9df5e08d28a71aa817dbc57d7b0a57e348d2f4e34fa",
+      "len": 157184,
+      "file": "programs/06dd0ed33dda54b37fbbb9df5e08d28a71aa817dbc57d7b0a57e348d2f4e34fa.so",
+      "programdata": "CHKQ74qcDUJbwc4snCEZXL8tV1WQvXqioArLGgUHPZq9",
+      "deployed_slot": 305516256
+    },
+    "Feature111111111111111111111111111111111111": {
+      "name": "feature-gate",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "4889655084aa7b8a58cb44f56a8396881a7329a1e3b91cebd9763cdf9ad04e88",
+      "len": 72984,
+      "file": "programs/4889655084aa7b8a58cb44f56a8396881a7329a1e3b91cebd9763cdf9ad04e88.so",
+      "programdata": "H253PPA38ecQvnpSvfWgqBfMuVgZ656CEXLgTHwZQHfs",
+      "deployed_slot": 305084256
+    },
+    "LoaderV411111111111111111111111111111111111": {
+      "name": "loader-v4",
+      "owner": "NativeLoader1111111111111111111111111111111",
+      "builtin": true
+    },
+    "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD": {
+      "name": "marinade-finance",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "63eba44e2e6566a31d677f36f7ee967a0879218283a2b1419405a887fb0a60e6",
+      "len": 999832,
+      "file": "programs/63eba44e2e6566a31d677f36f7ee967a0879218283a2b1419405a887fb0a60e6.so",
+      "programdata": "4PQH9YmfuKrVyZaibkLYpJZPv2FPaybhq2GAuBcWMSBf",
+      "deployed_slot": 93563952
+    },
+    "Stake11111111111111111111111111111111111111": {
+      "name": "stake",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "3d2d39c596ce8be2d47816b4ee5db9fc759d80fde54b08c930ad0b6daed64c2c",
+      "len": 212056,
+      "file": "programs/3d2d39c596ce8be2d47816b4ee5db9fc759d80fde54b08c930ad0b6daed64c2c.so",
+      "programdata": "6WU8Nxarf9fudRK5atWwjLY4vFaw5UrrWhL88qz7iCMJ",
+      "deployed_slot": 431228256
+    },
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA": {
+      "name": "spl-token",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+      "len": 108600,
+      "file": "programs/8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697.so",
+      "programdata": "3gvYRKWyXRR9xKWe1ZjPhLY5ZJRN7KDB4rFZFGoJfFk2",
+      "deployed_slot": 396236256
+    },
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb": {
+      "name": "spl-token-2022",
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "sha256": "3dde54d202caa2d10514fd58a154df5f26f07643f9f5fd0402ff08084f0cb954",
+      "len": 611056,
+      "file": "programs/3dde54d202caa2d10514fd58a154df5f26f07643f9f5fd0402ff08084f0cb954.so",
+      "programdata": "DoU57AYuPFu2QU514RktNPG22QhApEjnKxnBcu4BHDTY",
+      "deployed_slot": 444248193
+    },
+    "Vote111111111111111111111111111111111111111": {
+      "name": "vote",
+      "owner": "NativeLoader1111111111111111111111111111111",
+      "builtin": true
+    }
+  },
+  "buffers": {}
+}

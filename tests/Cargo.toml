@@ -1,0 +1,13 @@
+# Host-side test workspace. Deliberately NOT a member of the root workspace:
+# the program's Cargo.lock (and so its verifiable build) must not see these dependencies.
+# cluster-profile is a separate workspace of its own (it needs no solana crates).
+[workspace]
+resolver = "2"
+members = ["harness"]
+exclude = ["cluster-profile"]
+
+[profile.test]
+opt-level = 1
+
+[profile.test.package."*"]
+opt-level = 3
