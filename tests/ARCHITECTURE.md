@@ -38,6 +38,7 @@ tests/
   harness/                # lib + tests: LiteSVM env, profile application, Marinade fixture,
                           # scenario tests, transition tests, stateful fuzz
   scripts/                # matrix.sh (profiles x tests), backtest.sh (commits x profiles)
+  trident/                # Trident instruction-level fuzzing, own workspace (trident-tests/), agave 2.3 SVM
 ```
 
 The program under test is always a compiled `.so` (built by `cargo build-sbf`, by `solana-verify`,
@@ -148,6 +149,11 @@ Harness environment variables:
    epoch advances with rewards/MEV/slashing, optional mid-sequence transition), invariants checked
    after every op. Deterministic seeds, shrinking, `PROPTEST_CASES` scales CI vs weekly.
 4. **Pure property tests** on `calc.rs` / fees (host-side, no SVM).
+5. **Instruction-level fuzzing** (`trident/`, Trident 0.12): per-instruction argument and account-set
+   mutation with substitution / authority / panic / conservation oracles and the same accounting
+   invariants, native or SBF execution. It runs on Trident's agave 2.3 SVM with default features and
+   rent, so it answers "can a caller make one instruction misbehave", not "does a runtime change
+   break us" (that is kinds 1-3 on cluster profiles). See `trident/README.md`.
 
 ## Operational mode (`HARNESS_RENT_TOPUP`)
 
@@ -206,5 +212,9 @@ on testnet/devnet but not on mainnet, plus anything listed with `--try`, then ru
 transitions. A target that fails where `mainnet` passes is a finding and names its cause (feature,
 program hash, sysvar). Weekly GitHub workflow runs it for HEAD and for the binary live on mainnet (`live+topup`: with the crank bot's stake rent
 top-up, see "Operational mode").
+
+The weekly workflow also runs a long Trident campaign (`trident/run.sh all`, 100k per-instruction
+iterations); a signature that is not in `trident/trident-tests/known-findings.txt` fails the job and
+is reported in the same issue.
 
 `scripts/backtest.sh <commit>...`: build each commit (toolchain per commit), run the matrix with it.

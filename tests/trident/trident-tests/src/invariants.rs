@@ -102,7 +102,7 @@ pub fn check(w: &mut World, t: &mut Trident, ix: &str, pre: Option<&Snap>) -> Ve
         match rec.last_update_status {
             StakeStatus::Active => {
                 *per_val.entry(stake.delegation.voter_pubkey).or_default() += l;
-                if stake.delegation.deactivation_epoch != u64::MAX && !w.slashed {
+                if stake.delegation.deactivation_epoch != u64::MAX && !w.slashed && !w.ext_deact {
                     v.push(format!("stake #{i} recorded Active but deactivating in the stake program"));
                 }
             }
@@ -138,7 +138,7 @@ pub fn check(w: &mut World, t: &mut Trident, ix: &str, pre: Option<&Snap>) -> Ve
     }
     // 8. tickets
     let (mut tbal, mut tcnt) = (0u128, 0u64);
-    for k in w.tickets.clone() {
+    for k in w.live_tickets(t) {
         if let Some(td) = w.ticket(t, &k) {
             if td.state_address == a.state && owner_of(t, &k) == program_id() {
                 tbal += td.lamports_amount as u128;

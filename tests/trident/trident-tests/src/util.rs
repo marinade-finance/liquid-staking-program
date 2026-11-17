@@ -206,3 +206,32 @@ pub fn adjust_stake(t: &mut Trident, key: &Pubkey, delta: i64) -> bool {
     put(t, key, l, d, &stake_id());
     true
 }
+
+/// What the stake program does to a delinquent validator's stake without the owner's signature.
+pub fn force_deactivate(t: &mut Trident, key: &Pubkey, epoch: u64) -> bool {
+    let a = t.get_account(key);
+    let Some(StakeStateV2::Stake(meta, mut stake, flags)) = read_stake(t, key) else { return false };
+    if stake.delegation.deactivation_epoch != u64::MAX {
+        return false;
+    }
+    stake.delegation.deactivation_epoch = epoch;
+    let mut d = a.data().to_vec();
+    bincode::serialize_into(&mut d[..], &StakeStateV2::Stake(meta, stake, flags)).unwrap();
+    put(t, key, a.lamports(), d, &stake_id());
+    true
+}
+
+/// give a user stake account a lockup with a custodian (deposit_stake_account must clear it)
+pub fn set_lockup(t: &mut Trident, key: &Pubkey, custodian: &Pubkey, epoch: u64) {
+    let a = t.get_account(key);
+    let mut d = a.data().to_vec();
+    let Ok(mut st) = bincode::deserialize::<StakeStateV2>(&d) else { return };
+    match &mut st {
+        StakeStateV2::Stake(m, _, _) | StakeStateV2::Initialized(m) => {
+            m.lockup = Lockup { unix_timestamp: 0, epoch, custodian: *custodian };
+        }
+        _ => return,
+    }
+    bincode::serialize_into(&mut d[..], &st).unwrap();
+    put(t, key, a.lamports(), d, &stake_id());
+}

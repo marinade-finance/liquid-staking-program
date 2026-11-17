@@ -8,11 +8,12 @@ Design and contracts: [ARCHITECTURE.md](ARCHITECTURE.md). Why features behave as
 |---|---|
 | `cluster-profile/` | `snapshot` a cluster into JSON (features, sysvars, core programs), `diff` clusters, `list-upcoming` features |
 | `harness/` | LiteSVM test harness: scenarios, mainnet-to-target transition tests, stateful fuzz |
+| `trident/` | Trident instruction-level fuzzing: every instruction with fuzzed arguments and mutated account sets, judged by oracles + invariants ([trident/README.md](trident/README.md)) |
 | `scripts/matrix.sh` | program binaries x runtime targets, classifies findings |
 | `scripts/backtest.sh` | build any commit (right toolchain), run it against runtime profiles |
 | `profiles/` | committed snapshots (`mainnet.json`, `testnet.json`, `devnet.json`, `programs/<sha256>.so`) |
 
-CI: `.github/workflows/tests.yml` (push/PR, light) and `.github/workflows/cluster-compat.yml` (weekly + manual, full matrix, opens or updates one issue labelled `cluster-compat`).
+CI: `.github/workflows/tests.yml` (push/PR, light, includes a Trident smoke) and `.github/workflows/cluster-compat.yml` (weekly + manual, full matrix and a long Trident campaign, opens or updates one issue labelled `cluster-compat`).
 
 ## Prerequisites
 
@@ -75,6 +76,23 @@ cargo test --test findings -- --ignored
 seeds are saved there and replayed first; commit it). `cargo test --test fuzz replay -- --ignored --nocapture` replays a
 hand-written case with a trace. The test prints per-op outcome coverage and cases/s at the end. Failures print the shrunk
 op list (with the transition marker) and a per-op trace.
+
+## Instruction-level fuzzing (Trident)
+
+The proptest fuzzer above drives *valid* user and crank sequences across runtimes. `trident/` attacks single
+instructions instead: all 29 with edge-value arguments, account substitution (foreign instance, look-alike
+clones, wrong mints, rogue stakes, dropped signer/writable flags), and garbage data, on agave 2.3 with the
+program run natively (fast, line coverage) or as the SBF binary.
+
+```bash
+cd tests/trident
+./run.sh all                                   # fuzz_ix + fuzz_flows; exit 1 on a signature not in known-findings.txt
+./run.sh ix claim,stake_reserve                # focus on some instructions
+./run.sh sbf fuzz_ix                           # real binary (target/deploy/marinade_finance.so)
+./run.sh coverage 6000                         # 87% line coverage of programs/marinade-finance/src
+```
+
+Findings and their triage: [trident/README.md](trident/README.md#findings-all-triaged-by-reading-the-code-path-none-is-a-loss-of-funds-issue).
 
 ## Reading the matrix
 

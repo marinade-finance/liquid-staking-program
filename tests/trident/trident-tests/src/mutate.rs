@@ -20,7 +20,7 @@ fn rnd(t: &mut Trident, n: usize) -> usize {
 
 /// key -> signer-capable? (wallets, authorities, users; not PDAs, mints, programs)
 fn can_sign(w: &World, t: &mut Trident, k: &Pubkey) -> bool {
-    w.tags_of(t, k).contains(&"wallet")
+    { let tg = w.tags_of(t, k); tg.contains(&"wallet") && !tg.contains(&"reserve") && !tg.contains(&"sol_leg") }
 }
 
 pub fn mutate(w: &mut World, t: &mut Trident, ix: &mut Ix, count: usize) -> Vec<Mutation> {
@@ -80,21 +80,24 @@ pub fn mutate(w: &mut World, t: &mut Trident, ix: &mut Ix, count: usize) -> Vec<
             }
             "clone_foreign_owner" | "clone_lookalike" => {
                 let acc = t.get_account(&orig.pubkey);
+                if kind == "clone_lookalike" && *acc.owner() == program_id() {
+                    continue; // an attacker cannot forge program-owned data; instance B is the realistic stand-in
+                }
                 let k = t.random_pubkey();
                 let lookalike = kind == "clone_lookalike";
                 let owner = if lookalike {
                     *acc.owner()
                 } else {
-                    match rnd(t, 4) {
+                    // never the token / stake / program owner: chained clones could then look like valid accounts
+                    match rnd(t, 3) {
                         0 => system_id(),
-                        1 => token_id(),
-                        2 => stake_id(),
                         _ => t.random_pubkey(),
                     }
                 };
                 let o = AccountSharedData::create(acc.lamports(), acc.data().to_vec(), owner, false, u64::MAX);
                 t.set_account_custom(&k, &o);
-                let tags = if lookalike { w.tags_of(t, &orig.pubkey) } else if owner == system_id() && acc.data().is_empty() { vec!["wallet"] } else { vec![] };
+                let lookalike = lookalike || owner == *acc.owner();
+                let tags = if lookalike { w.tags_of(t, &orig.pubkey) } else if owner == system_id() { vec!["wallet"] } else { vec![] };
                 w.tags.insert(k, tags);
                 w.track(t, k);
                 set_key(w, t, ix, i, k);
@@ -159,12 +162,12 @@ pub fn must_fail(pt: &std::collections::HashMap<Pubkey, Vec<&'static str>>, orig
             match o.role {
                 Role::Fixed | Role::Auth => return Some(format!("{} accepted a different account: {desc}", fin.name)),
                 Role::New => {
-                    if !ft.iter().any(|x| *x == "wallet") {
+                    if !ft.iter().any(|x| *x == "wallet" || *x == "pda_sys") {
                         return Some(format!("{} accepted a non-wallet as new account: {desc}", fin.name));
                     }
                 }
                 Role::Free => {
-                    if !ft.iter().any(|x| o.accepts.contains(x)) {
+                    if !o.accepts.contains(&"*") && !ft.iter().any(|x| o.accepts.contains(x) || (*x == "pda_sys" && o.accepts.contains(&"wallet") && !f.meta.is_signer)) {
                         return Some(format!("{} accepted wrong-kind account (accepts {:?}): {desc}", fin.name, o.accepts));
                     }
                 }

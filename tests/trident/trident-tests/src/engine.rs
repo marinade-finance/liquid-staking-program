@@ -54,6 +54,15 @@ pub fn install_panic_recorder() {
     }));
 }
 
+/// panic message of the last program panic: recorded by the hook (native) or parsed from the logs (SBF)
+fn last_panic(logs: &str) -> String {
+    let p = LAST_PANIC.with(|p| p.borrow().clone());
+    if !p.is_empty() {
+        return p;
+    }
+    logs.lines().find(|l| l.contains("panicked at")).map(|l| l.trim().trim_matches(|c| c == '"' || c == ',').replace("Program log: ", "")).unwrap_or_else(|| "unknown (no panic message)".into())
+}
+
 fn stat(key: String) {
     *STATS.lock().unwrap().entry(key).or_default() += 1;
 }
@@ -67,7 +76,22 @@ fn only() -> Option<Vec<String>> {
 }
 
 fn allowed(sig: &str) -> bool {
-    std::env::var("FUZZ_ALLOW").map(|v| v.split(',').any(|a| !a.is_empty() && sig.contains(a.trim()))).unwrap_or(false)
+    if std::env::var("FUZZ_ALLOW").map(|v| v.split(',').any(|a| !a.is_empty() && sig.contains(a.trim()))).unwrap_or(false) {
+        return true;
+    }
+    // `known-findings.txt`: one entry per line, `#` comments; an entry is one or more substrings
+    // joined by ` && `, all of which must occur in the signature (instruction, message, file), so an
+    // entry never hides a different panic in the same instruction. Ignored when FUZZ_STRICT=1.
+    if std::env::var("FUZZ_STRICT").is_ok() {
+        return false;
+    }
+    std::fs::read_to_string("known-findings.txt")
+        .map(|s| {
+            s.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).any(|l| {
+                l.split(" && ").map(str::trim).all(|part| sig.contains(part))
+            })
+        })
+        .unwrap_or(false)
 }
 
 /// Write cumulative stats (called from `end`); cheap no-op most of the time.
@@ -92,6 +116,8 @@ fn normalize(msg: &str) -> String {
     // drop digits and long base58-looking tokens so the signature is stable across runs
     let mut out = String::new();
     for tok in msg.split_whitespace().take(24) {
+        // program source paths are absolute and checkout-dependent: keep them from `src/` on
+        let tok = tok.find("programs/marinade-finance/src/").map(|i| &tok[i + "programs/marinade-finance/".len()..]).unwrap_or(tok);
         let t: String = tok.chars().filter(|c| !c.is_ascii_digit()).collect();
         if tok.len() >= 20 && tok.chars().all(|c| c.is_ascii_alphanumeric()) {
             out.push_str("<key> ");
@@ -301,7 +327,7 @@ fn build(w: &mut World, t: &mut Trident, name: &str, st: &State) -> Option<Built
             ixs::order_unstake(&a, &u.msol, &u.key, &k, amount(t, bal))
         }
         "claim" => {
-            let live: Vec<Pubkey> = w.tickets.iter().copied().filter(|k| w.ticket(t, k).is_some()).collect();
+            let live: Vec<Pubkey> = w.live_tickets(t);
             let k = if live.is_empty() || pct(t, 5) { w.spare_tickets[rnd(t, w.spare_tickets.len())] } else { live[rnd(t, live.len())] };
             let ben = w.ticket(t, &k).map(|d| d.beneficiary).unwrap_or(u.key);
             ixs::claim(&a, &k, &ben)
@@ -381,6 +407,11 @@ fn build(w: &mut World, t: &mut Trident, name: &str, st: &State) -> Option<Built
                 5 => put_stake(t, &k, &u.key, &u.key, &vote, amt, e - 6, e - 1),
                 _ => put_stake(t, &k, &u.key, &u.key, &vote, amt, e - 3, u64::MAX),
             }
+            if pct(t, 15) {
+                let c = t.random_pubkey();
+                let le = if pct(t, 50) { 0 } else { u64::MAX };
+                set_lockup(t, &k, &c, le);
+            }
             new_accounts.push(k);
             w.tags.insert(k, vec!["stake_user"]);
             ixs::deposit_stake_account(&a, &k, &u.key, &a.dup_flag(&vote), &u.key, &u.msol, vi)
@@ -433,7 +464,7 @@ fn build(w: &mut World, t: &mut Trident, name: &str, st: &State) -> Option<Built
             ixs::config_lp(&a, p)
         }
         "change_authority" => {
-            let mut p = |t: &mut Trident| -> Option<Pubkey> {
+            let p = |t: &mut Trident| -> Option<Pubkey> {
                 if pct(t, 25) {
                     Some(if pct(t, 60) { t.random_pubkey() } else { wallet(t, w) })
                 } else {
@@ -498,6 +529,25 @@ fn describe(ix: &Ix, muts: &[Mutation], w: &World, t: &mut Trident) -> String {
     s
 }
 
+type Snapshot = Vec<(u64, Pubkey, Vec<u8>)>;
+
+fn snapshot(t: &mut Trident, keys: &[Pubkey]) -> Snapshot {
+    keys.iter()
+        .map(|k| {
+            let a = t.get_account(k);
+            if a.lamports() == 0 {
+                (0, Pubkey::default(), vec![]) // absent / purged
+            } else {
+                (a.lamports(), *a.owner(), a.data().to_vec())
+            }
+        })
+        .collect()
+}
+
+fn sum(s: &Snapshot) -> u128 {
+    s.iter().map(|x| x.0 as u128).sum()
+}
+
 fn lamports_sum(t: &mut Trident, keys: &[Pubkey]) -> u128 {
     keys.iter().map(|k| lam(t, k) as u128).sum()
 }
@@ -519,6 +569,12 @@ pub fn run_ix(w: &mut World, t: &mut Trident, name: &str, mutate_pct: u32) {
     let Some(st) = w.state(t, &w.a.clone()) else { return };
     refresh_authorities(w, &st);
     let Some(Built { ix: orig, new_accounts }) = build(w, t, name, &st) else { return };
+    exec(w, t, orig, new_accounts, mutate_pct);
+}
+
+/// Execute a prepared valid instruction (shared by random steps and scripted crank rounds).
+fn exec(w: &mut World, t: &mut Trident, orig: Ix, new_accounts: Vec<Pubkey>, mutate_pct: u32) {
+    let name = orig.name;
     for k in &new_accounts {
         w.track(t, *k);
     }
@@ -541,15 +597,27 @@ pub fn run_ix(w: &mut World, t: &mut Trident, name: &str, mutate_pct: u32) {
     }
     let pre = invariants::take(w, t);
     let keys: Vec<Pubkey> = w.tracked.iter().copied().collect();
-    let before = lamports_sum(t, &keys);
+    let core = w.core_keys(t);
+    let core_before = snapshot(t, &core);
+    let snap_before = snapshot(t, &keys);
+    let before = sum(&snap_before);
     let b_before = hash_b(w, t);
     let reserve_before = lam(t, &w.a.reserve);
 
+    LAST_PANIC.with(|p| p.borrow_mut().clear());
     let out = w.send(t, &ix);
     let mutated = !muts.is_empty();
     let kind = if mutated { "mut" } else { "valid" };
+    let p0 = last_panic(&out.logs);
+    let out = if out.panicked && (p0.contains("Cross-program invocation with unauthorized") || p0.contains("syscall_stubs.rs")) {
+        // native-executor artifact: on-chain this is an InstructionError::PrivilegeEscalation, not a panic
+        stat(format!("{name}\t{kind}\tERR privilege_escalation"));
+        return;
+    } else {
+        out
+    };
     if out.panicked {
-        let p = LAST_PANIC.with(|p| p.borrow().clone());
+        let p = p0;
         let ctx = format!("{}\n{}\nlogs:\n{}", describe(&ix, &muts, w, t), p, out.logs);
         stat(format!("{name}\t{kind}\tPANIC"));
         finding("program_panic", name, format!("program panicked: {p}"), ctx);
@@ -567,7 +635,16 @@ pub fn run_ix(w: &mut World, t: &mut Trident, name: &str, mutate_pct: u32) {
     let ctx = describe(&ix, &muts, w, t);
 
     // -- substitution must not succeed
-    if mutated {
+    let keys_after: Vec<Pubkey> = w.tracked.iter().copied().collect();
+    let snap_after = snapshot(t, &keys_after);
+    // a no-op success (early `return Ok(())` paths) proves nothing about account checks
+    let core_after = snapshot(t, &core);
+    let _ = (&snap_after,);
+    let effect = core_before != core_after;
+    if mutated && !effect {
+        stat(format!("{name}\tmut\tOK_noeffect"));
+    }
+    if mutated && effect {
         if let Some(reason) = mutate::must_fail(&pretags, &orig, &ix) {
             finding("substitution_succeeded", name, reason, ctx.clone());
         }
@@ -594,9 +671,6 @@ pub fn run_ix(w: &mut World, t: &mut Trident, name: &str, mutate_pct: u32) {
     }
     for k in &new_accounts {
         w.track(t, *k);
-    }
-    if name == "order_unstake" {
-        w.tickets.push(new_accounts[0]);
     }
     if name == "stake_reserve" || name == "deactivate_stake" || name == "partial_unstake" || name == "withdraw_stake_account" {
         // the new account may now be a stake account (split / fresh): nothing to do, tracked above
@@ -628,7 +702,7 @@ pub fn run_garbage(w: &mut World, t: &mut Trident) {
         None => return,
     };
     refresh_authorities(w, &st);
-    let Some(Built { ix: mut ix, .. }) = build(w, t, name, &st) else { return };
+    let Some(Built { mut ix, .. }) = build(w, t, name, &st) else { return };
     let len = rnd(t, 48);
     let mut junk = vec![0u8; len];
     t.random_bytes(&mut junk);
@@ -663,9 +737,14 @@ pub fn run_garbage(w: &mut World, t: &mut Trident) {
     let pre = invariants::take(w, t);
     let keys: Vec<Pubkey> = w.tracked.iter().copied().collect();
     let before = lamports_sum(t, &keys);
+    LAST_PANIC.with(|p| p.borrow_mut().clear());
     let out = w.send(t, &ix);
+    let pg = last_panic(&out.logs);
+    if out.panicked && (pg.contains("syscall_stubs.rs") || pg.contains("unauthorized")) {
+        return;
+    }
     if out.panicked {
-        let p = LAST_PANIC.with(|p| p.borrow().clone());
+        let p = pg;
         stat(format!("{name}\tgarbage\tPANIC"));
         finding("program_panic", name, format!("garbage input panicked: {p}"), format!("{}\n{}", describe(&ix, &[], w, t), out.logs));
         return;
@@ -734,6 +813,17 @@ pub fn world_action(w: &mut World, t: &mut Trident, mode: Mode) {
                 stat("world\treserve_donation".into());
             }
         }
+        _ if pct(t, 35) => {
+            // delinquent validator: the stake program deactivates a stake behind Marinade's back
+            let recs = w.stakes(t, &a);
+            if !recs.is_empty() {
+                let r = recs[rnd(t, recs.len())];
+                if force_deactivate(t, &r.stake_account, e) {
+                    w.ext_deact = true;
+                }
+            }
+            stat("world\tforce_deactivate".into());
+        }
         _ => {
             if mode == Mode::Flow && env_u("FUZZ_SLASH", 1) == 1 && pct(t, 30) {
                 let recs = w.stakes(t, &a);
@@ -746,6 +836,93 @@ pub fn world_action(w: &mut World, t: &mut Trident, mode: Mode) {
                 }
                 stat("world\tslash".into());
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------- crank round
+
+/// Scripted bot round with valid instructions (each may still be mutated with `mutate_pct`):
+/// order some unstakes, update every stake, stake/deactivate, canonical stake + merge, emergency.
+pub fn crank_round(w: &mut World, t: &mut Trident, mutate_pct: u32) {
+    let e = w.epoch(t);
+    let ne = e + 1 + rnd(t, 2) as u64;
+    stat("world\tcrank_round".into());
+    // users order unstakes so that stake_delta can go negative
+    if pct(t, 50) {
+        let a = w.a.clone();
+        let u = w.users[user_idx(t, w)].clone();
+        let bal = token_amount(t, &u.msol);
+        let k = t.random_pubkey();
+        let l = rent_min(t, TICKET_SIZE);
+        put(t, &k, l, vec![0u8; TICKET_SIZE], &program_id());
+        let am = bal / (2 + rnd(t, 3) as u64);
+        exec(w, t, ixs::order_unstake(&a, &u.msol, &u.key, &k, am), vec![k], mutate_pct);
+    }
+    let before_end = 100 + rnd(t, 2000) as u64;
+    w.set_clock(t, ne, before_end);
+    let Some(st) = w.state(t, &w.a.clone()) else { return };
+    refresh_authorities(w, &st);
+    let a = w.a.clone();
+    let payer = w.users[0].key;
+    let recs = w.stakes(t, &a);
+    let vals = w.validators(t, &a);
+    let vote_of = |t: &mut Trident, k: &Pubkey| -> (u32, Pubkey) {
+        if let Some(StakeStateV2::Stake(_, s, _)) = read_stake(t, k) {
+            if let Some(p) = vals.iter().position(|v| v.validator_account == s.delegation.voter_pubkey) {
+                return (p as u32, s.delegation.voter_pubkey);
+            }
+        }
+        (0, vals.first().map(|v| v.validator_account).unwrap_or_default())
+    };
+    // some validator loses its score -> emergency_unstake becomes legal
+    if pct(t, 25) && !vals.is_empty() {
+        let vi = rnd(t, vals.len());
+        let ix = ixs::set_validator_score(&a, vi as u32, &vals[vi].validator_account, if pct(t, 70) { 0 } else { 50 });
+        exec(w, t, ix, vec![], mutate_pct);
+    }
+    for (i, r) in recs.iter().enumerate() {
+        let (vi, _) = vote_of(t, &r.stake_account);
+        let ix = match r.last_update_status {
+            marinade_finance::state::stake_system::StakeStatus::Deactivating => ixs::update_deactivated(&a, &r.stake_account, i as u32, vi),
+            _ => ixs::update_active(&a, &r.stake_account, i as u32, vi),
+        };
+        exec(w, t, ix, vec![], mutate_pct);
+    }
+    for vi in 0..vals.len() {
+        let k = t.random_pubkey();
+        exec(w, t, ixs::stake_reserve(&a, vi as u32, &vals[vi].validator_account, &k, &payer), vec![k], mutate_pct);
+    }
+    let recs = w.stakes(t, &a);
+    for (i, r) in recs.iter().enumerate() {
+        if !pct(t, 60) {
+            continue;
+        }
+        let (vi, vote) = vote_of(t, &r.stake_account);
+        let k = t.random_pubkey();
+        let ix = match rnd(t, 4) {
+            0 => ixs::emergency_unstake(&a, &r.stake_account, i as u32, vi),
+            1 => ixs::partial_unstake(&a, &r.stake_account, &k, &payer, i as u32, vi, r.last_update_delegated_lamports / 2),
+            2 => ixs::create_canonical_stake(&a, &a.canonical_stake(&vote), &r.stake_account, i as u32, vi),
+            _ => ixs::deactivate_stake(&a, &r.stake_account, &k, &payer, i as u32, vi),
+        };
+        exec(w, t, ix, vec![k], mutate_pct);
+    }
+    // merge into canonical stakes
+    let recs = w.stakes(t, &a);
+    for (si, r) in recs.iter().enumerate() {
+        let (vi, vote) = vote_of(t, &r.stake_account);
+        let canon = a.canonical_stake(&vote);
+        if let Some(di) = recs.iter().position(|x| x.stake_account == canon) {
+            if di != si && pct(t, 70) {
+                exec(w, t, ixs::merge_stakes(&a, &canon, &r.stake_account, di as u32, si as u32, vi), vec![], mutate_pct);
+            }
+        }
+    }
+    // claim every due ticket
+    for k in w.live_tickets(t) {
+        if let Some(td) = w.ticket(t, &k) {
+            exec(w, t, ixs::claim(&a, &k, &td.beneficiary), vec![], mutate_pct);
         }
     }
 }
@@ -823,13 +1000,25 @@ pub fn step(t: &mut Trident, fx: &mut Fx, mode: Mode) {
         Mode::Flow => env_u("FUZZ_MUTATE_PCT", 3) as u32,
     };
     let focus = only();
+    // `pause` is sticky and starves every other instruction: resume most of the time
+    if let Some(st) = w.state(t, &w.a.clone()) {
+        if st.paused && pct(t, 80) && focus.as_ref().map(|f| !f.iter().any(|x| x == "pause" || x == "resume")).unwrap_or(true) {
+            run_ix(w, t, "resume", 0);
+            return;
+        }
+    }
     let r = rnd(t, 100);
     let world_pct = if mode == Mode::Flow { 25 } else { 12 };
+    let crank_pct = if mode == Mode::Flow { 12 } else { 5 };
+    if r >= 100 - crank_pct && focus.is_none() || (focus.is_some() && r >= 100 - crank_pct * 2) {
+        crank_round(w, t, if mode == Mode::Flow { mutate_pct } else { mutate_pct / 2 });
+        return;
+    }
     if r < world_pct {
         world_action(w, t, mode);
         return;
     }
-    if mode == Mode::Ix && r < world_pct + 3 {
+    if mode == Mode::Ix && r < world_pct + 3 && r >= world_pct {
         run_garbage(w, t);
         return;
     }

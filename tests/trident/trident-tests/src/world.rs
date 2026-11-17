@@ -73,7 +73,7 @@ impl Cfg {
             min_stake: pick(t, &[SOL / 100, SOL / 2, SOL, 3 * SOL]),
             reward_fee_bp: pick(t, &[0, 300, 1000]) as u32,
             stake_capacity: pick(t, &[2, 4, 8, 32]) as u32,
-            validator_capacity: pick(t, &[2, 4, 8]) as u32,
+            validator_capacity: pick(t, &[3, 4, 8]) as u32,
             slots_for_stake_delta: pick(t, &[3_000, 10_000, 100_000]),
             lp_target: pick(t, &[50 * SOL, 100 * SOL, 1000 * SOL]),
         }
@@ -98,6 +98,7 @@ pub struct World {
     pub user_stakes: Vec<(Pubkey, Pubkey)>,
     pub donated: bool,
     pub slashed: bool,
+    pub ext_deact: bool,
     pub paused_ok: bool,
     pub prev: Option<crate::invariants::Snap>,
     pub last_lamports: BTreeMap<Pubkey, u64>,
@@ -224,6 +225,7 @@ impl World {
             user_stakes: vec![],
             donated: false,
             slashed: false,
+            ext_deact: false,
             paused_ok: false,
             prev: None,
             last_lamports: BTreeMap::new(),
@@ -275,6 +277,8 @@ impl World {
                 assert!(r.ok, "setup: add_validator {}: {} {}", inst.label, r.err, r.logs);
             }
         }
+        // the stake config account exists on chain (owned by the config program); Trident's SVM has none
+        put(t, &stake_config_id(), 960_480, vec![0u8; 10], &anchor_lang::solana_program::config::program::ID);
         w.register_all(t);
         w.snapshot_lamports(t);
         w
@@ -292,7 +296,7 @@ impl World {
 
     /// tag registry: what kind of account each known key is
     fn register_all(&mut self, t: &mut Trident) {
-        let mut tag = |w: &mut World, k: Pubkey, tags: &[&'static str]| {
+        let tag = |w: &mut World, k: Pubkey, tags: &[&'static str]| {
             w.tags.entry(k).or_default().extend_from_slice(tags);
             w.pool.push(k);
             w.tracked.insert(k);
@@ -318,13 +322,11 @@ impl World {
                 inst.lp_mint,
                 inst.stake_list,
                 inst.validator_list,
-                inst.deposit_auth,
-                inst.withdraw_auth,
-                inst.msol_mint_auth,
-                inst.lp_mint_auth,
-                inst.msol_leg_auth,
             ] {
                 tag(self, k, &[]);
+            }
+            for k in [inst.deposit_auth, inst.withdraw_auth, inst.msol_mint_auth, inst.lp_mint_auth, inst.msol_leg_auth] {
+                tag(self, k, &["pda_sys"]); // nonexistent system-owned PDAs: valid SystemAccount, cannot sign
             }
             if a_side {
                 tag(self, inst.msol_leg, &["msol_ta"]);
@@ -343,10 +345,13 @@ impl World {
             tag(self, c.sol_leg, &["wallet", "sol_leg"]);
             tag(self, c.msol_leg, &["msol_ta_C"]);
             tag(self, c.treasury_msol, &["msol_ta_C"]);
-            tag(self, c.stake_list, &["zero_list"]);
-            tag(self, c.validator_list, &["zero_list"]);
-            for k in [c.state, c.msol_mint, c.lp_mint, c.deposit_auth, c.withdraw_auth, c.msol_mint_auth, c.lp_mint_auth, c.msol_leg_auth] {
-                tag(self, k, &[]);
+            tag(self, c.stake_list, &["zero_list", "ticket_new"]);
+            tag(self, c.validator_list, &["zero_list", "ticket_new"]);
+            tag(self, c.msol_mint, &["mint_C"]);
+            tag(self, c.lp_mint, &["mint_C"]);
+            tag(self, c.state, &["ticket_new"]); // zeroed, program-owned: any `zero` slot accepts it
+            for k in [c.deposit_auth, c.withdraw_auth, c.msol_mint_auth, c.lp_mint_auth, c.msol_leg_auth] {
+                tag(self, k, &["pda_sys"]);
             }
         }
         for v in self.votes.clone() {
@@ -529,6 +534,28 @@ impl World {
         let first = sched.get_first_slot_in_epoch(epoch);
         t.warp_to_epoch(epoch);
         t.warp_to_slot(last.saturating_sub(slots_before_end).max(first));
+    }
+
+    /// every ticket-sized program-owned account that currently holds a ticket of instance A
+    pub fn live_tickets(&self, t: &mut Trident) -> Vec<Pubkey> {
+        let keys: Vec<Pubkey> = self.tracked.iter().copied().collect();
+        keys.into_iter()
+            .filter(|k| {
+                let a = t.get_account(k);
+                *a.owner() == program_id()
+                    && a.data().len() >= TICKET_SIZE
+                    && TicketAccountData::try_deserialize(&mut a.data()).map(|d| d.state_address == self.a.state).unwrap_or(false)
+            })
+            .collect()
+    }
+
+    /// accounts whose change means the instruction really did something to instance A
+    pub fn core_keys(&self, t: &mut Trident) -> Vec<Pubkey> {
+        let a = &self.a;
+        let mut v = vec![a.state, a.stake_list, a.validator_list, a.reserve, a.sol_leg, a.msol_leg, a.treasury_msol, a.msol_mint, a.lp_mint];
+        v.extend(self.stakes(t, a).iter().map(|r| r.stake_account));
+        v.extend(self.live_tickets(t));
+        v
     }
 
     pub fn user_of(&self, k: &Pubkey) -> Option<&User> {

@@ -1,0 +1,6 @@
+trident-tests/target/
+trident-tests/target-cov/
+trident-tests/fuzz-out/
+trident-tests/coverage-html/
+trident-tests/coverage.lcov
+*.profraw

@@ -1,0 +1,32 @@
+# Triaged findings: a signature matching one of these entries does not abort the iteration (it is
+# still counted in fuzz-out/*-stats.txt). An entry is substrings joined by ` && `; all must occur.
+# Keep entries narrow (instruction + message + file) so a new panic in the same instruction still
+# surfaces. Run with FUZZ_STRICT=1 to ignore this file. Details: ../README.md "Findings".
+
+# F1 (known, permissionless): lamports donated to the reserve PDA make available_reserve_balance
+# underflow in State::on_transfer_from_reserve (state/mod.rs) until the next update_* re-syncs it.
+program_panic:stake_reserve: && attempt to subtract with overflow && src/state/mod.rs
+program_panic:claim: && attempt to subtract with overflow && src/state/mod.rs
+
+# F2 (admin-only): min_stake has no upper bound; 2 * min_stake / target + min_stake overflow.
+program_panic:deactivate_stake: && attempt to multiply with overflow && crank/deactivate_stake.rs
+program_panic:partial_unstake: && attempt to add with overflow && management/partial_unstake.rs
+
+# F3 (manager-only): scores near u32::MAX overflow total_validator_score.
+program_panic:add_validator: && attempt to add with overflow && state/validator_system.rs
+program_panic:set_validator_score: && attempt to add with overflow && management/set_validator_score.rs
+
+# F4 (admin/manager-only): realloc record_size * capacity overflows; partial_unstake panics instead
+# of returning an error on a too-small amount (assert!) and, after a slash, when ticket debt exceeds
+# active + reserve + cooling (u64::try_from(..).expect) where deactivate_stake saturates.
+program_panic:realloc_stake_list: && attempt to multiply with overflow && admin/realloc_stake_list.rs
+program_panic:realloc_validator_list: && attempt to multiply with overflow && admin/realloc_validator_list.rs
+program_panic:partial_unstake: && desired_unstake_amount too low
+program_panic:partial_unstake: && total_stake_target+stake_delta: TryFromIntError(NegOverflow)
+
+# F5 (framework): Anchor's `zero` constraint slices the first 8 bytes without a length check.
+program_panic:initialize: && range end index && admin/initialize.rs
+program_panic:order_unstake: && range end index && delayed_unstake/order_unstake.rs
+
+# F6 (info): partial_unstake.stake_history is not address-checked (only forwarded to a CPI).
+substitution_succeeded:partial_unstake: && slot # `stake_history`

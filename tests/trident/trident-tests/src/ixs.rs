@@ -102,6 +102,8 @@ fn tag(s: &str) -> &'static str {
         "ticket_new" => "ticket_new",
         "zero_list" => "zero_list",
         "msol_ta_C" => "msol_ta_C",
+        "mint_C" => "mint_C",
+        "any" => "*",
         "stake_user" => "stake_user",
         "vote_reg" => "vote_reg",
         "vote" => "vote",
@@ -133,7 +135,7 @@ pub fn initialize(a: &Inst, data: marinade_finance::instructions::admin::Initial
         }
         .to_account_metas(None),
         instruction::Initialize { data }.data(),
-        "state:F reserve:F stake_list:U/zero_list validator_list:U/zero_list msol_mint:F operational:U/wallet lp_mint:F sol_leg:F msol_leg:F treasury_msol:U/msol_ta_C clock:F rent:F",
+        "state:F reserve:F stake_list:U/zero_list validator_list:U/zero_list msol_mint:U/mint_C operational:U/wallet lp_mint:U/mint_C sol_leg:F msol_leg:U/msol_ta_C treasury_msol:U/msol_ta_C clock:F rent:F",
         Gate::None,
     )
 }
@@ -586,7 +588,7 @@ pub fn deposit_stake_account(a: &Inst, stake: &Pubkey, stake_auth: &Pubkey, flag
         }
         .to_account_metas(None),
         instruction::DepositStakeAccount { validator_index }.data(),
-        "state:F validator_list:F stake_list:F stake_account:U/stake_user stake_authority:U/wallet dup_flag:F rent_payer:U/wallet msol_mint:F mint_to:U/msol_ta msol_mint_auth:F clock:F rent:F system:F token:F stake_program:F",
+        "state:F validator_list:F stake_list:F stake_account:U/stake_user stake_authority:U/wallet dup_flag:U/any rent_payer:U/wallet msol_mint:F mint_to:U/msol_ta msol_mint_auth:F clock:F rent:F system:F token:F stake_program:F",
         Gate::None,
     )
 }
