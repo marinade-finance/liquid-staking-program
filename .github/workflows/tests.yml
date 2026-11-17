@@ -1,0 +1,58 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cluster-profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Install host toolchain
+        run: cd tests && rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: tests/cluster-profile
+      - name: cargo test (cluster-profile)
+        run: cd tests/cluster-profile && cargo test --locked
+
+  harness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/build-program
+      - name: Install host toolchain
+        run: cd tests && rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: tests
+      - name: cargo test (harness, committed mainnet profile)
+        env:
+          MARINADE_SO: ${{ github.workspace }}/target/deploy/marinade_finance.so
+          HARNESS_BASE: ${{ github.workspace }}/tests/profiles/mainnet.json
+          HARNESS_TARGET: ${{ github.workspace }}/tests/profiles/mainnet.json
+          HARNESS_REPORT: ${{ runner.temp }}/harness-report.jsonl
+          PROPTEST_CASES: "16"
+        run: cd tests && cargo test --locked -- --nocapture
+      - name: Report
+        if: always()
+        run: |
+          if [ -s "$RUNNER_TEMP/harness-report.jsonl" ]; then
+            {
+              echo "### Harness report"
+              echo
+              jq -r '"* \(if .passed then "pass" else "FAIL" end) `\(.test)`"' "$RUNNER_TEMP/harness-report.jsonl"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

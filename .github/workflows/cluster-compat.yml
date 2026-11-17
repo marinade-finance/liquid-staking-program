@@ -1,0 +1,210 @@
+name: cluster-compat
+
+# Weekly: what differs between mainnet/testnet/devnet and agave master, and does the program
+# (HEAD build and the binary live on mainnet) survive each difference? See tests/README.md.
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      try_features:
+        description: Extra feature gates to try on top of mainnet (comma list of ids or agave module names)
+        type: string
+        default: ""
+      program_ref:
+        description: Git ref of the program to build (anchor 0.31 sources only)
+        type: string
+        default: ""
+      fuzz_cases:
+        description: PROPTEST_CASES for the fuzz test
+        type: string
+        default: "2000"
+      snapshot:
+        description: Snapshot the clusters now (false = use the committed tests/profiles)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cluster-compat
+  cancel-in-progress: false
+
+jobs:
+  profiles:
+    name: snapshot and drift
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DO_SNAPSHOT: ${{ github.event_name != 'workflow_dispatch' || inputs.snapshot }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Install host toolchain
+        run: cd tests && rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: tests/cluster-profile
+      - name: Build cluster-profile
+        run: cd tests/cluster-profile && CARGO_TARGET_DIR="$GITHUB_WORKSPACE/tests/target-profile" cargo build --release --locked
+      - name: Snapshot clusters
+        run: |
+          set -euo pipefail
+          CP="$GITHUB_WORKSPACE/tests/target-profile/release/cluster-profile"
+          mkdir -p fresh
+          if [ "$DO_SNAPSHOT" = true ]; then
+            for c in mainnet testnet devnet; do "$CP" snapshot --cluster "$c" --out fresh; done
+          else
+            cp -r tests/profiles/. fresh/
+          fi
+      - name: Diff and drift
+        run: |
+          set -euo pipefail
+          CP="$GITHUB_WORKSPACE/tests/target-profile/release/cluster-profile"
+          mkdir -p report
+          "$CP" diff fresh/mainnet.json fresh/testnet.json fresh/devnet.json --json report/diff.json > report/diff.md
+          {
+            echo "## Drift against committed tests/profiles"
+            echo
+            echo "Informational: refresh with the commands in tests/README.md when a change matters."
+            echo
+            for c in mainnet testnet devnet; do
+              echo "### $c"
+              echo
+              jq -rn --slurpfile old "tests/profiles/$c.json" --slurpfile new "fresh/$c.json" '
+                ($old[0]) as $o | ($new[0]) as $n |
+                ([ $n.features | to_entries[]
+                   | select(($o.features[.key].status // "absent") != .value.status)
+                   | "* feature `\(.value.module // .key)` (\(.key)): \($o.features[.key].status // "absent") -> \(.value.status)" ]) as $f |
+                ([ $n.programs | to_entries[]
+                   | select(($o.programs[.key].sha256 // $o.programs[.key].builtin // "absent") != (.value.sha256 // .value.builtin // "absent"))
+                   | "* program \(.value.name) (\(.key)): \(($o.programs[.key].sha256 // "absent")[0:12]) -> \((.value.sha256 // "builtin")[0:12])" ]) as $p |
+                ([ ($n.sysvars | keys[]) as $k | select($o.sysvars[$k] != $n.sysvars[$k]) | "* sysvar \($k) changed" ]) as $s |
+                ([ "* version: \($o.version["solana-core"]) -> \($n.version["solana-core"])" | select($o.version["solana-core"] != $n.version["solana-core"]) ]) as $v |
+                ($f + $p + $s + $v) as $all |
+                if ($all | length) == 0 then "no drift" else $all[] end'
+              echo
+            done
+            echo "## Cluster diff (fresh)"
+            echo
+            cat report/diff.md
+          } > report/drift.md
+          cat report/drift.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cluster-profiles
+          path: |
+            fresh
+            report
+          if-no-files-found: error
+
+  matrix:
+    name: matrix (HEAD and live mainnet binary)
+    needs: profiles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    outputs:
+      rc: ${{ steps.run.outputs.rc }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Checkout program ref
+        if: inputs.program_ref != ''
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.program_ref }}
+          path: program-src
+      - uses: ./.github/actions/build-program
+        with:
+          source-dir: ${{ inputs.program_ref != '' && 'program-src' || '.' }}
+      - name: Install host toolchain
+        run: cd tests && rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: tests
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cluster-profiles
+          path: artifacts
+      - name: Run matrix
+        id: run
+        env:
+          TRY_FEATURES: ${{ inputs.try_features }}
+          PROGRAM_DIR: ${{ inputs.program_ref != '' && 'program-src' || '.' }}
+          FUZZ_CASES: ${{ inputs.fuzz_cases || '2000' }}
+        run: |
+          set -uo pipefail
+          args=(--so "head=$GITHUB_WORKSPACE/$PROGRAM_DIR/target/deploy/marinade_finance.so" --so profile
+                --profiles "$GITHUB_WORKSPACE/artifacts/fresh" --fuzz-cases "$FUZZ_CASES"
+                --out "$GITHUB_WORKSPACE/matrix-out" --try-master)
+          if [ -n "$TRY_FEATURES" ]; then args+=(--try "$TRY_FEATURES"); fi
+          rc=0
+          tests/scripts/matrix.sh "${args[@]}" || rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          echo "matrix.sh exit code: $rc (0 pass, 1 findings, 2 mainnet broken, 3 error)"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: matrix-out
+          path: |
+            matrix-out/summary.md
+            matrix-out/summary.json
+            matrix-out/targets.tsv
+            matrix-out/diff
+            matrix-out/runs
+            matrix-out/build.log
+          if-no-files-found: warn
+      - name: Fail the run on findings
+        if: steps.run.outputs.rc != '0'
+        env:
+          RC: ${{ steps.run.outputs.rc }}
+        run: |
+          echo "::error::cluster-compat matrix finished with exit code $RC (1 = findings, 2 = mainnet broken, 3 = error)"
+          exit 1
+
+  issue:
+    name: report
+    needs: [profiles, matrix]
+    if: ${{ always() && (needs.profiles.result == 'failure' || needs.matrix.result == 'failure') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      RC: ${{ needs.matrix.outputs.rc }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: matrix-out
+          path: matrix-out
+      - name: Create or update the cluster-compat issue
+        run: |
+          set -euo pipefail
+          case "${RC:-}" in
+            1) head="Findings: a runtime target fails where mainnet passes" ;;
+            2) head="MAINNET BROKEN: the baseline fails on the mainnet profile" ;;
+            *) head="The cluster-compat job failed before producing a matrix (exit code '${RC:-none}'); see the run" ;;
+          esac
+          {
+            echo "$head"
+            echo
+            echo "Run: $RUN_URL"
+            echo
+            if [ -f matrix-out/summary.md ]; then
+              head -c 55000 matrix-out/summary.md
+            else
+              echo "No summary.md was produced."
+            fi
+          } > body.md
+          gh label create cluster-compat --color B60205 --description "Weekly cluster compatibility run" --force >/dev/null
+          n="$(gh issue list --label cluster-compat --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --body-file body.md
+            echo "Updated issue #$n" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue create --label cluster-compat --title "cluster-compat: runtime compatibility problem" --body-file body.md
+          fi

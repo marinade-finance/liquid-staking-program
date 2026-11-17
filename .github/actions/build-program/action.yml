@@ -1,0 +1,43 @@
+name: Build Marinade program
+description: Build marinade_finance.so with Solana 2.3.13 and platform tools v1.52 (anchor 0.31 sources only).
+inputs:
+  source-dir:
+    description: Directory holding the program sources
+    default: .
+runs:
+  using: composite
+  steps:
+    - name: Cache Solana toolchain
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/solana-release-2.3.13
+          ~/.cache/solana
+        key: solana-2.3.13-tools-v1.52-${{ runner.os }}
+    - name: Cache cargo registry
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: program-cargo-${{ runner.os }}-${{ hashFiles(format('{0}/Cargo.lock', inputs.source-dir)) }}
+        restore-keys: program-cargo-${{ runner.os }}-
+    - name: Install Solana 2.3.13
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ ! -x "$HOME/solana-release-2.3.13/solana-release/bin/cargo-build-sbf" ]; then
+          mkdir -p "$HOME/solana-release-2.3.13"
+          curl -fsSL https://release.anza.xyz/v2.3.13/solana-release-x86_64-unknown-linux-gnu.tar.bz2 \
+            | tar -xj -C "$HOME/solana-release-2.3.13"
+        fi
+        echo "$HOME/solana-release-2.3.13/solana-release/bin" >> "$GITHUB_PATH"
+    - name: Build program
+      shell: bash
+      env:
+        SOURCE_DIR: ${{ inputs.source-dir }}
+      run: |
+        set -euo pipefail
+        cd "$SOURCE_DIR"
+        cargo-build-sbf --tools-version v1.52 --manifest-path programs/marinade-finance/Cargo.toml --sbf-out-dir target/deploy
+        sha256sum target/deploy/marinade_finance.so

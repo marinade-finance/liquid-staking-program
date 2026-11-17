@@ -53,4 +53,4 @@ audits:
 
 # Integration Testing
 
-Note: integration tests are not included in this repo. Tests will be published later.
+Cluster-compatibility, transition and fuzz tests live in [tests/](tests/README.md): they run the compiled program in-process against snapshots of the mainnet, testnet and devnet runtimes (feature gates, sysvars, core BPF programs) and against what-if feature activations.
