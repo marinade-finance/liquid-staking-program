@@ -87,6 +87,40 @@ pub struct User {
     pub lp: Address,
 }
 
+impl Clone for User {
+    fn clone(&self) -> Self {
+        User { key: crate::env::clone_keypair(&self.key), msol: self.msol, lp: self.lp }
+    }
+}
+
+impl Clone for Marinade {
+    fn clone(&self) -> Self {
+        use crate::env::clone_keypair as ck;
+        Marinade {
+            state: self.state,
+            admin: ck(&self.admin),
+            validator_manager: ck(&self.validator_manager),
+            pause_authority: ck(&self.pause_authority),
+            operational: self.operational,
+            treasury_owner: self.treasury_owner,
+            msol_mint: self.msol_mint,
+            lp_mint: self.lp_mint,
+            msol_leg: self.msol_leg,
+            treasury_msol: self.treasury_msol,
+            reserve: self.reserve,
+            sol_leg: self.sol_leg,
+            stake_list: self.stake_list,
+            validator_list: self.validator_list,
+            deposit_auth: self.deposit_auth,
+            withdraw_auth: self.withdraw_auth,
+            msol_mint_auth: self.msol_mint_auth,
+            lp_mint_auth: self.lp_mint_auth,
+            msol_leg_auth: self.msol_leg_auth,
+            slots_for_stake_delta: self.slots_for_stake_delta,
+        }
+    }
+}
+
 impl User {
     pub fn pubkey(&self) -> Address {
         self.key.pubkey()

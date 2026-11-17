@@ -15,7 +15,8 @@
 //! 6. per validator `v`: `v.active_balance == sum(L(r) : r Active, delegated to v)`
 //! 7. `delayed_unstake_cooling_down == sum(L(r) : r Deactivating && !emergency)`,
 //!    `emergency_cooling_down == sum(L(r) : r Deactivating && emergency)`
-//! 8. `circulating_ticket_balance == sum(ticket.lamports_amount)`, `circulating_ticket_count == #tickets`
+//! 8. `circulating_ticket_balance == sum(ticket.lamports_amount)`, `circulating_ticket_count == #ticket accounts`
+//!    (zero-value tickets included: they can never be claimed, see tests/findings.rs)
 //! 9. every tracked stake account: owned by the stake program, initialized+delegated, staker == deposit
 //!    authority PDA, withdrawer == withdraw authority PDA, `lamports >= Rent::minimum_balance(200)`
 //!    (rent-exempt under the LIVE rent) and `lamports >= delegation.stake`; Active record <=> delegation
@@ -295,8 +296,10 @@ pub fn check(env: &TestEnv, m: &Marinade, prev: Option<&Snapshot>, opts: &Option
         out.push(v("emergency_cooling_down", format!("state {} != sum(deactivating, emergency) {}", s.emergency_cooling_down, emergency)));
     }
     // 8
-    let tsum: u64 = now.tickets.iter().map(|t| t.1).filter(|x| *x > 0).sum();
-    let tcount = now.tickets.iter().filter(|t| t.1 > 0).count() as u64;
+    // zero-value tickets (min_withdraw = 0 allows ordering an unstake worth 0 lamports) are never claimable and
+    // never closed, but they are counted in circulating_ticket_count: count every existing ticket account
+    let tsum: u64 = now.tickets.iter().map(|t| t.1).sum();
+    let tcount = now.tickets.len() as u64;
     if tsum != s.ticket_balance || tcount != s.ticket_count {
         out.push(v("tickets", format!("state balance/count {}/{} != tickets {}/{}", s.ticket_balance, s.ticket_count, tsum, tcount)));
     }
@@ -358,6 +361,7 @@ pub fn check_all(env: &TestEnv, m: &Marinade, prev: &Snapshot) -> Result<(), Vec
 }
 
 /// Stateful helper: keeps the previous snapshot.
+#[derive(Clone)]
 pub struct Checker {
     pub prev: Snapshot,
     pub opts: Options,

@@ -194,6 +194,11 @@ pub struct Ledger {
     pub burned: u128,
 }
 
+/// Clone a keypair (solana `Keypair` is not `Clone`).
+pub fn clone_keypair(k: &Keypair) -> Keypair {
+    Keypair::try_from(&k.to_bytes()[..]).expect("keypair bytes")
+}
+
 pub struct TestEnv {
     svm: LiteSVM,
     pub runtime: Runtime,
@@ -202,6 +207,21 @@ pub struct TestEnv {
     pub ledger: Ledger,
     /// number of transactions executed
     pub tx_count: u64,
+}
+
+impl Clone for TestEnv {
+    /// Deep copy of the whole chain state (LiteSVM is `Clone`); lets a fuzzer build one pre-initialized env
+    /// and fork it per case instead of paying the setup cost each time.
+    fn clone(&self) -> Self {
+        TestEnv {
+            svm: self.svm.clone(),
+            runtime: self.runtime.clone(),
+            payer: clone_keypair(&self.payer),
+            marinade_so: self.marinade_so.clone(),
+            ledger: self.ledger,
+            tx_count: self.tx_count,
+        }
+    }
 }
 
 fn build_svm(rt: &Runtime) -> Result<LiteSVM> {
@@ -431,6 +451,8 @@ impl TestEnv {
                 Ok(TxMeta { logs: m.logs, cu: m.compute_units_consumed, fee: m.fee })
             }
             Err(f) => {
+                // a failed (but included) transaction still pays its fee
+                self.ledger.burned += f.meta.fee as u128;
                 let (ix_index, class) = classify(&f.err, &f.meta.logs);
                 Err(TxFailure { err: f.err, ix_index, class, logs: f.meta.logs, cu: f.meta.compute_units_consumed })
             }
@@ -540,6 +562,24 @@ impl TestEnv {
         );
         let ixs: Vec<Instruction> = ixs.iter().map(|i| convert_ix!(i)).collect();
         self.send(&ixs, &[&stake, authority]).map_err(|e| anyhow!("create_delegated_stake: {e}"))?;
+        Ok(stake.pubkey())
+    }
+
+    /// Like [`Self::create_delegated_stake`] but `funder` (who is also staker/withdrawer) pays the lamports.
+    pub fn create_delegated_stake_from(&mut self, funder: &Keypair, vote: &Address, delegated: u64) -> Result<Address, TxFailure> {
+        let stake = Keypair::new();
+        let lamports = self.stake_rent() + delegated;
+        let auth = solana_stake_interface::state::Authorized { staker: p(&funder.pubkey()), withdrawer: p(&funder.pubkey()) };
+        let ixs = solana_stake_interface::instruction::create_account_and_delegate_stake(
+            &p(&funder.pubkey()),
+            &p(&stake.pubkey()),
+            &p(vote),
+            &auth,
+            &solana_stake_interface::state::Lockup::default(),
+            lamports,
+        );
+        let ixs: Vec<Instruction> = ixs.iter().map(|i| convert_ix!(i)).collect();
+        self.send(&ixs, &[&stake, funder])?;
         Ok(stake.pubkey())
     }
 

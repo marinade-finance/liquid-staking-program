@@ -16,6 +16,9 @@ pub struct Fixture {
     pub chk: Checker,
     pub validators: Vec<(Address, u32)>,
     pub users: Vec<User>,
+    /// HARNESS_LENIENT=1: record failures instead of stopping at the first one (see `finish`)
+    pub lenient: bool,
+    pub findings: Vec<String>,
 }
 
 pub fn so_sha(env: &TestEnv) -> String {
@@ -32,13 +35,107 @@ pub fn fixture(spec: &str, nvals: usize, nusers: usize) -> Result<Fixture> {
     }
     let users = (0..nusers).map(|_| m.new_user(&mut env, sol(100_000))).collect();
     let chk = Checker::new(&env, &m);
-    Ok(Fixture { env, m, chk, validators, users })
+    let lenient = std::env::var("HARNESS_LENIENT").map(|v| v == "1").unwrap_or(false);
+    Ok(Fixture { env, m, chk, validators, users, lenient, findings: vec![] })
 }
 
 impl Fixture {
     pub fn check(&mut self, op: &str) {
         if let Err(e) = self.chk.check_after(&self.env, &self.m, op) {
-            panic!("{e}");
+            if self.lenient {
+                self.findings.push(e);
+            } else {
+                panic!("{e}");
+            }
         }
     }
+
+    /// op result: strict -> panic on failure; lenient -> record and continue. Invariants are checked afterwards.
+    pub fn step<T>(&mut self, name: &str, r: Result<T, TxFailure>) -> Option<T> {
+        let v = match r {
+            Ok(v) => Some(v),
+            Err(e) => {
+                if self.lenient {
+                    self.findings.push(format!("{name} failed: {e}"));
+                    None
+                } else {
+                    panic!("{name} failed: {e}");
+                }
+            }
+        };
+        self.check(name);
+        v
+    }
+
+    pub fn finish(&mut self) {
+        if !self.findings.is_empty() {
+            panic!("{} finding(s):\n{}", self.findings.len(), self.findings.iter().map(|x| format!(" - {x}")).collect::<Vec<_>>().join("\n"));
+        }
+    }
+}
+
+use harness::crank::{Crank, CrankReport};
+use harness::env::TxFailure;
+
+impl Fixture {
+    /// Run a crank body with invariants checked after every crank op.
+    pub fn crank<R>(&mut self, body: impl FnOnce(&mut Crank, &mut TestEnv) -> Result<R>) -> Result<(R, CrankReport)> {
+        let Fixture { env, m, chk, lenient, findings, .. } = self;
+        let m: &Marinade = m;
+        let lenient = *lenient;
+        let mut found: Vec<String> = vec![];
+        let (r, report) = {
+            let mut c = Crank::new(m).with_hook(|e, op| match chk.check_after(e, m, op) {
+                Err(msg) if lenient => {
+                    found.push(msg);
+                    Ok(())
+                }
+                other => other,
+            });
+            if lenient {
+                c.strict = false;
+            }
+            let r = body(&mut c, env)?;
+            (r, c.report)
+        };
+        findings.extend(found);
+        if lenient {
+            for o in report.failures() {
+                findings.push(format!("{} failed: {}", o.name, o.error.clone().unwrap_or_default()));
+            }
+        }
+        Ok((r, report))
+    }
+
+    /// unwrap an op result and check the invariants right after it
+    pub fn ok<T>(&mut self, name: &str, r: Result<T, TxFailure>) -> T {
+        let v = match r {
+            Ok(v) => v,
+            Err(e) => panic!("{name} failed: {e}"),
+        };
+        self.check(name);
+        v
+    }
+
+    /// deposit from user `u` then crank the stake-delta window of this epoch
+    pub fn deposit_and_stake(&mut self, u: usize, lamports: u64) -> Result<()> {
+        let r = self.m.deposit(&mut self.env, &self.users[u], lamports);
+        self.ok("deposit", r);
+        self.crank(|c, env| c.stake_delta(env))?;
+        Ok(())
+    }
+}
+
+/// Run a test body on the TARGET runtime, reporting the outcome when HARNESS_REPORT is set.
+pub fn scenario(name: &str, nvals: usize, body: impl FnOnce(&mut Fixture) -> Result<()> + std::panic::UnwindSafe) {
+    let spec = profile::target_spec();
+    let spec2 = spec.clone();
+    let sha = {
+        let rt = profile::resolve(&spec).unwrap();
+        profile::marinade_so(&rt).map(|b| b.sha256).unwrap_or_default()
+    };
+    harness::report::run_reported(&format!("scenarios::{name}"), &spec, &spec, &sha, move || {
+        let mut f = fixture(&spec2, nvals, 3)?;
+        body(&mut f)
+    });
 }

@@ -31,3 +31,13 @@ pub fn repo_root() -> std::path::PathBuf {
 pub fn tests_dir() -> std::path::PathBuf {
     repo_root().join("tests")
 }
+
+/// Small convenience on keypairs.
+pub trait KeypairExt {
+    fn pubkey_addr(&self) -> Pubkey;
+}
+impl KeypairExt for Keypair {
+    fn pubkey_addr(&self) -> Pubkey {
+        self.pubkey()
+    }
+}

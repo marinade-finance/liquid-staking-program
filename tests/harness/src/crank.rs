@@ -134,6 +134,10 @@ impl<'a> Crank<'a> {
         let rec = &m.stake_records(env)[si as usize];
         let Some(v) = env.stake_view(addr) else { return Ok(false) };
         let Some(d) = v.delegation.clone() else { return Ok(false) };
+        // a deactivating stake (e.g. the canonical stake after a partial/emergency unstake) is never "updated" via update_active
+        if d.deactivation_epoch != u64::MAX || rec.last_update_status != marinade_finance::state::stake_system::StakeStatus::Active {
+            return Ok(false);
+        }
         let rent = env.stake_rent();
         if rec.last_update_delegated_lamports == d.stake && v.lamports == d.stake + rent {
             return Ok(true);

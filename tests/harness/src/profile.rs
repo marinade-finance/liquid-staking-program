@@ -445,7 +445,14 @@ pub fn resolve(spec: &str) -> Result<Runtime> {
                 let label = module_of(resolver, &id).unwrap_or_else(|| id.clone());
                 if enable {
                     if !activate(&mut rt, &id, 0) {
-                        unmodeled(&mut rt, format!("+{label} ({id}): unknown to agave-feature-set 4.3.2, nothing simulated"));
+                        let modeled = effects::affects_rent(&id)
+                            || effects::PROGRAM_SWAPS.iter().any(|s| s.feature_id == id);
+                        let what = if modeled {
+                            "only its modeled activation effects (rent / program swap) are applied"
+                        } else {
+                            "nothing simulated"
+                        };
+                        unmodeled(&mut rt, format!("+{label} ({id}): unknown to agave-feature-set 4.3.2, {what}"));
                     }
                 } else {
                     deactivate(&mut rt, &id);
@@ -585,6 +592,13 @@ mod tests {
         }
         let rt = resolve("profiles/mainnet.json,+virtual_address_space_adjustments,+account_data_direct_mapping,+direct_account_pointers_in_program_input,+set_lamports_per_byte_to_2575").unwrap();
         assert_eq!(rt.rent.lamports_per_byte_year, 2575);
+        let text = std::fs::read_to_string(crate::tests_dir().join("profiles/mainnet.json")).unwrap();
+        let p: ProfileJson = serde_json::from_str(&text).unwrap();
+        for m in ["virtual_address_space_adjustments", "account_data_direct_mapping", "direct_account_pointers_in_program_input"] {
+            let id = id_of_name(Some(&p), m).unwrap();
+            assert!(rt.feature_set.is_active(&addr(&id)), "{m} must be active in the engine feature set");
+            assert!(rt.unmodeled.iter().all(|u| !u.contains(&id)), "{m} is known to the engine");
+        }
         let rt2 = resolve("builtin,+virtual_address_space_adjustments").unwrap();
         assert!(rt2.active_ids.len() > resolve("builtin").unwrap().active_ids.len() - 1);
     }
