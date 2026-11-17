@@ -20,7 +20,7 @@
 //! 9. every tracked stake account: owned by the stake program, initialized+delegated, staker == deposit
 //!    authority PDA, withdrawer == withdraw authority PDA, `lamports >= Rent::minimum_balance(200)`
 //!    (rent-exempt under the LIVE rent) and `lamports >= delegation.stake`; Active record <=> delegation
-//!    not deactivating; no duplicates; the validator it is delegated to exists
+//!    not deactivating; no duplicates; the validator it is delegated to exists (Active records only: a cooling-down stake may outlive a removed validator)
 //! 10. every Marinade-owned account is rent-exempt under the live rent
 //! 11. lamport conservation: `total(all accounts) - (injected - burned)` is unchanged between snapshots
 //!     (the harness books every external mutation: airdrops, rewards, deployments, fees)
@@ -261,8 +261,11 @@ pub fn check(env: &TestEnv, m: &Marinade, prev: Option<&Snapshot>, opts: &Option
         if view.lamports < d.stake {
             out.push(v("stake_lamports", format!("{} holds {} < delegation {}", st.address, view.lamports, d.stake)));
         }
-        if !vote_set.contains(&d.voter.to_string()) {
-            out.push(v("stake_validator", format!("{} delegated to unlisted validator {}", st.address, d.voter)));
+        // remove_validator only needs active_balance == 0: a stake that is still cooling down may outlive its validator
+        // record (it then needs the validator re-added before update_deactivated, see tests/findings.rs); an ACTIVE
+        // stake on an unlisted validator can never be right
+        if st.active && !vote_set.contains(&d.voter.to_string()) {
+            out.push(v("stake_validator", format!("{} is Active but delegated to unlisted validator {}", st.address, d.voter)));
         }
         if st.active {
             if d.deactivation_epoch != u64::MAX {

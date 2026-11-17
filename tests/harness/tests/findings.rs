@@ -8,7 +8,6 @@ use common::fixture;
 use harness::convert::to_addr;
 use harness::env::sol;
 use harness::profile;
-use marinade_finance::error::MarinadeError as ME;
 use marinade_finance::instructions::admin::ConfigMarinadeParams;
 
 /// FINDING 1 (low/medium): anyone can make `stake_reserve` panic by sending lamports to the reserve PDA.
@@ -116,22 +115,26 @@ fn removed_validator_blocks_update_deactivated() {
     f.deposit_and_stake(0, sol(1000)).unwrap();
     f.env.warp_epochs(1);
     f.crank(|c, env| c.update_all(env)).unwrap();
+    // drop validator 0 to score 0 and order a delayed unstake large enough that its whole stake is deactivated
+    let (vote0, vi0) = f.validators[0];
+    f.m.set_validator_score(&mut f.env, vi0, &vote0, 0).unwrap();
     let msol = f.env.token_balance(&f.users[0].msol);
-    f.m.order_unstake(&mut f.env, &f.users[0], msol / 2).unwrap();
+    f.m.order_unstake(&mut f.env, &f.users[0], msol * 55 / 100).unwrap();
     f.crank(|c, env| c.stake_delta(env)).unwrap();
-    // set every score to 0 is not needed: the deactivated validator has no ACTIVE balance left only if its whole stake was deactivated
-    let recs = f.m.indexed_stakes(&f.env);
-    let cooling: Vec<_> = recs.iter().filter(|r| r.record.last_update_status == marinade_finance::state::stake_system::StakeStatus::Deactivating).collect();
-    assert!(!cooling.is_empty());
-    let c = cooling[0];
-    let v = f.env.stake_view(&to_addr(&c.record.stake_account)).unwrap();
-    let vote = v.delegation.unwrap().voter;
-    let vi = f.m.validator_index(&f.env, &vote).unwrap();
-    let active = f.m.validator_records(&f.env)[vi as usize].active_balance;
-    assert_eq!(active, 0, "scenario needs a validator whose whole stake is cooling down");
-    f.m.remove_validator(&mut f.env, vi, &vote).unwrap();
+    let st = f.m.state(&f.env);
+    assert!(st.stake_system.delayed_unstake_cooling_down > 0);
+    assert_eq!(f.m.validator_records(&f.env)[vi0 as usize].active_balance, 0, "scenario needs validator 0 fully cooling down");
+    let cooling = f
+        .m
+        .indexed_stakes(&f.env)
+        .into_iter()
+        .find(|r| f.env.stake_view(&to_addr(&r.record.stake_account)).unwrap().delegation.unwrap().voter == vote0)
+        .unwrap();
+    // the manager removes the validator while its stake account is still cooling down
+    f.m.remove_validator(&mut f.env, vi0, &vote0).unwrap();
     f.env.warp_epochs(1);
-    let r = f.m.update_deactivated(&mut f.env, c.index, 0);
-    assert!(r.is_ok(), "update_deactivated of a cooled-down stake failed after its validator was removed: {}", r.unwrap_err());
-    let _ = ME::WrongValidatorAccountOrIndex;
+    for vi in 0..f.m.state(&f.env).validator_system.validator_count() {
+        let r = f.m.update_deactivated(&mut f.env, cooling.index, vi);
+        assert!(r.is_ok(), "update_deactivated of a cooled-down stake failed after its validator was removed (validator index {vi}): {}", r.unwrap_err());
+    }
 }

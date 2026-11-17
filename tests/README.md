@@ -44,6 +44,26 @@ Harness environment: `MARINADE_SO` (path, or `profile` = the Marinade binary ins
 A spec string is `<profile.json|builtin>[,+F][,-F][,rent=N][,program:<id>=<file.so>]`, where `F` is a feature id or agave module name.
 `matrix.sh --dry-run` prints the targets and exits without running anything.
 
+## Stateful fuzz and property tests
+
+```bash
+cd tests
+# mainnet runtime, 1000 cases (default; ~30 s). BASE == TARGET: no transition
+HARNESS_BASE=profiles/mainnet.json PROPTEST_CASES=1000 cargo test --test fuzz -- --nocapture
+# "feature activates mid-life": one runtime switch at a random op index
+HARNESS_BASE=profiles/mainnet.json HARNESS_TARGET=profiles/mainnet.json,+set_lamports_per_byte_to_2575 cargo test --test fuzz -- --nocapture
+# pure arithmetic properties (calc.rs, fees, price helpers), no SVM
+cargo test --test calc_props
+# known program findings (each asserts the CORRECT behaviour, so they fail today and are #[ignore]d)
+cargo test --test findings -- --ignored
+```
+
+`fuzz.rs` knobs: `PROPTEST_CASES`, `FUZZ_MAX_OPS` (default 40), `FUZZ_SEED` (u64; runs are deterministic, the seed is printed),
+`FUZZ_SHRINK_ITERS`, `FUZZ_NO_PERSIST=1`, `FUZZ_REGRESSIONS=<file>` (default `harness/proptest-regressions/fuzz.txt`: failing
+seeds are saved there and replayed first; commit it). `cargo test --test fuzz replay -- --ignored --nocapture` replays a
+hand-written case with a trace. The test prints per-op outcome coverage and cases/s at the end. Failures print the shrunk
+op list (with the transition marker) and a per-op trace.
+
 ## Reading the matrix
 
 `matrix.sh` runs every (binary, target) with `HARNESS_BASE` = mainnet profile and `HARNESS_TARGET` = the target.

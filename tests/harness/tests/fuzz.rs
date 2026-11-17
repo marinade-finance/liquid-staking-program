@@ -165,6 +165,8 @@ enum Op {
     DoWork,
     // ---- environment
     Warp { n: u8 },
+    /// warp `n` epochs and open the partitioned-rewards window at the start of the new epoch for `len` ops
+    WarpWithRewardsWindow { n: u8, len: u8 },
     WarpToWindow,
     Reward { s: u8, kind: RewardKind },
     Mev { s: u8, amt: Amt },
@@ -296,6 +298,7 @@ fn op_s() -> BoxedStrategy<Op> {
         (2, sel().prop_map(|s| Op::EmergencyUnstake { s }).boxed()),
         (5, Just(Op::DoWork).boxed()),
         (8, (1u8..=3).prop_map(|n| Op::Warp { n }).boxed()),
+        (3, (1u8..=2, 1u8..=4).prop_map(|(n, len)| Op::WarpWithRewardsWindow { n, len }).boxed()),
         (2, Just(Op::WarpToWindow).boxed()),
         (
             5,
@@ -448,6 +451,7 @@ struct Sim {
     min_deleg: u64,
     /// crank deactivate_stake failures caused by the stake program's minimum delegation (known limit, see findings)
     min_deleg_hits: u64,
+    price_overflow_hits: u64,
 }
 
 type Stats = BTreeMap<String, u64>;
@@ -495,6 +499,7 @@ impl Sim {
             nops: 0,
             min_deleg: g.min_deleg,
             min_deleg_hits: 0,
+            price_overflow_hits: 0,
         }
     }
 
@@ -517,6 +522,12 @@ impl Sim {
     fn reserve_desynced(&self) -> bool {
         let st = self.st();
         self.env.lamports(&self.m.reserve) > st.available_reserve_balance + st.rent_exempt_for_token_acc
+    }
+    /// `update_msol_price` stores `msol_to_sol(2^32)`: it overflows u64 once one mSOL unit is worth more than 2^32 lamports
+    /// (only after nearly the whole supply exited while fees stayed in the pool), and then update_* revert (known limit)
+    fn price_overflow(&self) -> bool {
+        let st = self.st();
+        st.msol_supply > 0 && (State::PRICE_DENOMINATOR as u128) * st.total_virtual_staked_lamports() as u128 / st.msol_supply as u128 > u64::MAX as u128
     }
     fn in_window(&self) -> bool {
         self.env.in_stake_window(self.m.slots_for_stake_delta)
@@ -862,6 +873,7 @@ impl Sim {
                     .must(r.vi.is_none() && nval > 0, ME::WrongValidatorAccountOrIndex, "validator of this stake was removed from the list")
                     .must(r.vi.is_none() && nval == 0, ME::ListIndexOutOfBounds, "no validators listed")
                     .must(r.deact() || !r.active(), ME::RequiredActiveStake, "deactivating stake")
+                    .may(self.price_overflow(), ME::CalculationFailure, "known limit: msol price overflows u64 when supply is tiny")
                     .stake(self.window_active(), "partitioned rewards window (stake withdraw of extra lamports)");
                 let res = self.m.update_active(&mut self.env, r.idx, r.vi.unwrap_or(0));
                 let o = self.judge("update_active", j, res)?;
@@ -877,6 +889,7 @@ impl Sim {
                     .must(st.paused, ME::ProgramIsPaused, "paused")
                     .must(r.vi.is_none() && nval > 0, ME::WrongValidatorAccountOrIndex, "validator of this stake was removed from the list")
                     .must(r.vi.is_none() && nval == 0, ME::ListIndexOutOfBounds, "no validators listed")
+                    .may(self.price_overflow(), ME::CalculationFailure, "known limit: msol price overflows u64 when supply is tiny")
                     .stake(!cooled, "stake program refuses to withdraw a stake that is still cooling down")
                     .stake(self.window_active(), "partitioned rewards window");
                 let res = self.m.update_deactivated(&mut self.env, r.idx, r.vi.unwrap_or(0));
@@ -902,6 +915,7 @@ impl Sim {
                     .must(!r.updated(), ME::SourceStakeMustBeUpdated, "source not updated this epoch")
                     .must(r.view.lamports < d.stake + rent, ME::SourceStakeMustBeUpdated, "source holds less than delegation + rent")
                     .stake(self.env.activation(&d) != Activation::FullyActive, "stake program refuses to split a not fully active stake")
+                    .stake(self.chk.opts.allow_loss, "slash model: a slashed stake can fall below the stake program's minimum delegation")
                     .stake(self.window_active(), "partitioned rewards window");
                 let res = self.m.create_canonical_stake(&mut self.env, r.idx, vi);
                 let o = self.judge("create_canonical_stake", j, res)?;
@@ -933,6 +947,7 @@ impl Sim {
                     .must(!src.updated() || src.view.lamports != sd.stake + rent, ME::SourceStakeMustBeUpdated, "source not updated / has surplus lamports (merge needs exact stake + rent)")
                     .must(sd.voter != vote, ME::InvalidSourceStakeDelegation, "source delegated to another validator")
                     .stake(!mergeable, "stake program: incompatible stakes (activation state or credits differ)")
+                    .stake(self.chk.opts.allow_loss, "slash model: a slashed stake can fall below the stake program's minimum delegation")
                     .stake(self.window_active(), "partitioned rewards window");
                 let res = self.m.merge_stakes(&mut self.env, dest_idx, src.idx, vi as u32);
                 let o = self.judge("merge_stakes", j, res)?;
@@ -957,6 +972,7 @@ impl Sim {
                     .must(r.vi.is_none() && nval > 0, ME::WrongValidatorAccountOrIndex, "validator removed")
                     .must(r.vi.is_none() && nval == 0, ME::ListIndexOutOfBounds, "no validators")
                     .stake(r.active() && self.in_window() && delta < 0, "partial split below the stake program's minimum delegation")
+                    .stake(self.chk.opts.allow_loss, "slash model: a slashed stake can fall below the stake program's minimum delegation")
                     .stake(self.window_active(), "partitioned rewards window");
                 let res = self.m.deactivate_stake(&mut self.env, r.idx, r.vi.unwrap_or(0)).map(|o| o.meta);
                 let o = self.judge("deactivate_stake", j, res)?;
@@ -977,6 +993,7 @@ impl Sim {
                     .must(r.vi.is_none() && nval == 0, ME::ListIndexOutOfBounds, "no validators")
                     .may(st.max_stake_moved_per_epoch.basis_points < 10_000, ME::MovingStakeIsCapped, "per-epoch stake move cap configured")
                     .stake(r.active(), "split below the stake program's minimum delegation (surplus over target < min delegation)")
+                    .stake(self.chk.opts.allow_loss, "slash model: a slashed stake can fall below the stake program's minimum delegation")
                     .stake(self.window_active(), "partitioned rewards window");
                 let res = self.m.partial_unstake(&mut self.env, r.idx, r.vi.unwrap_or(0), desired).map(|o| o.meta);
                 let o = self.judge("partial_unstake", j, res)?;
@@ -1003,6 +1020,12 @@ impl Sim {
             }
             Op::Warp { n } => {
                 self.env.warp_epochs(n as u64);
+            }
+            Op::WarpWithRewardsWindow { n, len } => {
+                self.env.warp_epochs(n as u64);
+                self.env.set_epoch_rewards_active(true);
+                self.window_left = len as u32 + 1;
+                note = format!("epoch start; EpochRewards active for the next {len} ops");
             }
             Op::WarpToWindow => {
                 let n = self.m.slots_for_stake_delta;
@@ -1250,6 +1273,7 @@ impl Sim {
             .must(value_ok && split <= l && l - split < st.stake_system.min_stake, ME::StakeAccountRemainderTooLow, "remainder below min_stake")
             .stake(r.view.delegation.as_ref().map(|d| self.env.activation(d) != Activation::FullyActive).unwrap_or(false), "stake program split of a not fully active stake")
             .stake(split < self.min_deleg || l.saturating_sub(split) < self.min_deleg, "split / remainder below the stake program's minimum delegation (Marinade min_stake may be lower)")
+            .stake(self.chk.opts.allow_loss, "slash model: a slashed stake can fall below the stake program's minimum delegation")
             .stake(self.window_active(), "partitioned rewards window");
         let split_key = harness::Keypair::new();
         let rent = self.env.stake_rent();
@@ -1401,6 +1425,16 @@ impl Sim {
                 stat(format!("{name}: KNOWN BUG panic (crank {}: reserve donation makes `available_reserve_balance -= x` underflow)", f.name));
                 continue;
             }
+            // a slashed (model) stake can fall below the stake program's minimum delegation: Split/Merge then refuse it
+            if f.marinade_code == Some(u32::from(ME::CalculationFailure)) && self.price_overflow() {
+                self.price_overflow_hits += 1;
+                stat(format!("{name}: {} reverted: msol price (2^32 * tvs / supply) overflows u64 (known limit, tiny supply)", f.name));
+                continue;
+            }
+            if self.chk.opts.allow_loss && f.error.as_deref().map(|e| e.contains("Custom(12)")).unwrap_or(false) {
+                stat(format!("{name}: stake op refused for a slashed stake below the minimum delegation (slash model artifact)"));
+                continue;
+            }
             if f.name.starts_with("stake_reserve") && f.error.as_deref().map(|e| e.contains("insufficient lamports")).unwrap_or(false) && self.st().total_cooling_down() > 0 {
                 stat(format!("{name}: stake_reserve over-stakes cooling-down SOL not yet in the reserve (known limit)"));
                 continue;
@@ -1463,7 +1497,15 @@ impl Sim {
         self.env.set_epoch_rewards_active(false);
         self.window_left = 0;
         self.env.warp_epochs(1);
+        let frozen: Vec<u64> = self.recs().iter().map(|r| r.view.rent_exempt_reserve).collect();
         self.env.transition(target).map_err(|e| format!("transition failed: {e:#}"))?;
+        // A rent DROP releases lamports: the stake program freezes Meta.rent_exempt_reserve, the program derives the
+        // rent part from the live Rent and sweeps the rest into the reserve like MEV (update_active / update_deactivated /
+        // merge). It is a windfall for mSOL holders, so it counts as a reward in the final accounting.
+        let live = self.env.stake_rent();
+        let windfall: u64 = frozen.iter().map(|f| f.saturating_sub(live)).sum();
+        self.rewards += windfall as i128;
+        self.trace.push(format!("transition: rent windfall from {} tracked stakes: {windfall} lamports", frozen.len()));
         self.transitioned = true;
         self.trace.push(format!("---- TRANSITION: stake rent now {} ----", self.env.stake_rent()));
         self.check("transition")
@@ -1493,7 +1535,7 @@ impl Sim {
         self.env.warp_epochs(1);
         self.run_crank("end do_work", |c, e| c.do_work(e))?;
         self.check("end: do_work")?;
-        if !self.chk.opts.allow_loss && std::env::var("FUZZ_SKIP_FULLY_UPDATED").is_err() {
+        if !self.chk.opts.allow_loss && self.price_overflow_hits == 0 && std::env::var("FUZZ_SKIP_FULLY_UPDATED").is_err() {
             let viol = harness::invariants::check_fully_updated(&self.env, &self.m);
             if !viol.is_empty() {
                 return Err(format!("[fully_updated] after a full crank: {viol:?}"));
@@ -1605,14 +1647,15 @@ impl Sim {
     fn settle_tickets(&mut self) -> Res<()> {
         // 3. crank + claim until every ticket is paid (bounded)
         let mut limit_stuck = false;
+        let mut known_bug_hit = false;
         for round in 0..6 {
             if self.live_tickets().is_empty() {
                 break;
             }
             self.env.warp_epochs(1);
-            let hits = self.min_deleg_hits;
+            let hits = self.min_deleg_hits + self.price_overflow_hits;
             self.run_crank("exit do_work", |c, e| c.do_work(e))?;
-            limit_stuck = self.min_deleg_hits > hits;
+            limit_stuck = self.min_deleg_hits + self.price_overflow_hits > hits;
             self.check(&format!("exit: do_work round {round}"))?;
             let all: Vec<(usize, Address)> = self.actors.iter().enumerate().flat_map(|(i, a)| a.tickets.iter().map(move |t| (i, *t))).collect();
             for (owner, t) in all {
@@ -1623,13 +1666,19 @@ impl Sim {
                 match self.m.claim(&mut self.env, &t, &b) {
                     Ok(_) => self.actors[owner].tickets.retain(|x| *x != t),
                     Err(f) if f.is_marinade(ME::TicketNotReady) || f.is_marinade(ME::TicketNotDue) => {}
+                    Err(f) if f.is_panic() && f.logs.join("\n").contains("state/mod.rs:281") && self.reserve_desynced() => {
+                        stat("exit: KNOWN BUG panic (claim: reserve donation makes `available_reserve_balance -= amount` underflow)".into());
+                        known_bug_hit = true;
+                    }
                     Err(f) => return Err(format!("[exit] claim failed unexpectedly: {f}")),
                 }
                 self.check("exit: claim")?;
             }
         }
         let stuck: Vec<String> = self.live_tickets().iter().map(|t| format!("{t}")).collect();
-        if !stuck.is_empty() && limit_stuck {
+        if !stuck.is_empty() && known_bug_hit {
+            stat("exit: tickets left unclaimable (KNOWN BUG: claim panics while the reserve holds donated lamports)".into());
+        } else if !stuck.is_empty() && limit_stuck {
             // known limit: the remaining unstake is smaller than the stake program's minimum delegation
             stat("exit: tickets left unserved (deactivate split below minimum delegation, known limit)".into());
         } else if !stuck.is_empty() && !self.chk.opts.allow_loss {
