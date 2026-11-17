@@ -2,7 +2,7 @@
 //! Invariants (invariants.rs) are checked after every op.
 mod common;
 use common::scenario;
-use harness::KeypairExt;
+use harness::{KeypairExt, Signer};
 use harness::convert::to_addr;
 use harness::env::{sol, Activation};
 use marinade_finance::instructions::admin::ConfigLpParams;
@@ -226,6 +226,37 @@ fn emergency_unstake() {
         let (_, rep) = f.crank(|c, env| c.update_all(env))?;
         assert!(rep.count("update_deactivated") >= 1);
         assert_eq!(f.m.state(&f.env).emergency_cooling_down, 0);
+        Ok(())
+    });
+}
+
+/// Evidence for the `deposit_stake_account-user-stake` known live limitation (topup.rs): the binary live on mainnet
+/// accepts a user stake once the USER sends the missing `meta.rent_exempt_reserve - live rent` lamports to it
+/// (the crank bot never touches user accounts). Runs only for HARNESS_RENT_TOPUP + the live binary.
+#[test]
+fn deposit_stake_account_live_needs_user_topup() {
+    scenario("deposit_stake_account_live_needs_user_topup", 2, |f| {
+        if !harness::topup::limitations_apply(&f.env.marinade_so.sha256) {
+            eprintln!("skipped: only meaningful with HARNESS_RENT_TOPUP=1 on the live binary");
+            return Ok(());
+        }
+        f.deposit_and_stake(0, sol(100))?;
+        let (vote, vi) = f.validators[0];
+        let stake = {
+            let u = &f.users[1];
+            f.env.create_delegated_stake(&u.key, &vote, sol(50))?
+        };
+        let v = f.env.stake_view(&stake).unwrap();
+        let gap = v.rent_exempt_reserve.saturating_sub(f.env.stake_rent());
+        if gap == 0 {
+            return Ok(()); // rent not reduced: no gap on this runtime
+        }
+        let key = harness::env::clone_keypair(&f.users[1].key);
+        let i = solana_system_interface::instruction::transfer(&key.pubkey(), &stake, gap);
+        f.env.send(&[i], &[&key]).map_err(|e| anyhow::anyhow!("self top-up: {e}"))?;
+        let r = f.m.deposit_stake_account(&mut f.env, &f.users[1], &stake, vi);
+        f.ok("deposit_stake_account (user self top-up)", r);
+        assert!(f.m.stake_index(&f.env, &stake).is_some());
         Ok(())
     });
 }

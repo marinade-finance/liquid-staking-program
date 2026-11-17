@@ -1,0 +1,26 @@
+# Own cargo workspace and Cargo.lock: the program's root workspace / verifiable build is untouched.
+[workspace]
+
+[package]
+name = "marinade-trident-fuzz"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Trident instruction-level fuzzing for the Marinade liquid staking program"
+
+[lib]
+name = "mfuzz"
+path = "src/lib.rs"
+
+[dependencies]
+trident-fuzz = { version = "=0.12.0", features = ["all", "syscall-v2"] }
+marinade-finance = { path = "../../../programs/marinade-finance", features = ["no-entrypoint"] }
+anchor-lang = "=0.31.1"
+anchor-spl = { version = "=0.31.1", default-features = false, features = ["stake", "mint", "token"] }
+solana-vote-interface = { version = "2", features = ["bincode"] }
+bincode = "1"
+
+[profile.release]
+# same as the program's root profile: arithmetic overflow must panic exactly like on-chain
+overflow-checks = true
+debug = "line-tables-only"

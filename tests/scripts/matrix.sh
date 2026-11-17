@@ -2,7 +2,11 @@
 # Cluster-compatibility matrix: program binaries x runtime targets.
 #
 #   matrix.sh [--so [NAME=]<path|profile>]... [--profiles DIR] [--snapshot] [--try F[,F...]]
-#             [--try-master] [--tests FILTER] [--fuzz-cases N] [--out DIR] [--dry-run]
+#             [--try-master] [--tests FILTER] [--fuzz-cases N] [--no-topup] [--out DIR] [--dry-run]
+#
+# `--so profile` (the Marinade binary live on mainnet) runs in operational mode by default: HARNESS_RENT_TOPUP=1,
+# i.e. with marcrank's stake rent top-up applied, label `live+topup`. `--no-topup` runs it as the bare binary (label
+# `live`). Every other binary runs with HARNESS_RENT_TOPUP=0. See tests/ARCHITECTURE.md, "Operational mode".
 #
 # Exit codes: 0 all pass, 1 findings (a target fails where the baseline passes),
 #             2 baseline (mainnet) broken, 3 usage / environment error.
@@ -22,8 +26,9 @@ TESTS_FILTER=""
 FUZZ_CASES=64
 OUT=""
 DRY_RUN=0
+NO_TOPUP=0
 
-usage() { sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 die() { echo "matrix.sh: $*" >&2; exit 3; }
 
 while [ $# -gt 0 ]; do
@@ -36,6 +41,7 @@ while [ $# -gt 0 ]; do
     --tests) [ $# -ge 2 ] || die "--tests needs a value"; TESTS_FILTER="$2"; shift 2 ;;
     --fuzz-cases) [ $# -ge 2 ] || die "--fuzz-cases needs a value"; FUZZ_CASES="$2"; shift 2 ;;
     --out) [ $# -ge 2 ] || die "--out needs a value"; OUT="$2"; shift 2 ;;
+    --no-topup) NO_TOPUP=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown option $1" ;;
@@ -54,11 +60,13 @@ if [ ${#SOS[@]} -eq 0 ]; then
 fi
 SO_LABELS=()
 SO_VALUES=()
+SO_TOPUP=()
 for s in "${SOS[@]}"; do
   if [[ "$s" == *=* ]]; then
     label="${s%%=*}"; val="${s#*=}"
   elif [ "$s" = "profile" ]; then
-    label="profile"; val="profile"
+    if [ "$NO_TOPUP" = 1 ]; then label="live"; else label="live+topup"; fi
+    val="profile"
   else
     label="$(basename "$s" .so)"; val="$s"
   fi
@@ -68,6 +76,8 @@ for s in "${SOS[@]}"; do
   fi
   SO_LABELS+=("$label")
   SO_VALUES+=("$val")
+  # operational mode (marcrank's stake rent top-up) only for the binary live on mainnet
+  if [ "$val" = "profile" ] && [ "$NO_TOPUP" = 0 ]; then SO_TOPUP+=(1); else SO_TOPUP+=(0); fi
 done
 
 # ---- cluster-profile tool ---------------------------------------------------
@@ -144,7 +154,7 @@ fi
 N_TARGETS="$(wc -l < "$TARGETS")"
 echo "[matrix] ${#SO_LABELS[@]} binaries x $N_TARGETS targets" >&2
 if [ "$DRY_RUN" = 1 ]; then
-  echo "binaries:"; for i in "${!SO_LABELS[@]}"; do echo "  ${SO_LABELS[$i]} = ${SO_VALUES[$i]}"; done
+  echo "binaries:"; for i in "${!SO_LABELS[@]}"; do echo "  ${SO_LABELS[$i]} = ${SO_VALUES[$i]} (HARNESS_RENT_TOPUP=${SO_TOPUP[$i]})"; done
   echo "targets (HARNESS_BASE=$MAINNET):"
   while IFS=$'\t' read -r label spec kind delta; do
     echo "  [$kind] $label  HARNESS_TARGET=$spec"; echo "      delta: $delta"
@@ -171,7 +181,7 @@ CELLS="$OUT/cells"
 rm -rf "$CELLS"; mkdir -p "$CELLS"
 
 for i in "${!SO_LABELS[@]}"; do
-  so_label="${SO_LABELS[$i]}"; so_val="${SO_VALUES[$i]}"
+  so_label="${SO_LABELS[$i]}"; so_val="${SO_VALUES[$i]}"; so_topup="${SO_TOPUP[$i]}"
   while IFS=$'\t' read -r label spec kind delta; do
     dir="$OUT/runs/$(safe "$so_label")/$(safe "$label")"
     mkdir -p "$dir"
@@ -180,7 +190,7 @@ for i in "${!SO_LABELS[@]}"; do
     rc=0
     # captured output: libtest's own "test X ... ok|FAILED" lines are the source of truth
     (cd "$TESTS_DIR" && \
-      MARINADE_SO="$so_val" HARNESS_BASE="$MAINNET" HARNESS_TARGET="$spec" \
+      MARINADE_SO="$so_val" HARNESS_RENT_TOPUP="$so_topup" HARNESS_BASE="$MAINNET" HARNESS_TARGET="$spec" \
       HARNESS_REPORT="$dir/report.jsonl" PROPTEST_CASES="$FUZZ_CASES" \
       cargo test "${TEST_ARGS[@]}") > "$dir/test.log" 2>&1 || rc=$?
     python3 -I "$SCRIPT_DIR/parse_libtest.py" "$dir/test.log" > "$dir/results.jsonl"

@@ -32,6 +32,7 @@ cd tests && MARINADE_SO=../target/deploy/marinade_finance.so PROPTEST_CASES=64 c
 
 # 3. full matrix for HEAD and for the binary live on mainnet (uses the committed profiles)
 tests/scripts/matrix.sh --so head=target/deploy/marinade_finance.so --so profile --fuzz-cases 200
+#    `--so profile` runs with HARNESS_RENT_TOPUP=1 (label live+topup); add --no-topup for the bare live binary (label live)
 
 # 4. same with fresh cluster snapshots, plus extra what-if features
 tests/scripts/matrix.sh --snapshot --so head=target/deploy/marinade_finance.so --try-master --try set_lamports_per_byte_to_2575
@@ -40,9 +41,20 @@ tests/scripts/matrix.sh --snapshot --so head=target/deploy/marinade_finance.so -
 tests/scripts/backtest.sh 07ffbf7 d4e2023 HEAD
 ```
 
-Harness environment: `MARINADE_SO` (path, or `profile` = the Marinade binary inside the base profile), `HARNESS_BASE`, `HARNESS_TARGET` (spec strings, below), `HARNESS_REPORT` (JSON lines, one per test), `PROPTEST_CASES`.
+Harness environment: `MARINADE_SO` (path, or `profile` = the Marinade binary inside the base profile), `HARNESS_BASE`, `HARNESS_TARGET` (spec strings, below), `HARNESS_REPORT` (JSON lines, one per test), `HARNESS_RENT_TOPUP` (operational mode, below), `PROPTEST_CASES`.
 A spec string is `<profile.json|builtin>[,+F][,-F][,rent=N][,program:<id>=<file.so>]`, where `F` is a feature id or agave module name.
 `matrix.sh --dry-run` prints the targets and exits without running anything.
+
+## Operational mode: the live binary with the crank bot
+
+The binary live on mainnet predates the rent fix, so on its own it fails under today's Rent; on mainnet marcrank's `top-up-stake-rent` hides that. `HARNESS_RENT_TOPUP=1` makes the harness do what the bot does (same rule as marcrank, run at the start of every crank and before every direct crank op), so the live binary can be tested the way it actually runs:
+
+```bash
+cd tests && MARINADE_SO=profile HARNESS_RENT_TOPUP=1 cargo test --no-fail-fast   # live binary + bot
+cd tests && MARINADE_SO=profile cargo test --no-fail-fast                         # bare live binary: 7 failures, all the rent gap
+```
+
+The flag only affects the binary of the base profile (HEAD behaves the same with and without it; `HARNESS_RENT_TOPUP=force` applies it to any binary). What the bot cannot fix is listed in `harness/src/topup.rs` (`known_live_limitations`: user stake accounts created under the reduced Rent cannot be deposited, `WrongStakeBalance`). Those failures print `KNOWN-LIVE-LIMITATION` lines (run with `-- --nocapture`) and count as passes, only with the flag and only on the live binary. Details: ARCHITECTURE.md, "Operational mode".
 
 ## Stateful fuzz and property tests
 
@@ -69,6 +81,8 @@ op list (with the transition marker) and a per-op trace.
 `matrix.sh` runs every (binary, target) with `HARNESS_BASE` = mainnet profile and `HARNESS_TARGET` = the target.
 Transition tests therefore model "mainnet upgrades to the target", and pure tests run on the target.
 Targets: `mainnet` (baseline), `testnet`, `devnet`, and `mainnet,+F` for every feature that `cluster-profile list-upcoming` reports (active or pending elsewhere, not on mainnet), every `--try` feature and, with `--try-master`, every feature known only on agave master.
+
+Binaries: `head` is your build; `live+topup` is the binary live on mainnet with the crank bot's stake rent top-up (operational mode, `--no-topup` gives the bare `live` binary, which fails on today's Rent by itself).
 
 Result per cell:
 

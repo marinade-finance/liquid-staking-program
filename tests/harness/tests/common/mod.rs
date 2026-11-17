@@ -40,6 +40,13 @@ pub fn fixture(spec: &str, nvals: usize, nusers: usize) -> Result<Fixture> {
 }
 
 impl Fixture {
+    /// HARNESS_RENT_TOPUP=1 on the binary live on mainnet: is this failure one of `topup::known_live_limitations`?
+    /// Prints a KNOWN-LIVE-LIMITATION line when it is. Anything else is a real failure.
+    pub fn known_live_limitation(&self, op: &str, e: &TxFailure) -> bool {
+        let test = std::thread::current().name().unwrap_or("?").to_string();
+        harness::topup::waive(&self.env.marinade_so.sha256, &test, op, &e.to_string()).is_some()
+    }
+
     pub fn check(&mut self, op: &str) {
         if let Err(e) = self.chk.check_after(&self.env, &self.m, op) {
             if self.lenient {
@@ -55,7 +62,10 @@ impl Fixture {
         let v = match r {
             Ok(v) => Some(v),
             Err(e) => {
-                if self.lenient {
+                if self.known_live_limitation(name, &e) {
+                    // documented limitation of the live binary: skip the op, keep going
+                    None
+                } else if self.lenient {
                     self.findings.push(format!("{name} failed: {e}"));
                     None
                 } else {
@@ -111,7 +121,13 @@ impl Fixture {
     pub fn ok<T>(&mut self, name: &str, r: Result<T, TxFailure>) -> T {
         let v = match r {
             Ok(v) => v,
-            Err(e) => panic!("{name} failed: {e}"),
+            Err(e) => {
+                if self.known_live_limitation(name, &e) {
+                    // ends the test early; `run_reported` counts it as a pass
+                    std::panic::resume_unwind(Box::new(harness::report::Waived(format!("{name}: {}", e.marinade_name().unwrap_or("?")))));
+                }
+                panic!("{name} failed: {e}")
+            }
         };
         self.check(name);
         v

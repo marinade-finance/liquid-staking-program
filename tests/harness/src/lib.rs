@@ -5,6 +5,7 @@
 //! * [`marinade`]: fixture + typed instruction builders/ops + readers
 //! * [`crank`]: one "epoch crank" like marcrank's do-work
 //! * [`invariants`]: accounting invariants checked after every op
+//! * [`topup`]: operational mode (`HARNESS_RENT_TOPUP=1`): marcrank's stake rent top-up + known live limitations
 //! * [`report`]: JSON-lines outcome reports (`HARNESS_REPORT`)
 //!
 //! See `tests/ARCHITECTURE.md` for the shared design.
@@ -17,6 +18,7 @@ pub mod invariants;
 pub mod marinade;
 pub mod profile;
 pub mod report;
+pub mod topup;
 
 pub use solana_address::Address as Pubkey;
 pub use solana_keypair::Keypair;

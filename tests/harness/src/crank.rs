@@ -292,6 +292,7 @@ impl<'a> Crank<'a> {
 
     /// Start of an epoch: update everything, create canonical stakes, merge.
     pub fn start_of_epoch(&mut self, env: &mut TestEnv) -> Result<()> {
+        self.m.operational_top_up(env); // marcrank runs top-up-stake-rent first (HARNESS_RENT_TOPUP=1)
         self.update_all(env)?;
         self.canonical_and_merge(env)?;
         Ok(())
@@ -299,6 +300,7 @@ impl<'a> Crank<'a> {
 
     /// marcrank do-work over the epoch: start-of-epoch work, then the stake-delta window (warps inside the epoch).
     pub fn do_work(&mut self, env: &mut TestEnv) -> Result<()> {
+        self.m.operational_top_up(env);
         self.start_of_epoch(env)?;
         self.stake_delta(env)?;
         Ok(())

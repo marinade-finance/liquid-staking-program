@@ -1,0 +1,11 @@
+# Trident configuration. The program under test runs natively (TridentEntrypoint, see src/world.rs),
+# so there is no [[fuzz.programs]] entry; set MARINADE_SBF=path/to/marinade_finance.so to run the
+# compiled SBF binary instead (same fuzz code, different executor).
+
+[fuzz.metrics]
+enabled = false
+
+[fuzz.coverage]
+enable = false
+loopcount = 5
+format = "json"

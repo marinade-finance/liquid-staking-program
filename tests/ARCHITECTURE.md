@@ -130,10 +130,11 @@ Harness environment variables:
 
 | var | default | meaning |
 |---|---|---|
-| `MARINADE_SO` | `../target/deploy/marinade_finance.so` (repo build) | program under test; `profile` = the Marinade binary inside the base profile |
+| `MARINADE_SO` | `../target/deploy/marinade_finance.so` (repo build) | program under test; `profile` = the Marinade binary inside the base profile (`HARNESS_BASE`, whatever the target is; committed mainnet profile if the base has none) |
 | `HARNESS_BASE` | `profiles/mainnet.json` if present, else `builtin` | runtime the tests start on |
 | `HARNESS_TARGET` | = `HARNESS_BASE` | runtime the cluster "upgrades" to mid-test in transition tests; pure tests run on it too |
 | `HARNESS_REPORT` | unset | if set, append one JSON line per test outcome (for matrix.sh) |
+| `HARNESS_RENT_TOPUP` | unset (off) | operational mode, see below. `1` = run marcrank's stake rent top-up next to the binary live on mainnet (the Marinade binary of the base profile; any other binary is left alone); `force` = next to any binary; `0` = off |
 
 ## Test kinds
 
@@ -147,6 +148,42 @@ Harness environment variables:
    epoch advances with rewards/MEV/slashing, optional mid-sequence transition), invariants checked
    after every op. Deterministic seeds, shrinking, `PROPTEST_CASES` scales CI vs weekly.
 4. **Pure property tests** on `calc.rs` / fees (host-side, no SVM).
+
+## Operational mode (`HARNESS_RENT_TOPUP`)
+
+The Marinade binary live on mainnet predates the rent fix `d4e2023`. Under today's Rent (5080/byte, stake rent 1_666_240)
+`stake_reserve` creates stake accounts holding `delegation + 1_666_240` while stake v5 writes the frozen
+`meta.rent_exempt_reserve = 2_282_880`; the old program requires `lamports == delegation + meta.rent_exempt_reserve` in
+merge_stakes / create_canonical_stake (`SourceStakeMustBeUpdated`) and mis-accounts update_deactivated. On mainnet the
+crank bot hides this: marcrank's `top-up-stake-rent` runs first in `do-work`. The bare live binary therefore fails most
+tests ("MAINNET BROKEN"), which says nothing about upcoming features. With `HARNESS_RENT_TOPUP=1` the harness behaves like
+the bot (`harness/src/topup.rs`):
+
+* rule (`topup::top_up`, a verbatim port of marcrank, same unit tests): for every Marinade stake account that is delegated,
+  `needed = delegation.stake + meta.rent_exempt_reserve - lamports` (saturating); `0` = left alone (MEV surplus included);
+  `needed > gap` with `gap = min(meta.rent_exempt_reserve, 2_282_880) - live stake rent` = "needs triage", skipped, not
+  funded; otherwise a system transfer of `needed`. At most 512 accounts per run. `Marinade::top_up_stake_rent(env, payer)`
+  returns the number of accounts topped up.
+* funding: a dedicated crank payer (`Marinade::rent_payer`), funded with `env.fund`, so the lamports are booked as
+  injected and the conservation invariant stays exact. `invariants::check_fully_updated` accepts
+  `lamports == delegation + meta.rent_exempt_reserve` in this mode.
+* where: at the start of `Crank::start_of_epoch` / `do_work` (like marcrank), and immediately before every direct crank op
+  wrapper on `Marinade` that reads stake balances (update_active, update_deactivated, merge_stakes,
+  create_canonical_stake, deactivate_stake, partial_unstake, emergency_unstake), so transition.rs, scenarios.rs and the
+  fuzzer get the same behaviour without knowing about it.
+* which binary: `1` only affects the binary whose sha256 equals the Marinade binary of the base profile. A fixed binary
+  (HEAD) is neither helped nor safe: the bot's transfer after `update_active` makes HEAD see lamports above
+  `delegation + live rent` (`SourceStakeMustBeUpdated` in merge_stakes, found with `HARNESS_RENT_TOPUP=force`). HEAD
+  therefore behaves identically with and without the flag.
+* `topup::known_live_limitations()`: failures the bot cannot prevent. They are consulted only when the flag is set AND the
+  binary is the live one; a matching failure prints a `KNOWN-LIVE-LIMITATION` line and counts as a pass (the failing step
+  is skipped in `transition.rs`, ends the test in `scenarios.rs`, is judged as an expected rejection in the fuzzer).
+  Anything else still fails. Today's list: `deposit_stake_account` of a user stake created under the reduced Rent
+  (`WrongStakeBalance`: lamports are `delegation + live rent`, the program wants `+ 2_282_880`; the bot only funds
+  Marinade's own accounts; `scenarios::deposit_stake_account_live_needs_user_topup` shows it works once the user sends the
+  gap lamports themselves). This is the real user-facing state of mainnet today.
+
+`matrix.sh --so profile` runs with `HARNESS_RENT_TOPUP=1` (label `live+topup`); `--no-topup` runs the bare binary (label `live`).
 
 ## Invariants (checked after every op)
 
@@ -167,6 +204,7 @@ Harness environment variables:
 on testnet/devnet but not on mainnet, plus anything listed with `--try`, then run all tests for:
 `mainnet`, `testnet`, `devnet`, `mainnet,+F` for each upcoming F, and `mainnet -> mainnet,+F`
 transitions. A target that fails where `mainnet` passes is a finding and names its cause (feature,
-program hash, sysvar). Weekly GitHub workflow runs it for HEAD and for the binary live on mainnet.
+program hash, sysvar). Weekly GitHub workflow runs it for HEAD and for the binary live on mainnet (`live+topup`: with the crank bot's stake rent
+top-up, see "Operational mode").
 
 `scripts/backtest.sh <commit>...`: build each commit (toolchain per commit), run the matrix with it.

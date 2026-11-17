@@ -396,6 +396,7 @@ impl Checker {
 pub fn check_fully_updated(env: &TestEnv, m: &Marinade) -> Vec<Violation> {
     let mut out = vec![];
     let rent_s = env.stake_rent();
+    let operational = crate::topup::active(env);
     let epoch = env.epoch();
     for r in m.stake_records(env) {
         let addr = to_addr(&r.stake_account);
@@ -405,7 +406,10 @@ pub fn check_fully_updated(env: &TestEnv, m: &Marinade) -> Vec<Violation> {
             if r.last_update_epoch != epoch {
                 out.push(v("fully_updated", format!("{addr} last updated in epoch {} (now {epoch})", r.last_update_epoch)));
             }
-            if r.last_update_delegated_lamports != d.stake || view.lamports != d.stake + rent_s {
+            // operational mode (HARNESS_RENT_TOPUP): the binary under test works against delegation + the frozen meta
+            // reserve, which is where the bot's top-up leaves the account
+            let ok_balance = view.lamports == d.stake + rent_s || (operational && view.lamports == d.stake + view.rent_exempt_reserve);
+            if r.last_update_delegated_lamports != d.stake || !ok_balance {
                 out.push(v(
                     "fully_updated",
                     format!("{addr}: L={} delegation={} lamports-rent={}", r.last_update_delegated_lamports, d.stake, view.lamports as i128 - rent_s as i128),

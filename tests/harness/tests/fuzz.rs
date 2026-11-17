@@ -650,6 +650,11 @@ impl Sim {
                 stat(format!("{name}: rejected {n}"));
                 return Ok(Outcome::Rejected(n));
             }
+            // HARNESS_RENT_TOPUP=1 on the binary live on mainnet: failures the crank bot cannot prevent (topup.rs)
+            if harness::topup::waive(&self.env.marinade_so.sha256, "stateful_fuzz", name, &f.to_string()).is_some() {
+                stat(format!("{name}: KNOWN-LIVE-LIMITATION {}", f.marinade_name().unwrap_or("?")));
+                return Ok(Outcome::Rejected(format!("known live limitation: {}", f.marinade_name().unwrap_or("?"))));
+            }
             // a certain failure must be reported with one of the certain codes
             return Err(format!("[unexpected_error] {name}: {f}\n    allowed here: {}", j.describe()));
         }

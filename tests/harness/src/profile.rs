@@ -512,12 +512,28 @@ pub fn target_spec() -> String {
     std::env::var("HARNESS_TARGET").ok().filter(|s| !s.is_empty()).unwrap_or_else(base_spec)
 }
 
+/// The binary `MARINADE_SO=profile` stands for: the Marinade binary inside the BASE profile (`HARNESS_BASE`, the
+/// cluster the tests start on: the binary live on mainnet), whatever the TARGET runtime is. A base without one
+/// (`builtin`, a profile that does not carry Marinade) falls back to the committed mainnet profile.
+pub fn live_binary() -> Result<ProgramBin> {
+    static LIVE: std::sync::OnceLock<std::result::Result<ProgramBin, String>> = std::sync::OnceLock::new();
+    LIVE.get_or_init(|| {
+        let load = |spec: String| resolve(&spec).ok().and_then(|rt| rt.marinade_so);
+        load(base_spec())
+            .or_else(|| load(crate::tests_dir().join("profiles/mainnet.json").display().to_string()))
+            .ok_or_else(|| "MARINADE_SO=profile but neither the base runtime nor the committed mainnet profile has a Marinade binary".to_string())
+    })
+    .clone()
+    .map_err(|e| anyhow!(e))
+}
+
 /// Path of the Marinade `.so` under test: `MARINADE_SO` (default `<repo>/target/deploy/marinade_finance.so`);
 /// the value `profile` means the binary inside the base profile.
 pub fn marinade_so(base: &Runtime) -> Result<ProgramBin> {
     let v = std::env::var("MARINADE_SO").ok().filter(|s| !s.is_empty());
     if v.as_deref() == Some("profile") {
-        return base.marinade_so.clone().ok_or_else(|| anyhow!("MARINADE_SO=profile but the base runtime has no Marinade binary"));
+        let _ = base;
+        return live_binary();
     }
     let path = match v {
         Some(p) => {

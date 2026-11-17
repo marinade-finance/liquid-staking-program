@@ -1,0 +1,13 @@
+# Stub so that the Trident CLI (which insists on an Anchor workspace root with
+# `trident-tests/Trident.toml` below it) treats tests/trident as its workspace.
+# The real Anchor workspace is the repository root; nothing here is built by Anchor.
+[toolchain]
+anchor_version = "0.31.1"
+solana_version = "2.3.13"
+
+[programs.localnet]
+marinade_finance = "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"

@@ -79,6 +79,8 @@ pub struct Marinade {
     pub lp_mint_auth: Address,
     pub msol_leg_auth: Address,
     pub slots_for_stake_delta: u64,
+    /// dedicated crank payer for the operational stake rent top-up (`HARNESS_RENT_TOPUP=1`, see `topup.rs`)
+    pub rent_payer: Keypair,
 }
 
 pub struct User {
@@ -117,6 +119,7 @@ impl Clone for Marinade {
             lp_mint_auth: self.lp_mint_auth,
             msol_leg_auth: self.msol_leg_auth,
             slots_for_stake_delta: self.slots_for_stake_delta,
+            rent_payer: ck(&self.rent_payer),
         }
     }
 }
@@ -666,6 +669,7 @@ impl Marinade {
             lp_mint_auth,
             msol_leg_auth,
             slots_for_stake_delta: opts.slots_for_stake_delta,
+            rent_payer: Keypair::new(),
         };
         // authorities pay no fees but sign; give them lamports anyway
         for k in [&m.admin, &m.validator_manager, &m.pause_authority] {
@@ -875,16 +879,19 @@ impl Marinade {
     }
 
     pub fn update_active(&self, env: &mut TestEnv, stake_index: u32, validator_index: u32) -> TxResult {
+        self.operational_top_up(env);
         let stake = to_addr(&self.stake_records(env)[stake_index as usize].stake_account);
         env.send(&[ix::update_active(self, &stake, stake_index, validator_index)], &[])
     }
 
     pub fn update_deactivated(&self, env: &mut TestEnv, stake_index: u32, validator_index: u32) -> TxResult {
+        self.operational_top_up(env);
         let stake = to_addr(&self.stake_records(env)[stake_index as usize].stake_account);
         env.send(&[ix::update_deactivated(self, &stake, stake_index, validator_index)], &[])
     }
 
     pub fn deactivate_stake(&self, env: &mut TestEnv, stake_index: u32, validator_index: u32) -> Result<StakeOp, TxFailure> {
+        self.operational_top_up(env);
         let stake = to_addr(&self.stake_records(env)[stake_index as usize].stake_account);
         let before = self.state(env).stake_system.stake_count();
         let k = Keypair::new();
@@ -895,6 +902,7 @@ impl Marinade {
     }
 
     pub fn merge_stakes(&self, env: &mut TestEnv, dest_index: u32, source_index: u32, validator_index: u32) -> TxResult {
+        self.operational_top_up(env);
         let recs = self.stake_records(env);
         let d = to_addr(&recs[dest_index as usize].stake_account);
         let s = to_addr(&recs[source_index as usize].stake_account);
@@ -902,6 +910,7 @@ impl Marinade {
     }
 
     pub fn create_canonical_stake(&self, env: &mut TestEnv, source_index: u32, validator_index: u32) -> TxResult {
+        self.operational_top_up(env);
         let recs = self.stake_records(env);
         let vote = to_addr(&self.validator_records(env)[validator_index as usize].validator_account);
         let canonical = self.canonical_stake(&vote);
@@ -910,6 +919,7 @@ impl Marinade {
     }
 
     pub fn partial_unstake(&self, env: &mut TestEnv, stake_index: u32, validator_index: u32, desired: u64) -> Result<StakeOp, TxFailure> {
+        self.operational_top_up(env);
         let stake = to_addr(&self.stake_records(env)[stake_index as usize].stake_account);
         let before = self.state(env).stake_system.stake_count();
         let k = Keypair::new();
@@ -923,6 +933,7 @@ impl Marinade {
     }
 
     pub fn emergency_unstake(&self, env: &mut TestEnv, stake_index: u32, validator_index: u32) -> TxResult {
+        self.operational_top_up(env);
         let stake = to_addr(&self.stake_records(env)[stake_index as usize].stake_account);
         env.send(&[ix::emergency_unstake(self, &stake, stake_index, validator_index)], &[&self.validator_manager])
     }

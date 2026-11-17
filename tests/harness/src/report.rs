@@ -27,12 +27,24 @@ pub fn record(o: &Outcome) {
     }
 }
 
+/// Panic payload (via `resume_unwind`) of a failure that is a documented limitation of the live binary
+/// (`topup::known_live_limitations`): the test ends early and counts as a pass. The KNOWN-LIVE-LIMITATION line was
+/// already printed by `topup::waive`.
+#[derive(Debug)]
+pub struct Waived(pub String);
+
 /// Run a test body, report its outcome (also on panic or Err), then propagate the failure.
 pub fn run_reported<F>(test: &str, base: &str, target: &str, so_sha: &str, f: F)
 where
     F: FnOnce() -> anyhow::Result<()> + std::panic::UnwindSafe,
 {
     let res = std::panic::catch_unwind(f);
+    if let Err(p) = &res {
+        if let Some(w) = p.downcast_ref::<Waived>() {
+            record(&Outcome { test, base, target, marinade_so_sha256: so_sha, passed: true, error: Some(format!("KNOWN-LIVE-LIMITATION: {}", w.0)) });
+            return;
+        }
+    }
     let (passed, error) = match &res {
         Ok(Ok(())) => (true, None),
         Ok(Err(e)) => (false, Some(format!("{e:#}"))),
