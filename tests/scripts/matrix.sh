@@ -154,7 +154,13 @@ fi
 
 # ---- build once ---------------------------------------------------------------
 echo "[matrix] cargo test --no-run (once)" >&2
-(cd "$TESTS_DIR" && cargo test --no-run) > "$OUT/build.log" 2>&1 || {
+TEST_ARGS=()
+if [ -n "$TESTS_FILTER" ]; then
+  # a file under harness/tests/ selects that test target, anything else is a test-name filter
+  if [ -f "$TESTS_DIR/harness/tests/$TESTS_FILTER.rs" ]; then TEST_ARGS=(--test "$TESTS_FILTER"); else TEST_ARGS=("$TESTS_FILTER"); fi
+fi
+DESCRIBE="$TESTS_DIR/target/debug/describe-runtime"
+(cd "$TESTS_DIR" && cargo test --no-run "${TEST_ARGS[@]}" && cargo build --bin describe-runtime) > "$OUT/build.log" 2>&1 || {
   tail -n 40 "$OUT/build.log" >&2
   die "harness build failed, see $OUT/build.log"
 }
@@ -172,27 +178,32 @@ for i in "${!SO_LABELS[@]}"; do
     rm -f "$dir/report.jsonl"
     echo "[matrix] $so_label x $label" >&2
     rc=0
+    # captured output: libtest's own "test X ... ok|FAILED" lines are the source of truth
     (cd "$TESTS_DIR" && \
       MARINADE_SO="$so_val" HARNESS_BASE="$MAINNET" HARNESS_TARGET="$spec" \
       HARNESS_REPORT="$dir/report.jsonl" PROPTEST_CASES="$FUZZ_CASES" \
-      cargo test ${TESTS_FILTER:+"$TESTS_FILTER"} -- --nocapture) > "$dir/test.log" 2>&1 || rc=$?
-    [ -f "$dir/report.jsonl" ] || : > "$dir/report.jsonl"
-    # UNMODELED marker printed by the harness: "[harness] UNMODELED (<runtime>): <msg>"
-    # (any line containing UNMODELED: is accepted).
-    unmodeled="$(grep -h 'UNMODELED' "$dir/test.log" | sed -E 's/^.*UNMODELED( \([^)]*\))?: ?//' | sort -u | jq -R . | jq -s . )"
-    first_log_err="$(grep -m1 -E '^error(\[|:)|panicked at|FAILED|could not compile' "$dir/test.log" || true)"
+      cargo test "${TEST_ARGS[@]}") > "$dir/test.log" 2>&1 || rc=$?
+    python3 -I "$SCRIPT_DIR/parse_libtest.py" "$dir/test.log" > "$dir/results.jsonl"
+    "$DESCRIBE" "$spec" 2>/dev/null > "$dir/runtime.json" || true
+    unmodeled="$(jq -c '.unmodeled // []' "$dir/runtime.json" 2>/dev/null || echo '[]')"
+    [ -n "$unmodeled" ] || unmodeled='[]'
+    first_log_err="$(grep -m1 -E '^error(\[|:)|could not compile' "$dir/test.log" || true)"
     jq -s \
       --arg so "$so_label" --arg target "$label" --arg kind "$kind" --arg spec "$spec" \
       --arg delta "$delta" --argjson rc "$rc" --argjson unmodeled "$unmodeled" \
       --arg logerr "$first_log_err" --arg dir "${dir#"$OUT"/}" '
       . as $r
-      | ([ $r[] | select(.passed | not) ]) as $f
+      | ([ $r[] | select(.status == "FAILED") ]) as $f
+      | ([ $r[] | select(.status != "ignored") ] | length) as $ran
       | {so: $so, target: $target, kind: $kind, spec: $spec, delta: $delta, cargo_exit: $rc,
-         total: ($r | length), passed: ([ $r[] | select(.passed) ] | length),
-         failed: ( if ($r | length) == 0 and $rc != 0 then ["<harness did not run>"] else [ $f[].test ] end),
-         first_error: ( if ($f | length) > 0 then (($f[0].error // "") | split("\n") | map(select(length > 0)) | .[0] // "(no message)")
-                        elif $rc != 0 then ($logerr // "cargo test failed") else "" end ),
-         unmodeled: $unmodeled, dir: $dir}' "$dir/report.jsonl" > "$CELLS/$(safe "$so_label")__$(safe "$label").json"
+         total: $ran, passed: ([ $r[] | select(.status == "ok") ] | length),
+         failed: ( if $ran == 0 then ["<no test ran>"]
+                   elif ($f | length) == 0 and $rc != 0 then ["<cargo test failed>"]
+                   else [ $f[] | "\(.binary | sub("^tests/"; "") | sub("\\.rs$"; ""))::\(.test)" ] end ),
+         first_error: ( if ($f | length) > 0 then ($f[0].error // "(no message)")
+                        elif $ran == 0 then "no test matched or the harness did not run"
+                        elif $rc != 0 then (if $logerr == "" then "cargo test failed" else $logerr end) else "" end ),
+         unmodeled: $unmodeled, dir: $dir}' "$dir/results.jsonl" > "$CELLS/$(safe "$so_label")__$(safe "$label").json"
   done < "$TARGETS"
 done
 
@@ -205,17 +216,18 @@ jq -s '
       | $g | map(
           . as $c
           | ($c.failed - $bf) as $new
-          | $c + {new_failures: $new,
+          | $c + {new_failures: $new, new_unmodeled: ($c.unmodeled - ($b.unmodeled // [])),
                    status: ( if $c.kind == "baseline" then (if ($c.failed | length) > 0 then "broken" else "pass" end)
                              elif ($new | length) > 0 then "finding"
                              elif ($c.failed | length) > 0 then "fail (as baseline)"
-                             elif ($c.unmodeled | length) > 0 then "unmodeled"
+                             elif (($c.unmodeled - ($b.unmodeled // [])) | length) > 0 then "unmodeled"
                              else "pass" end) } ) )
   | flatten
   | {generated: (now | todate),
      broken: [ .[] | select(.status == "broken") | .so ] | unique,
      findings: [ .[] | select(.status == "finding") | {so, target, delta, new_failures, first_error} ],
-     not_testable: [ .[] | select(.unmodeled | length > 0) | {so, target, unmodeled} ],
+     baseline_unmodeled: ([ .[] | select(.kind == "baseline") | .unmodeled[] ] | unique),
+     not_testable: [ .[] | select(.kind != "baseline" and (.new_unmodeled | length > 0)) | {so, target, unmodeled: .new_unmodeled} ],
      cells: . }' "$CELLS"/*.json > "$OUT/summary.json"
 
 jq -r '
@@ -235,12 +247,17 @@ jq -r '
       ( .findings[] | "* **\(.so)** on `\(.target)`: \(.new_failures | join(", "))\n  * cause (target delta): \(.delta)\n  * first error: `\(.first_error)`" ),
       ""
     else empty end ),
+  ( if (.baseline_unmodeled | length) > 0 then
+      "## Unmodeled already on the mainnet baseline\n",
+      ( .baseline_unmodeled[] | "* \(.)" ),
+      ""
+    else empty end ),
   ( if (.not_testable | length) > 0 then
-      "## Not testable in-process (unmodeled by the harness)\n",
+      "## Not testable in-process (unmodeled by the harness, beyond the baseline)\n",
       ( .not_testable | group_by(.target) | .[] | "* `\(.[0].target)`: \(.[0].unmodeled | join("; "))" ),
       ""
     else empty end ),
-  "Logs and reports: `runs/<binary>/<target>/{test.log,report.jsonl}`; target deltas: `targets.tsv`, `diff/`."
+  "Logs and reports: `runs/<binary>/<target>/{test.log,results.jsonl,runtime.json,report.jsonl}`; target deltas: `targets.tsv`, `diff/`."
 ' "$OUT/summary.json" > "$OUT/summary.md"
 
 cat "$OUT/summary.md"

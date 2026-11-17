@@ -9,7 +9,9 @@
 # Default runtime = the SIMD-0437 rent regression: base = mainnet without the two rent steps,
 # target = mainnet. 07ffbf7 must fail, d4e2023 and HEAD must pass.
 #
-# Environment: SOLANA_LEGACY_BIN (Solana 1.18.x release bin dir, for anchor 0.27 commits),
+# Anchor 0.27 commits (the deployed releases) build in docker with the deployment image of
+# Docs/DEPLOYMENT.md; anchor 0.31 commits with Solana 2.3 + platform-tools v1.52.
+# Environment: SOLANA_LEGACY_BIN (Solana 1.18.x, only with BACKTEST_LEGACY_TOOLCHAIN=1),
 #   SOLANA_BIN (Solana 2.3.x bin dir, for anchor 0.31 commits), BACKTEST_CACHE (default
 #   ~/.cache/marinade-backtest), SOLANA_VERIFY (solana-verify binary for --verifiable),
 #   BACKTEST_KEEP_WORKTREES=1 (keep worktrees for incremental rebuilds).
@@ -102,9 +104,20 @@ build_worktree() {
   else
     case "$av" in
       0.27.*)
-        bin="$(legacy_bin)"; echo "[backtest] anchor $av -> Solana legacy ($bin)" >&2
-        (cd "$wt" && PATH="$bin:$PATH" nice -n 19 cargo-build-sbf --manifest-path programs/marinade-finance/Cargo.toml \
-          --sbf-out-dir target/deploy) >&2 ;;
+        if [ "${BACKTEST_LEGACY_TOOLCHAIN:-0}" = 1 ]; then
+          # Solana 1.18 / platform-tools v1.41 builds of these commits crash in add_validator
+          # (access violation at 0xffff...); use only to compare toolchains.
+          bin="$(legacy_bin)"; echo "[backtest] anchor $av -> Solana legacy ($bin) [BACKTEST_LEGACY_TOOLCHAIN]" >&2
+          (cd "$wt" && PATH="$bin:$PATH" nice -n 19 cargo-build-sbf --manifest-path programs/marinade-finance/Cargo.toml \
+            --sbf-out-dir target/deploy) >&2
+        else
+          # the image these commits were deployed with (Docs/DEPLOYMENT.md): Solana 1.14.16, sbf-tools v1.29
+          docker info >/dev/null 2>&1 || die "anchor $av commits build in docker ($VERIFY_IMAGE); start a docker daemon"
+          echo "[backtest] anchor $av -> docker $VERIFY_IMAGE" >&2
+          local ca=() ; [ -f "${SSL_CERT_FILE:-/nonexistent}" ] && ca=(-v "$SSL_CERT_FILE:/ca.crt:ro" -e CARGO_HTTP_CAINFO=/ca.crt -e SSL_CERT_FILE=/ca.crt)
+          docker run --rm --network host -e HTTPS_PROXY -e HTTP_PROXY -e https_proxy -e http_proxy -e NO_PROXY "${ca[@]}" \
+            -v "$wt:/build" -w /build "$VERIFY_IMAGE" cargo build-sbf -- --locked --frozen >&2
+        fi ;;
       0.31.*)
         bin="$(modern_bin)"; echo "[backtest] anchor $av -> Solana modern ($bin)" >&2
         (cd "$wt" && PATH="$bin:$PATH" nice -n 19 cargo-build-sbf --tools-version "$MODERN_TOOLS" \
@@ -171,7 +184,12 @@ done
 # ---- run harness -------------------------------------------------------------
 command -v jq >/dev/null || die "jq is required"
 echo "[backtest] cargo test --no-run (once)" >&2
-(cd "$TESTS_DIR" && cargo test --no-run) > "$OUT/build.log" 2>&1 || { tail -n 40 "$OUT/build.log" >&2; die "harness build failed"; }
+TEST_ARGS=()
+if [ -n "$TESTS_FILTER" ]; then
+  # a file under harness/tests/ selects that test target, anything else is a test-name filter
+  if [ -f "$TESTS_DIR/harness/tests/$TESTS_FILTER.rs" ]; then TEST_ARGS=(--test "$TESTS_FILTER"); else TEST_ARGS=("$TESTS_FILTER"); fi
+fi
+(cd "$TESTS_DIR" && cargo test --no-run "${TEST_ARGS[@]}") > "$OUT/build.log" 2>&1 || { tail -n 40 "$OUT/build.log" >&2; die "harness build failed"; }
 
 CELLS="$OUT/cells"; rm -rf "$CELLS"; mkdir -p "$CELLS"
 safe() { printf '%s' "$1" | tr -c 'A-Za-z0-9._+-' '_'; }
@@ -180,18 +198,23 @@ for i in "${!LABELS[@]}"; do
     dir="$OUT/runs/$(safe "${LABELS[$i]}")/target$ti"; mkdir -p "$dir"; rm -f "$dir/report.jsonl"
     echo "[backtest] ${LABELS[$i]} x ${TARGETS[$ti]}" >&2
     rc=0
+    # captured output: libtest's own "test X ... ok|FAILED" lines are the source of truth
     (cd "$TESTS_DIR" && MARINADE_SO="${SOFILES[$i]}" HARNESS_BASE="$BASE_SPEC" HARNESS_TARGET="${TARGETS[$ti]}" \
       HARNESS_REPORT="$dir/report.jsonl" PROPTEST_CASES="$FUZZ_CASES" \
-      cargo test ${TESTS_FILTER:+"$TESTS_FILTER"} -- --nocapture) > "$dir/test.log" 2>&1 || rc=$?
-    [ -f "$dir/report.jsonl" ] || : > "$dir/report.jsonl"
-    logerr="$(grep -m1 -E '^error(\[|:)|panicked at|FAILED' "$dir/test.log" || true)"
+      cargo test "${TEST_ARGS[@]}") > "$dir/test.log" 2>&1 || rc=$?
+    python3 -I "$SCRIPT_DIR/parse_libtest.py" "$dir/test.log" > "$dir/results.jsonl"
+    logerr="$(grep -m1 -E '^error(\[|:)|could not compile' "$dir/test.log" || true)"
     jq -s --arg so "${LABELS[$i]}" --argjson ti "$ti" --argjson rc "$rc" --arg logerr "$logerr" '
-      ([ .[] | select(.passed | not) ]) as $f
-      | {so: $so, ti: $ti, total: length, passed: ([ .[] | select(.passed) ] | length),
-         failed: (if length == 0 and $rc != 0 then ["<harness did not run>"] else [ $f[].test ] end),
-         first_error: (if ($f | length) > 0 then (($f[0].error // "") | split("\n") | map(select(length > 0)) | .[0] // "(no message)")
-                       elif $rc != 0 then $logerr else "" end)}' \
-      "$dir/report.jsonl" > "$CELLS/$(safe "${LABELS[$i]}")__$ti.json"
+      ([ .[] | select(.status == "FAILED") ]) as $f
+      | ([ .[] | select(.status != "ignored") ] | length) as $ran
+      | {so: $so, ti: $ti, total: $ran, passed: ([ .[] | select(.status == "ok") ] | length),
+         failed: (if $ran == 0 then ["<no test ran>"]
+                  elif ($f | length) == 0 and $rc != 0 then ["<cargo test failed>"]
+                  else [ $f[] | "\(.binary | sub("^tests/"; "") | sub("\\.rs$"; ""))::\(.test)" ] end),
+         first_error: (if ($f | length) > 0 then ($f[0].error // "(no message)")
+                       elif $ran == 0 then "no test matched or the harness did not run"
+                       elif $rc != 0 then (if $logerr == "" then "cargo test failed" else $logerr end) else "" end)}' \
+      "$dir/results.jsonl" > "$CELLS/$(safe "${LABELS[$i]}")__$ti.json"
   done
 done
 
@@ -208,7 +231,7 @@ done
     printf '| %s |' "${LABELS[$i]}"
     for ti in "${!TARGETS[@]}"; do
       jq -r '(if (.failed | length) == 0 then "pass (\(.passed)/\(.total))"
-              else "**FAIL** (\(.failed | length)): `\(.first_error | gsub("\\|"; "/") | .[0:120])`" end) + " |"' \
+              else "**FAIL** (\(.failed | length)): \(.failed[0:4] | join(", ")): `\(.first_error | gsub("\\|"; "/") | .[0:160])`" end) + " |"' \
         "$CELLS/$(safe "${LABELS[$i]}")__$ti.json" | tr '\n' ' ' | sed 's/^/ /'
     done
     echo
