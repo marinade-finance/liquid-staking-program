@@ -1,4 +1,4 @@
-use crate::stake_program::{Stake, StakeAccount};
+use crate::stake_program::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang::solana_program::sysvar::stake_history;
@@ -82,12 +82,17 @@ impl<'info> CreateCanonicalStake<'info> {
         let total_active_balance = self.state.validator_system.total_active_balance;
         let operational_sol_balance = self.operational_sol_account.lamports();
 
+        let is_emptied_stake_account = *self.canonical_stake.owner == *self.stake_program.key
+            && self.canonical_stake.data_is_empty();
+
         // check canonical account non-existent
-        require_keys_neq!(
-            *self.canonical_stake.owner,
-            *self.stake_program.key,
-            MarinadeError::CanonicalStakeAccountAlreadyCreated
-        );
+        if !is_emptied_stake_account {
+            require_keys_neq!(
+                *self.canonical_stake.owner,
+                *self.stake_program.key,
+                MarinadeError::CanonicalStakeAccountAlreadyCreated
+            );
+        }
 
         // check derivation
         let (canonical_stake_account, bump) =
@@ -97,6 +102,40 @@ impl<'info> CreateCanonicalStake<'info> {
             canonical_stake_account,
             MarinadeError::InvalidCanonicalStakeAccountAddress
         );
+
+        let state_key = self.state.key();
+        let canonical_stake_seeds = [
+            state_key.as_ref(),
+            validator.validator_account.as_ref(),
+            State::CANONICAL_STAKE_SEED,
+            &[bump],
+        ];
+
+        // the owner stays the stake program until the tx ends; a later call creates the account
+        if is_emptied_stake_account {
+            let lamports = self.canonical_stake.lamports();
+            withdraw(
+                CpiContext::new_with_signer(
+                    self.stake_program.to_account_info(),
+                    Withdraw {
+                        stake: self.canonical_stake.to_account_info(),
+                        withdrawer: self.canonical_stake.to_account_info(),
+                        to: self.operational_sol_account.to_account_info(),
+                        clock: self.clock.to_account_info(),
+                        stake_history: self.stake_history.to_account_info(),
+                    },
+                    &[&canonical_stake_seeds],
+                ),
+                lamports,
+                None,
+            )?;
+            msg!(
+                "Reclaimed {} lamports of emptied canonical stake account {}",
+                lamports,
+                canonical_stake_account
+            );
+            return Ok(());
+        }
 
         // Source stake
         let source_stake_info = self.state.stake_system.get_checked(
@@ -133,14 +172,6 @@ impl<'info> CreateCanonicalStake<'info> {
             validator.validator_account,
             MarinadeError::InvalidSourceStakeDelegation
         );
-
-        let state_key = self.state.key();
-        let canonical_stake_seeds = [
-            state_key.as_ref(),
-            validator.validator_account.as_ref(),
-            State::CANONICAL_STAKE_SEED,
-            &[bump],
-        ];
 
         // extra SOL to withdraw
         if self.canonical_stake.lamports() > 0 {
