@@ -1,19 +1,19 @@
 #!/bin/bash
-export BPF_FILE=target/verifiable/marinade_finance.so
+export BPF_FILE=target/deploy/marinade_finance.so
 echo --------
 solana config get
 echo --------
 echo "remember to set SOLANA CONFIG pointing to A RELIABLE MAINNET RPC: solana config set -u [rpc_url]"
 read -p "Press any key to continue..."
-echo "anchor build -v && prepare deploy buffer on mainnet-beta?"
+echo "solana-verify build (SBPF v3) && prepare deploy buffer on mainnet-beta?"
 read -p "Press any key to continue..."
 set -e
 if [ $1. = . ]
 then
-    anchor build -v
+    solana-verify build --arch v3 --base-image solanafoundation/solana-verifiable-build@sha256:12fd4c0a0790f0fc41ef74b0cdb6bccc167ba6137eb1adb749bac649481c86bd --library-name marinade_finance $PWD
 elif [ $1. = "--skip-build." ]
 then
-    echo "skip anchor build -v"
+    echo "skip solana-verify build"
 else
     echo "invalid arguemnt: $1"
     exit 1
@@ -23,9 +23,7 @@ ls -l $BPF_FILE
 echo ---------------------
 echo solana program WRITE-BUFFER
 echo ---------------------
-# note: solana v1.10 is struggling to write-buffer 1017 txs, we use a patched CLI with extended retries
-~/repos/solana/solana/target/debug/solana program write-buffer -v $BPF_FILE >temp/buffer.txt
-#solana program --skip-fee-check write-buffer -v $BPF_FILE --commitment processed >temp/buffer.txt
+solana program write-buffer -v $BPF_FILE >temp/buffer.txt
 export BUFFER_ADDRESS=$(cat temp/buffer.txt | sed -n 's/.*Buffer://p')
 echo solana program show $BUFFER_ADDRESS
 echo after verifying do set-buffer-authority to move buffer auth to the multisig

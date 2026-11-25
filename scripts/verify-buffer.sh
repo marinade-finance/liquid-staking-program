@@ -1,4 +1,3 @@
 set -ex
-cd programs/marinade-finance
-anchor verify $1 --provider.cluster mainnet
-cd ../..
+solana-verify get-buffer-hash -um $1
+solana-verify get-executable-hash target/deploy/marinade_finance.so

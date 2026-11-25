@@ -8,6 +8,9 @@ Even though the audited and deployed commit hashes might differ, it is critical 
 
 ## 2026-10-TODO (v2.2.0): derive stake rent from the Rent sysvar (SIMD-0437 rent reduction)
 
+* Anchor 0.32.1, built as an SBPF v3 binary
+* `create_canonical_stake` reclaims the lamports of an emptied canonical stake account
+
 commit: [`d4e2023`](https://github.com/marinade-finance/liquid-staking-program/pull/98)
 
 tx: [TODO](https://solscan.io/tx/TODO)
