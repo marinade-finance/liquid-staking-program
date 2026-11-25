@@ -1,7 +1,8 @@
+use crate::stake_program::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang::solana_program::sysvar::stake_history;
-use anchor_lang::solana_program::{program::invoke_signed, stake};
-use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
+use solana_program::stake;
 
 use crate::checks::stake_rent_exempt_reserve;
 use crate::events::crank::MergeStakesEvent;

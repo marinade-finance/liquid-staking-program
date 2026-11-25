@@ -9,13 +9,12 @@ use crate::{
 };
 use std::convert::TryFrom;
 
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{
-    program::invoke_signed, stake, stake::state::StakeState, system_program,
-};
-use anchor_spl::stake::{
+use crate::stake_program::{
     deactivate_stake, withdraw, DeactivateStake, Stake, StakeAccount, Withdraw,
 };
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::{program::invoke_signed, system_program};
+use solana_program::{stake, stake::state::StakeState};
 
 #[derive(Accounts)]
 pub struct PartialUnstake<'info> {

@@ -1,3 +1,4 @@
+use crate::stake_program::{withdraw, Stake, StakeAccount, Withdraw};
 use crate::{
     error::MarinadeError,
     events::crank::StakeReserveEvent,
@@ -13,17 +14,16 @@ use anchor_lang::{
 };
 use anchor_lang::{
     solana_program::{
-        log::sol_log_compute_units,
         program::{invoke, invoke_signed},
-        stake::{
-            self,
-            state::{Authorized, Lockup, StakeState},
-        },
         sysvar::stake_history,
     },
     system_program,
 };
-use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
+use solana_program::log::sol_log_compute_units;
+use solana_program::stake::{
+    self,
+    state::{Authorized, Lockup, StakeState},
+};
 use std::convert::TryFrom;
 
 #[derive(Accounts)]

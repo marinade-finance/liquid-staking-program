@@ -3,10 +3,9 @@ use crate::{
     error::MarinadeError,
     require_lte, ID,
 };
-use anchor_lang::{
-    prelude::*, solana_program::native_token::LAMPORTS_PER_SOL, solana_program::program_pack::Pack,
-};
+use anchor_lang::{prelude::*, solana_program::program_pack::Pack};
 use anchor_spl::token::spl_token;
+use solana_program::native_token::LAMPORTS_PER_SOL;
 use std::mem::MaybeUninit;
 
 use self::{

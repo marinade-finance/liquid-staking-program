@@ -1,6 +1,7 @@
 use crate::{calc::proportional, error::MarinadeError, require_lte, state::Fee, ID};
-use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
+use anchor_lang::prelude::*;
 use anchor_spl::token::spl_token;
+use solana_program::native_token::LAMPORTS_PER_SOL;
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct LiqPool {

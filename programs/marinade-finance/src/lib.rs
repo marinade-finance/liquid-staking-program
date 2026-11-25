@@ -10,6 +10,7 @@ pub mod checks;
 pub mod error;
 pub mod events;
 pub mod instructions;
+pub mod stake_program;
 pub mod state;
 
 use instructions::*;

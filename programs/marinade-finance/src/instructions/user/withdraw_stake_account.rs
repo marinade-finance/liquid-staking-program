@@ -10,17 +10,15 @@ use crate::{
 };
 use anchor_lang::{
     prelude::*,
-    solana_program::{
-        program::invoke_signed,
-        stake,
-        stake::state::{StakeAuthorize, StakeState},
-        system_program,
-    },
+    solana_program::{program::invoke_signed, system_program},
 };
-use anchor_spl::{
-    stake::{Stake, StakeAccount},
-    token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer},
+use anchor_spl::token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer};
+use solana_program::{
+    stake,
+    stake::state::{StakeAuthorize, StakeState},
 };
+
+use crate::stake_program::{Stake, StakeAccount};
 
 use crate::checks::check_stake_amount_and_validator;
 

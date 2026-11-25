@@ -1,8 +1,9 @@
+use crate::stake_program::{Stake, StakeAccount};
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang::solana_program::sysvar::stake_history;
-use anchor_lang::solana_program::{program::invoke_signed, stake};
 use anchor_lang::system_program::{transfer, Transfer};
-use anchor_spl::stake::{Stake, StakeAccount};
+use solana_program::stake;
 
 use crate::checks::stake_rent_exempt_reserve;
 use crate::events::crank::CreateCanonicalStakeEvent;
