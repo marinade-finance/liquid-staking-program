@@ -29,7 +29,7 @@ security_txt! {
     policy: "https://docs.marinade.finance/marinade-protocol/security",
     preferred_languages: "en",
     source_code: "https://github.com/marinade-finance/liquid-staking-program",
-    source_release: "v2.1.0",
+    source_release: "v2.2.0",
     auditors: "https://docs.marinade.finance/marinade-protocol/security/audits"
 }
 

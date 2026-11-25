@@ -6,7 +6,7 @@ Branch `mainnet` contains the version deployed on mainnet, keep it up to date wi
 
 Even though the audited and deployed commit hashes might differ, it is critical that the program source is identical.
 
-## 2026-10-TODO (v2.1.0): derive stake rent from the Rent sysvar (SIMD-0437 rent reduction)
+## 2026-10-TODO (v2.2.0): derive stake rent from the Rent sysvar (SIMD-0437 rent reduction)
 
 commit: [`d4e2023`](https://github.com/marinade-finance/liquid-staking-program/pull/98)
 
