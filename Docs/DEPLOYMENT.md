@@ -26,6 +26,8 @@ export IMAGE=solanafoundation/solana-verifiable-build@sha256:12fd4c0a0790f0fc41e
 git checkout <COMMIT>
 solana-verify build --arch v3 --base-image $IMAGE --library-name marinade_finance $PWD
 solana-verify get-executable-hash target/deploy/marinade_finance.so
+solana-verify build --arch v3 --base-image $IMAGE --library-name marinade_finance $PWD
+solana-verify get-executable-hash target/deploy/marinade_finance.so
 readelf -h target/deploy/marinade_finance.so | grep Flags   # Flags: 0x3
 CARGO_TARGET_DIR=/tmp/lsp-target cargo build-sbf --arch v3 --tools-version v1.57 \
   --manifest-path programs/marinade-finance/Cargo.toml --sbf-out-dir /tmp/lsp-local
