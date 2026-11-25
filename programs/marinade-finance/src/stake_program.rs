@@ -97,6 +97,14 @@ impl Deref for StakeAccount {
     }
 }
 
+#[cfg(feature = "idl-build")]
+impl anchor_lang::IdlBuild for StakeAccount {}
+
+#[cfg(feature = "idl-build")]
+impl anchor_lang::Discriminator for StakeAccount {
+    const DISCRIMINATOR: &'static [u8] = &[];
+}
+
 #[derive(Clone)]
 pub struct Stake;
 
