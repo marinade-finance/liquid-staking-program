@@ -12,6 +12,7 @@ Even though the audited and deployed commit hashes might differ, it is critical 
 * new error 6093 `WrongStakeAccountDataLength` for deposited stake accounts of a non-standard size
 * Anchor 0.32.1, built as an SBPF v3 binary ([#108](https://github.com/marinade-finance/liquid-staking-program/pull/108))
 * `create_canonical_stake` reclaims the lamports of an emptied canonical stake account ([#108](https://github.com/marinade-finance/liquid-staking-program/pull/108))
+* `merge_stakes` accepts surplus lamports on the source stake ([#108](https://github.com/marinade-finance/liquid-staking-program/pull/108))
 
 commit: TODO
 
