@@ -156,9 +156,9 @@ impl<'info> MergeStakes<'info> {
             MarinadeError::SourceStakeMustBeUpdated
         );
 
-        // exact: a surplus could push extra_delegated past stake_rent and underflow returned_stake_rent
+        // no ceiling: the surplus lands in the canonical account, delegated only in an activating merge
         let stake_rent = stake_rent_exempt_reserve()?;
-        require_eq!(
+        require_gte!(
             self.source_stake.to_account_info().lamports(),
             source_delegation.stake + stake_rent,
             MarinadeError::SourceStakeMustBeUpdated
@@ -201,7 +201,7 @@ impl<'info> MergeStakes<'info> {
         // and so we should consider the case.
         // In normal cases (the bot merging to active accounts) the *rent-lamports* go to dest account *native lamports*,
         // so the destination account will have double the rent-exempt lamports
-        let returned_stake_rent = stake_rent - extra_delegated;
+        let returned_stake_rent = stake_rent.saturating_sub(extra_delegated);
         // update validator.active_balance
         validator.active_balance += extra_delegated;
         // store in list
