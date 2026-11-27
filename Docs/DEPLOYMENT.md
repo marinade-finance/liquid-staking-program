@@ -109,6 +109,7 @@ Only after the upgrade in step 5 executes.
 The IDL is updated through a Realms proposal of the governance above, not through the multisig.
 Write the IDL buffer and hand it to the governance, then propose `IdlSetBuffer` as a custom instruction.
 Run these outside the repo, in a directory whose `Anchor.toml` has only a `[provider]` section: the repo's `[toolchain]` pin breaks newer Anchor CLIs.
+Anchor 0.32.1 writes the 0.30+ IDL format; Anchor TS clients older than 0.30 cannot read it from chain.
 
 ```bash
 ~/.avm/bin/anchor-0.32.1 idl write-buffer --filepath <REPO>/target/idl/marinade_finance.json MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD
@@ -122,3 +123,9 @@ The printed base64 instruction must list `42VJ…` as the signer; it goes into t
 
 - Add the release to the [README](../README.md) with the commit, the upgrade tx and the audit.
 - Merge the release into the `mainnet` branch and tag it.
+
+## 9. Rollback
+
+Before step 5, keep the running program: `solana program dump -u <RPC_URL> MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD previous.so`.
+To roll back, write `previous.so` to a buffer and upgrade as in steps 2–5.
+Once SIMD-0500 is active, a pre-v3 binary can no longer be deployed; the rollback is then to pause the program and fix forward.
