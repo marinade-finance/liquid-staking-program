@@ -108,11 +108,17 @@ solana-verify verify-from-repo --arch v3 --base-image solanafoundation/solana-ve
 Only after the upgrade in step 5 executes.
 The IDL is updated through a Realms proposal of the governance above, not through the multisig.
 Write the IDL buffer and hand it to the governance, then propose `IdlSetBuffer` as a custom instruction.
-Run these outside the repo, in a directory whose `Anchor.toml` has only a `[provider]` section: the repo's `[toolchain]` pin breaks newer Anchor CLIs.
+Generate the IDL in the repo at `<COMMIT>`, with its own target directory like the local build of step 1:
+
+```bash
+CARGO_TARGET_DIR=/tmp/lsp-idl-target ~/.avm/bin/anchor-0.32.1 idl build -p marinade-finance -o /tmp/marinade_finance.json
+```
+
+Run the rest outside the repo, in a directory whose `Anchor.toml` has only a `[provider]` section: the repo's `[toolchain]` pin breaks newer Anchor CLIs.
 Anchor 0.32.1 writes the 0.30+ IDL format; Anchor TS clients older than 0.30 cannot read it from chain.
 
 ```bash
-~/.avm/bin/anchor-0.32.1 idl write-buffer --filepath <REPO>/target/idl/marinade_finance.json MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD
+~/.avm/bin/anchor-0.32.1 idl write-buffer --filepath /tmp/marinade_finance.json MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD
 ~/.avm/bin/anchor-0.32.1 idl set-authority --program-id MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD --new-authority 42VJbDihcS81YJPbuhHnHgvo1ehu42j8VK9sNwrnAarR <IDL_BUFFER>
 ~/.avm/bin/anchor-0.32.1 idl set-buffer --print-only --buffer <IDL_BUFFER> MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD
 ```
@@ -126,6 +132,6 @@ The printed base64 instruction must list `42VJ…` as the signer; it goes into t
 
 ## 9. Rollback
 
-Before step 5, keep the running program: `solana program dump -u <RPC_URL> MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD previous.so`.
-To roll back, write `previous.so` to a buffer and upgrade as in steps 2–5.
+Before step 5, each signer keeps the running program, which is gone from chain after the upgrade: `solana program dump -u <RPC_URL> MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD previous.so`.
+To roll back, write `previous.so` to a buffer and upgrade as in steps 2–5; in step 4 each signer compares the buffer with their own dump, `scripts/verify-buffer.sh <BUFFER> previous.so`, since the v3 image cannot rebuild an older binary.
 Once SIMD-0500 is active, a pre-v3 binary can no longer be deployed; the rollback is then to pause the program and fix forward.

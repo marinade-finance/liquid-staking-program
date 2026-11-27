@@ -19,7 +19,8 @@ else
     exit 1
 fi
 ls -l $BPF_FILE
-echo "executable hash: $(solana-verify get-executable-hash $BPF_FILE | tail -n1)"
+EXECUTABLE_HASH=$(solana-verify get-executable-hash "$BPF_FILE")
+echo "executable hash: $EXECUTABLE_HASH"
 read -p "It must equal the solana-verify build hash of the release commit. Press any key to continue..."
 
 echo ---------------------
