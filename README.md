@@ -6,15 +6,21 @@ Branch `mainnet` contains the version deployed on mainnet, keep it up to date wi
 
 Even though the audited and deployed commit hashes might differ, it is critical that the program source is identical.
 
-## 2026-10-TODO (v2.1.0): derive stake rent from the Rent sysvar (SIMD-0437 rent reduction)
+## TODO (v2.2.0): stake rent from the Rent sysvar, Anchor 0.32.1 as SBPF v3, canonical stake reclaim
 
-commit: [`d4e2023`](https://github.com/marinade-finance/liquid-staking-program/pull/98)
+* stake rent is read from the Rent sysvar, not the frozen stake meta (SIMD-0437 rent reduction, [#98](https://github.com/marinade-finance/liquid-staking-program/pull/98))
+* new error 6093 `WrongStakeAccountDataLength` for deposited stake accounts of a non-standard size
+* Anchor 0.32.1, built as an SBPF v3 binary ([#108](https://github.com/marinade-finance/liquid-staking-program/pull/108))
+* `create_canonical_stake` reclaims the lamports of an emptied canonical stake account ([#108](https://github.com/marinade-finance/liquid-staking-program/pull/108))
+* `merge_stakes` accepts surplus lamports on the source stake ([#108](https://github.com/marinade-finance/liquid-staking-program/pull/108))
+
+commit: TODO
 
 tx: [TODO](https://solscan.io/tx/TODO)
 
 audits:
 
-* [Neodyme](Docs/audits/2026_10_marinade_rent_reduction_changes.pdf)
+* [Neodyme](Docs/audits/2026_10_marinade_rent_reduction_changes.pdf) (rent change)
 
 ## 2026-07-16 (v2.1.0): fix delinquent stakes and introduce deposit fees
 

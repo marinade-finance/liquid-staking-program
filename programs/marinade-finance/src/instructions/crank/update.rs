@@ -2,10 +2,10 @@
 
 use std::ops::{Deref, DerefMut};
 
+use crate::stake_program::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar::stake_history;
 use anchor_lang::system_program::{transfer, Transfer};
-use anchor_spl::stake::{withdraw, Stake, StakeAccount, Withdraw};
 use anchor_spl::token::{mint_to, Mint, MintTo, Token};
 
 use crate::checks::stake_rent_exempt_reserve;

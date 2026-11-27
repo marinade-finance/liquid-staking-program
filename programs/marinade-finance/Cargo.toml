@@ -1,6 +1,6 @@
 [package]
 name = "marinade-finance"
-version = "0.1.0"
+version = "2.2.0"
 description = "Liquid Staking for the Solana Blockchain - Anchor-based on-chain program"
 edition = "2021"
 publish = false
@@ -24,6 +24,7 @@ custom-panic = []
 overflow-checks = true
 
 [dependencies]
-anchor-lang = "=0.31.1"
-anchor-spl = { version = "=0.31.1", default-features = false, features = ["stake", "mint", "token"] }
+anchor-lang = "=0.32.1"
+anchor-spl = { version = "=0.32.1", default-features = false, features = ["mint", "token"] }
+solana-program = "=2.3.0"
 solana-security-txt = "1.1.1"

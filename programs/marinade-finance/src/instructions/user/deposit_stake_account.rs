@@ -1,13 +1,12 @@
+use crate::stake_program::{Stake, StakeAccount};
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::stake::instruction::LockupArgs;
-use anchor_lang::solana_program::{
-    program::invoke,
+use anchor_lang::solana_program::{program::invoke, system_program};
+use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
+use solana_program::stake::instruction::LockupArgs;
+use solana_program::{
     stake,
     stake::state::{StakeAuthorize, StakeState},
-    system_program,
 };
-use anchor_spl::stake::{Stake, StakeAccount};
-use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 
 use crate::checks::stake_rent_exempt_reserve;
 use crate::events::user::DepositStakeAccountEvent;

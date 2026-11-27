@@ -8,8 +8,8 @@ use crate::{
     State,
 };
 
+use crate::stake_program::{deactivate_stake, DeactivateStake, Stake, StakeAccount};
 use anchor_lang::prelude::*;
-use anchor_spl::stake::{deactivate_stake, DeactivateStake, Stake, StakeAccount};
 
 #[derive(Accounts)]
 pub struct EmergencyUnstake<'info> {
